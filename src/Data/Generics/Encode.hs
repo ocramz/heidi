@@ -1,10 +1,8 @@
 {-# language
     DeriveGeneric
-  , DeriveFunctor
   , DataKinds
   , FlexibleContexts
-  , GADTs 
-  , LambdaCase
+  , GADTs
   , OverloadedStrings
   , TypeOperators
   , DefaultSignatures
@@ -15,7 +13,7 @@ module Data.Generics.Encode where
 
 
 import qualified GHC.Generics as G
-import Generics.SOP hiding (fromList) -- (Generic(..), All, Code)
+import Generics.SOP -- (Generic(..), All, Code)
 -- import Generics.SOP.NP (cpure_NP)
 import Generics.SOP.Constraint (SListIN)
 import Generics.SOP.GGP   -- (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
@@ -66,25 +64,11 @@ instance ToVal T.Text where toVal = VText
 --     toVal = id
 
 
-{- | Example from `basic-sop` :
-
-gshow :: forall a . (Generic a, HasDatatypeInfo a, All2 Show (Code a))
-      => a -> String
-gshow a = case datatypeInfo (Proxy :: Proxy a) of
-            ADT     _ _ cs -> gshow' cs         (from a)
-            Newtype _ _ c  -> gshow' (c :* Nil) (from a)
-
-gshow' :: (All2 Show xss, SListI xss) => NP ConstructorInfo xss -> SOP I xss -> String
-gshow' cs (SOP sop) =
-  hcollapse $ hcliftA2 (Proxy :: Proxy (All Show)) goConstructor cs sop
-
-goConstructor :: All Show xs => ConstructorInfo xs -> NP I xs -> K String xs
-goConstructor (Constructor n) args =
-    K $ unwords (n : args')
-  where
-    args' :: [String]
-    args' = hcollapse $ hcliftA (Proxy :: Proxy Show) (K . show . unI) args
-
+{- | Examples :
+* `basic-sop` - generic show function  :
+https://hackage.haskell.org/package/basic-sop-0.2.0.2/docs/src/Generics-SOP-Show.html#gshow
+* `tree-diff` - single-typed ADT reconstruction :
+http://hackage.haskell.org/package/tree-diff-0.0.2/docs/src/Data.TreeDiff.Class.html#sopToExpr
 -}
 
 
