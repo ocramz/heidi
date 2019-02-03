@@ -15,7 +15,7 @@ module Data.Generics.Encode where
 import qualified GHC.Generics as G
 import Generics.SOP -- (Generic(..), All, Code)
 -- import Generics.SOP.NP (cpure_NP)
-import Generics.SOP.Constraint (SListIN)
+-- import Generics.SOP.Constraint (SListIN)
 import Generics.SOP.GGP   -- (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
 
 import qualified Data.Text as T
@@ -45,7 +45,7 @@ data Val =
 
 class ToVal a where
   toVal :: a -> Val 
-  default toVal :: (G.Generic a, All2 ToVal (GCode a), GFrom a, GDatatypeInfo a)
+  default toVal :: (G.Generic a, All Top (GCode a), All2 ToVal (GCode a), GFrom a, GDatatypeInfo a)
                 => a -> Val
   toVal x = sopToVal (gdatatypeInfo (Proxy :: Proxy a)) (gfrom x)  
 
@@ -73,7 +73,7 @@ http://hackage.haskell.org/package/tree-diff-0.0.2/docs/src/Data.TreeDiff.Class.
 
 
 
-sopToVal :: (All2 ToVal xss) => DatatypeInfo xss -> SOP I xss -> Val
+sopToVal :: (All2 ToVal xss, All Top xss) => DatatypeInfo xss -> SOP I xss -> Val
 sopToVal di sop@(SOP xss) = hcollapse $ hcliftA2
     (Proxy :: Proxy (All ToVal))
     (\ci xs -> K (mkVal ci xs tyName oneHot))
