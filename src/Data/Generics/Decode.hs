@@ -3,6 +3,18 @@
     GeneralizedNewtypeDeriving
 #-}
 {-# OPTIONS_GHC -Wall #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Data.Generics.Decode
+-- Description :  Composable decoding of terms
+-- Copyright   :  (c) Marco Zocca (2019)
+-- License     :  MIT
+-- Maintainer  :  ocramz fripost org
+-- Stability   :  experimental
+-- Portability :  GHC
+--
+-- Composable decoding of terms
+-----------------------------------------------------------------------------
 module Data.Generics.Decode where
 
 import Control.Applicative      (Alternative(..))

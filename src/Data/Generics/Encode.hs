@@ -9,6 +9,18 @@
   , ScopedTypeVariables
 #-}
 {-# OPTIONS_GHC -Wall #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Data.Generics.Encode
+-- Description :  Generic encoding of algebraic datatypes
+-- Copyright   :  (c) Marco Zocca (2019)
+-- License     :  MIT
+-- Maintainer  :  ocramz fripost org
+-- Stability   :  experimental
+-- Portability :  GHC
+--
+-- Generic encoding of algebraic datatypes
+-----------------------------------------------------------------------------
 module Data.Generics.Encode where
 
 
