@@ -44,7 +44,6 @@ test-suite test
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
-      Paths_adt_codec_generic
   hs-source-dirs:
       test
   ghc-options: -Wall -rtsopts -threaded -with-rtsopts=-N
@@ -60,7 +59,6 @@ benchmark bench
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
-      Paths_adt_codec_generic
   hs-source-dirs:
       bench
   ghc-options: -Wall -rtsopts -threaded -with-rtsopts=-N

@@ -44,6 +44,19 @@ import qualified Data.HashMap.Strict as HM
 -- >>> import qualified GHC.Generics as G
 
 
+{-| alternative ADT representation
+
+data VRep =
+    VProduct DatatypeName (HM.HashMap FieldName VRep)
+  | VSum DatatypeName FieldName VRep
+  | VEnum DatatypeName (OneHot Int)
+  deriving (Eq, Show)
+
+depth-first traversal to extract prefix lists
+e.g. [(DatatypeName, FieldName), ... , (DatatypeName, OneHot Int)]
+-}
+
+
 
 data Val =
     Con FieldName [Val]  -- ^ Constructor (1 or more anonymous fields)
