@@ -33,7 +33,7 @@ library
   ghc-options: -Wall
   build-depends:
                 base > 4.9 && < 4.13
-              , generics-sop > 0.3.2
+              , generics-sop > 0.3.0
               -- , logging-effect
               , text > 1.2.2
               -- , transformers
