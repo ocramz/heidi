@@ -1,10 +1,14 @@
 name:           adt-codec-generic
 version:        0.1.0
+synopsis:       Generic encoding and decoding of algebraic datatypes
+description:    Generic encoding and decoding of algebraic datatypes, please see README
 homepage:       https://github.com/ocramz/adt-codec-generic#readme
 bug-reports:    https://github.com/ocramz/adt-codec-generic/issues
 author:         Marco Zocca
 maintainer:     Marco Zocca
 license:        MIT
+copyright:      (c) 2019, Marco Zocca
+category:       Generics, Data
 build-type:     Simple
 cabal-version:  1.12
 tested-with:    GHC == 8.6.3                     
