@@ -26,6 +26,7 @@ library
   exposed-modules:
                   Data.Generics.Encode
                   Data.Generics.Decode
+                  Data.Generics.Internal.Value
   other-modules:
       Paths_adt_codec_generic
   hs-source-dirs:
@@ -34,6 +35,7 @@ library
   build-depends:
                 base > 4.9 && < 4.13
               , generics-sop > 0.3.0
+              , hashable
               -- , logging-effect
               , text > 1.2.2
               -- , transformers

@@ -56,17 +56,22 @@ depth-first traversal to extract prefix lists
 e.g. [(DatatypeName, FieldName), ... , (DatatypeName, OneHot Int)]
 -}
 
+-- data TypeMD =
+--   EnumMD DatatypeName Int
+
+data EnumMD = EnumMD DatatypeName Int deriving (Eq, Show, G.Generic)
+
 
 
 data Val =
     Con FieldName [Val]  -- ^ Constructor (1 or more anonymous fields)
   | Enum DatatypeName (OneHot Int)  -- ^ Enum (Constructor with 0 fields)
   | Rec (HM.HashMap FieldName Val) -- ^ Record (1 or more named fields)
+  | VMaybe (Maybe Val)  -- ^ Maybe   
   | VInt Int  
   | VChar Char
   | VText T.Text
-  | VMaybe (Maybe Val)  -- ^ Maybe 
-  deriving (Eq, Show)
+  deriving (Eq, Show, G.Generic)
 
 class ToVal a where
   toVal :: a -> Val 
