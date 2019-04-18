@@ -30,6 +30,7 @@ library
                   Core.Data.Frame
                   Core.Data.Frame.Value.Generic
                   Core.Data.Frame.Generic
+                  Core.Data.Trie
   other-modules:
       Paths_adt_codec_generic
   hs-source-dirs:
