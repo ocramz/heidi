@@ -13,11 +13,11 @@ addons:
 # The different configurations we want to test. You could also do things like
 # change flags or use --stack-yaml to point to a different file.
 env:
-# - ARGS=""
 - ARGS="--resolver lts-9.0"
 - ARGS="--resolver lts-11.0"
 - ARGS="--resolver lts-12.0"
 - ARGS="--resolver lts-13.0"
+- ARGS="--resolver lts-13.17"
 
 
 before_install:

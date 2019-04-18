@@ -39,7 +39,7 @@ library
   build-depends:
                 base > 4.9 && < 4.13
               , containers
-              , data-fix >= 0.2
+              , data-fix 
               , exceptions >=0.8.3
               , generics-sop > 0.3.0
               , hashable
