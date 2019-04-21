@@ -3,9 +3,9 @@ module Core.Data.Frame.Value.Generic where
 
 import Generics.SOP
 import Generics.SOP.NP
-import Generics.SOP.NS
-import qualified GHC.Generics as G
-import Data.Data (Data(..), DataType, Constr, isAlgType, dataTypeConstrs, indexConstr, constrFields, constrIndex, constrType, maxConstrIndex, readConstr)
+-- import Generics.SOP.NS
+-- import qualified GHC.Generics as G
+-- import Data.Data (Data(..), DataType, Constr, isAlgType, dataTypeConstrs, indexConstr, constrFields, constrIndex, constrType, maxConstrIndex, readConstr)
 
 import qualified Data.Generics.Internal.Value as AV
 

@@ -1,12 +1,9 @@
 {-# language
-    DeriveGeneric
-  , DeriveFunctor
-  , DataKinds
+    DataKinds
   , FlexibleContexts
   , GADTs 
   , LambdaCase 
   , TypeOperators
-  , DefaultSignatures
   , ScopedTypeVariables
 #-}
 {-# OPTIONS_GHC -Wall #-}
@@ -16,19 +13,17 @@ module Core.Data.Frame.Generic (
   gToRow, gToRowMaybe
   ) where
 
-import Data.Char (toLower)
-import Data.Maybe (fromMaybe)
-
-import Data.Fix (Fix(..), cata, ana)
-
-import Control.Arrow (second)
+-- import Data.Char (toLower)
+-- import Data.Maybe (fromMaybe)
+-- import Data.Fix (Fix(..), cata, ana)
+-- import Control.Arrow (second)
 
 import Generics.SOP hiding (fromList) -- (Generic(..), All, Code)
-import Generics.SOP.NP (cpure_NP)
-import Generics.SOP.Constraint (SListIN)
-import Generics.SOP.GGP   -- (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
+-- import Generics.SOP.NP (cpure_NP)
+-- import Generics.SOP.Constraint (SListIN)
+-- import Generics.SOP.GGP   -- (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
 -- import Generics.SOP.NP
-import qualified GHC.Generics as G
+-- import qualified GHC.Generics as G
 
 import Data.Data (Data(..), constrFields)
 import Data.Typeable (Typeable)
@@ -41,7 +36,7 @@ import Control.Monad.Catch (MonadThrow(..))
 import qualified Data.Foldable as F (Foldable(..)) 
 import qualified Data.Text as T
 -- import qualified Data.Vector as V
-import qualified Data.Map as M
+-- import qualified Data.Map as M
 import qualified Data.HashMap.Strict as HM
 import Data.Hashable (Hashable(..))
 
@@ -130,8 +125,8 @@ gToRowMaybe constrs d = mkRow (insertsMaybe kvs) where
 
 -- | Exceptions related to the input data
 data DataException =
-  AnonRecordE  -- ^ Anonymous records not implemented yet
-  | NoDataE    -- ^ Dataset has 0 rows
+    AnonRecordE -- ^ Anonymous records not implemented yet
+  | NoDataE     -- ^ Dataset has 0 rows
   deriving (Eq, Typeable)
 instance Show DataException where
   show = \case
@@ -147,3 +142,10 @@ insertsMaybe = F.foldl insf HM.empty where
   insf acc (k, vmay) = case vmay of
     Just v  -> HM.insert k v acc
     Nothing -> acc
+
+
+
+-- -- example datatype
+
+-- data P2 = P2 { p2i :: Int, p2c :: Char } deriving (Eq, Show, Data, G.Generic)
+-- instance Generic P2

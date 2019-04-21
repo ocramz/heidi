@@ -19,22 +19,20 @@
 -- Stability   :  experimental
 -- Portability :  GHC
 --
--- Generic encoding of algebraic datatypes
+-- Generic encoding of algebraic datatypes, using 'generics-sop'
 -----------------------------------------------------------------------------
 module Data.Generics.Encode where
 
-
 import qualified GHC.Generics as G
-import Generics.SOP -- (Generic(..), All, Code)
+import Generics.SOP (All, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), FieldName, ConstructorInfo(..), constructorInfo, ConstructorName, Top, All, All2, hcliftA2, hindex, hmap, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse)
 -- import Generics.SOP.NP (cpure_NP)
 -- import Generics.SOP.Constraint (SListIN)
-import Generics.SOP.GGP   -- (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
+import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
 
 import qualified Data.Text as T
 -- import qualified Data.Vector as V
 -- import qualified Data.Map as M
 import qualified Data.HashMap.Strict as HM
-
 
 -- $setup
 -- >>> :set -XDeriveDataTypeable
@@ -42,7 +40,6 @@ import qualified Data.HashMap.Strict as HM
 -- >>> import Generics.SOP (Generic(..), All, Code)
 -- >>> import Generics.SOP.NP
 -- >>> import qualified GHC.Generics as G
-
 
 {-| alternative ADT representation
 
@@ -75,8 +72,7 @@ data Val =
 
 class ToVal a where
   toVal :: a -> Val 
-  default toVal :: (G.Generic a, All Top (GCode a), All2 ToVal (GCode a), GFrom a, GDatatypeInfo a)
-                => a -> Val
+  default toVal :: (G.Generic a, All Top (GCode a), All2 ToVal (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
   toVal x = sopToVal (gdatatypeInfo (Proxy :: Proxy a)) (gfrom x)  
 
 instance ToVal a => ToVal (Maybe a) where
@@ -100,8 +96,6 @@ https://hackage.haskell.org/package/basic-sop-0.2.0.2/docs/src/Generics-SOP-Show
 * `tree-diff` - single-typed ADT reconstruction :
 http://hackage.haskell.org/package/tree-diff-0.0.2/docs/src/Data.TreeDiff.Class.html#sopToExpr
 -}
-
-
 
 sopToVal :: (All2 ToVal xss, All Top xss) => DatatypeInfo xss -> SOP I xss -> Val
 sopToVal di sop@(SOP xss) = hcollapse $ hcliftA2
