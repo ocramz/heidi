@@ -46,12 +46,7 @@ import Data.Generics.Encode.OneHot
 -- empty = Trie GT.empty
 
 
-data W =
-    WProd [String] (HM.HashMap String W) -- ^ product
-  | WSum  [String] W                     -- ^ sum
-  | WOH   [String] (OneHot Int)          -- ^ 1-hot
-  | WInt  Int
-  deriving (Eq, Show, G.Generic)
+
 
 
 
@@ -69,7 +64,7 @@ data Val =
 class ToVal a where
   {-# MINIMAL toVal #-}
   toVal :: a -> Val
-  default toVal :: (G.Generic a, All Top (GCode a), All2 ToVal (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
+  default toVal :: (G.Generic a, All2 ToVal (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
   toVal x = sopToVal (gdatatypeInfo (Proxy :: Proxy a)) (gfrom x)  
 
 -- instance ToVal a => ToVal (Maybe a) where
@@ -108,7 +103,7 @@ https://hackage.haskell.org/package/basic-sop-0.2.0.2/docs/src/Generics-SOP-Show
 http://hackage.haskell.org/package/tree-diff-0.0.2/docs/src/Data.TreeDiff.Class.html#sopToExpr
 -}
 
-sopToVal :: (All2 ToVal xss, All Top xss) => DatatypeInfo xss -> SOP I xss -> Val
+sopToVal :: (All2 ToVal xss) => DatatypeInfo xss -> SOP I xss -> Val
 sopToVal di sop@(SOP xss) = hcollapse $ hcliftA2
     (Proxy :: Proxy (All ToVal))
     (\ci xs -> K (mkVal ci xs tyName oneHot))
@@ -130,8 +125,6 @@ mkVal (Record _ fi) xs _ _ = Rec $ HM.fromList $ hcollapse $ hcliftA2 (Proxy :: 
   where
     mk :: ToVal v => FieldInfo v -> I v -> K (FieldName, Val) v
     mk (FieldInfo n) (I x) = K (n, toVal x)
-
-
 
 npToVals :: (All ToVal xs) => NP I xs -> [Val]
 npToVals xs = hcollapse $ hcmap (Proxy :: Proxy ToVal) (mapIK toVal) xs
