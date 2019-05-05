@@ -64,8 +64,12 @@ data Val =
 class ToVal a where
   {-# MINIMAL toVal #-}
   toVal :: a -> Val
-  default toVal :: (G.Generic a, All Top (GCode a), All2 ToVal (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
-  toVal x = sopToVal (gdatatypeInfo (Proxy :: Proxy a)) (gfrom x)  
+  default toVal :: (G.Generic a, All2 ToVal (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
+  toVal x = sopToVal (gdatatypeInfo (Proxy :: Proxy a)) (gfrom x)
+
+-- All Top (GCode a),
+
+
 
 -- instance ToVal a => ToVal (Maybe a) where
 --   toVal mx = case mx of
@@ -103,7 +107,7 @@ https://hackage.haskell.org/package/basic-sop-0.2.0.2/docs/src/Generics-SOP-Show
 http://hackage.haskell.org/package/tree-diff-0.0.2/docs/src/Data.TreeDiff.Class.html#sopToExpr
 -}
 
-sopToVal :: (All2 ToVal xss) => DatatypeInfo xss -> SOP I xss -> Val
+sopToVal :: All2 ToVal xss => DatatypeInfo xss -> SOP I xss -> Val
 sopToVal di sop@(SOP xss) = hcollapse $ hcliftA2
     (Proxy :: Proxy (All ToVal))
     (\ci xs -> K (mkVal ci xs tyName oneHot))
@@ -126,7 +130,7 @@ mkVal (Record _ fi) xs _ _ = Rec $ HM.fromList $ hcollapse $ hcliftA2 (Proxy :: 
     mk :: ToVal v => FieldInfo v -> I v -> K (FieldName, Val) v
     mk (FieldInfo n) (I x) = K (n, toVal x)
 
-npToVals :: (All ToVal xs) => NP I xs -> [Val]
+npToVals :: All ToVal xs => NP I xs -> [Val]
 npToVals xs = hcollapse $ hcmap (Proxy :: Proxy ToVal) (mapIK toVal) xs
 
 

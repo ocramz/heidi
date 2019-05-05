@@ -44,11 +44,11 @@ class ToVal a where
   {-# MINIMAL toVal #-}
   toVal :: a -> Val
   default toVal ::
-    (G.Generic a, All Top (GCode a), All2 ToVal (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
+    (G.Generic a, All2 ToVal (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
   toVal x = sopToVal (gdatatypeInfo (Proxy :: Proxy a)) (gfrom x)  
 
 
-sopToVal :: (All2 ToVal xss) => DatatypeInfo xss -> SOP I xss -> Val
+sopToVal :: All2 ToVal xss => DatatypeInfo xss -> SOP I xss -> Val
 sopToVal di sop@(SOP xss) = hcollapse $ hcliftA2
     (Proxy :: Proxy (All ToVal))
     (\ci xs -> K (mkVal ci xs tyName oneHot))
@@ -80,7 +80,7 @@ mkAnonProd :: All ToVal xs => NP I xs -> HM.HashMap String Val
 mkAnonProd xs = HM.fromList $ zip labels cns where
   cns = npToVals xs
 
-npToVals :: (All ToVal xs) => NP I xs -> [Val]
+npToVals :: All ToVal xs => NP I xs -> [Val]
 npToVals xs = hcollapse $ hcmap (Proxy :: Proxy ToVal) (mapIK toVal) xs
 
 -- | >>> take 3 labels
