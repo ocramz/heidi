@@ -46,6 +46,12 @@ import Data.Generics.Encode.OneHot
 -- empty = Trie GT.empty
 
 
+data W =
+    WProd [String] (HM.HashMap String W) -- ^ product
+  | WSum  [String] W                     -- ^ sum
+  | WOH   [String] (OneHot Int)          -- ^ 1-hot
+  | WInt  Int
+  deriving (Eq, Show, G.Generic)
 
 
 
@@ -53,7 +59,8 @@ data Val =
     Con FieldName [Val]  -- ^ Constructor (1 or more anonymous fields)
   | Enum DatatypeName (OneHot Int)  -- ^ Enum (Constructor with 0 fields)
   | Rec (HM.HashMap FieldName Val) -- ^ Record (1 or more named fields)
-  | VInt Int  
+  | VInt Int
+  | VFloat Float
   | VChar Char
   | VString String 
   | VText T.Text
@@ -85,6 +92,7 @@ instance (ToVal a, ToVal b) => ToVal (a, b) where
 
 
 instance ToVal Int where toVal = VInt
+instance ToVal Float where toVal = VFloat
 instance ToVal Char where toVal = VChar
 instance ToVal String where toVal = VString
 -- instance ToVal a => ToVal [a]
@@ -137,35 +145,35 @@ npToVals xs = hcollapse $ hcmap (Proxy :: Proxy ToVal) (mapIK toVal) xs
 
 
 -- λ> gdatatypeInfo (Proxy :: Proxy A)
--- ADT "Core.Data.Frame.Generic" "A" (Constructor "A" :* Nil)
+-- ADT "Data.Generics.Encode.Val" "A" (Constructor "A" :* Nil)
 data A = A Int Char deriving (Eq, Show, G.Generic)
 instance ToVal A
 
--- ADT "Core.Data.Frame.Generic" "B" (Record "B" (FieldInfo "b1" :* FieldInfo "b2" :* Nil) :* Nil)
+-- ADT "Data.Generics.Encode.Val" "B" (Record "B" (FieldInfo "b1" :* FieldInfo "b2" :* Nil) :* Nil)
 data B = B { b1 :: Int, b2 :: Char } deriving (Eq, Show, G.Generic)
 instance ToVal B
 
--- ADT "Core.Data.Frame.Generic" "C" (Constructor "C1" :* Constructor "C2" :* Constructor "C3" :* Nil)
+-- ADT "Data.Generics.Encode.Val" "C" (Constructor "C1" :* Constructor "C2" :* Constructor "C3" :* Nil)
 data C = C1 | C2 | C3 deriving (Eq, Show, G.Generic)
 instance ToVal C
 
--- ADT "Core.Data.Frame.Generic" "D" (Constructor "D1" :* Constructor "D2" :* Constructor "D3" :* Nil)
+-- ADT "Data.Generics.Encode.Val" "D" (Constructor "D1" :* Constructor "D2" :* Constructor "D3" :* Nil)
 data D = D1 Int | D2 Char (Maybe String) | D3 (Maybe Int) deriving (Eq, Show, G.Generic)
 instance ToVal D
 
--- ADT "Core.Data.Frame.Generic" "E" (Record "E1" (FieldInfo "e1" :* Nil) :* Record "E2" (FieldInfo "e2" :* Nil) :* Record "E3" (FieldInfo "e3" :* Nil) :* Nil)
+-- ADT "Data.Generics.Encode.Val" "E" (Record "E1" (FieldInfo "e1" :* Nil) :* Record "E2" (FieldInfo "e2" :* Nil) :* Record "E3" (FieldInfo "e3" :* Nil) :* Nil)
 data E = E1 { e1 :: Int } | E2 { e2 :: Char } | E3 { e3 :: Maybe Int } deriving (Eq, Show, G.Generic)
 instance ToVal E
 
--- Newtype "Core.Data.Frame.Generic" "F" (Constructor "F")
+-- Newtype "Data.Generics.Encode.Val" "F" (Constructor "F")
 newtype F = F (Either Int Char) deriving (Eq, Show, G.Generic)
 instance ToVal F
 
--- Newtype "Core.Data.Frame.Generic" "G" (Record "G" (FieldInfo "g" :* Nil))
+-- Newtype "Data.Generics.Encode.Val" "G" (Record "G" (FieldInfo "g" :* Nil))
 newtype G = G { g :: Either Int (Maybe Char) } deriving (Eq, Show, G.Generic)
 instance ToVal G
 
--- ADT "Core.Data.Frame.Generic" ":@" (Infix ":+" LeftAssociative 9 :* Infix ":-" LeftAssociative 9 :* Nil)
+-- ADT "Data.Generics.Encode.Val" ":@" (Infix ":+" LeftAssociative 9 :* Infix ":-" LeftAssociative 9 :* Nil)
 data a :@ b = a :+ b | a :- b deriving (Eq, Show, G.Generic)
 instance (ToVal a, ToVal b) => ToVal (a :@ b)
 
@@ -178,6 +186,9 @@ instance ToVal J
 data J2 = J2 D C F deriving (Eq, Show, G.Generic)
 instance ToVal J2
 
+-- ADT "Data.Generics.Encode.Val" "L" (Constructor "L" :* Nil)
+data L = L Int Char Float deriving (Eq, Show, G.Generic)
+instance ToVal L
 
 
 j :: J
@@ -185,4 +196,17 @@ j = J1 (D2 'z' (Just "ad")) C1 $ F (Left 42)
 
 j2 :: J2
 j2 = J2 (D2 'z' (Just "ad")) C1 $ F (Left 42)
+
+
+
+{-
+Con "J2" [
+           Con "D2" [
+                      VChar 'z', Con "Just" [VString "ad"]
+                    ],
+           Enum "C" (OH {ohDim = 3, ohIx = 0}),
+           Con "F" [
+                     Con "Left" [
+                                  VInt 42]]]
+-}
 
