@@ -12,6 +12,7 @@
 #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -Wno-missing-methods #-}
+{-# OPTIONS_GHC -Wno-type-defaults #-}
 module Data.Generics.Encode.Val2 where
 
 import qualified GHC.Generics as G
@@ -20,8 +21,8 @@ import Generics.SOP (All, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..
 -- import Generics.SOP.Constraint (SListIN)
 import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
 
-import Data.Hashable (Hashable(..))
-import qualified Data.Text as T
+-- import Data.Hashable (Hashable(..))
+-- import qualified Data.Text as T
 -- import qualified Data.Vector as V
 -- import qualified Data.Map as M
 import qualified Data.HashMap.Strict as HM
@@ -82,6 +83,8 @@ mkAnonProd xs = HM.fromList $ zip labels cns where
 npToVals :: (All ToVal xs) => NP I xs -> [Val]
 npToVals xs = hcollapse $ hcmap (Proxy :: Proxy ToVal) (mapIK toVal) xs
 
+-- | >>> take 3 labels
+-- ["_1","_2","_3"]
 labels :: [String]
 labels = map (('_' :) . show) [1 ..]
 
