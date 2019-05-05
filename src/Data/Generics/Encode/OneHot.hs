@@ -2,7 +2,7 @@
 module Data.Generics.Encode.OneHot (OneHot, onehotDim, onehotIx, mkOH) where
 
 import qualified GHC.Generics as G
-import Generics.SOP (All, DatatypeInfo, ConstructorInfo(..), constructorInfo, ConstructorName, Top, All, hindex, hmap, SOP(..), I(..), K(..), hcollapse)
+import Generics.SOP (All, DatatypeInfo, ConstructorInfo(..), constructorInfo, ConstructorName, Top, All, hindex, hmap, SOP(..), I(..), K(..), hcollapse, SListI(..))
 -- import Generics.SOP.NP (cpure_NP)
 -- import Generics.SOP.Constraint (SListIN)
 -- import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
@@ -20,8 +20,7 @@ import Generics.SOP (All, DatatypeInfo, ConstructorInfo(..), constructorInfo, Co
 -- 
 -- >>> mkOH (gdatatypeInfo (Proxy :: Proxy C)) (gfrom C2)
 -- OH {ohDim = 3, ohIx = 1}
-mkOH :: (All Top xs) =>
-        DatatypeInfo xs -> SOP I xs -> OneHot Int
+mkOH :: SListI xs => DatatypeInfo xs -> SOP I xs -> OneHot Int
 mkOH di sop = oneHot where
      oneHot = OH sdim six
      six = hindex sop
@@ -40,7 +39,7 @@ onehotIx :: OneHot i -> i
 onehotIx = ohIx
 
 
-constructorList :: All Top xs => DatatypeInfo xs -> [ConstructorName]
+constructorList :: SListI xs => DatatypeInfo xs -> [ConstructorName]
 constructorList di = hcollapse $ hmap (\(Constructor x) -> K x) $ constructorInfo di
 
 

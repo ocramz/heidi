@@ -64,7 +64,7 @@ data Val =
 class ToVal a where
   {-# MINIMAL toVal #-}
   toVal :: a -> Val
-  default toVal :: (G.Generic a, All2 ToVal (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
+  default toVal :: (G.Generic a, All Top (GCode a), All2 ToVal (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
   toVal x = sopToVal (gdatatypeInfo (Proxy :: Proxy a)) (gfrom x)  
 
 -- instance ToVal a => ToVal (Maybe a) where
