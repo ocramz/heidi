@@ -11,7 +11,7 @@ copyright:      (c) 2019, Marco Zocca
 category:       Generics, Data
 build-type:     Simple
 cabal-version:  1.12
-tested-with:    GHC == 8.6.3                     
+tested-with:    GHC == 8.0.2, GHC == 8.6.3                     
 extra-source-files:
     CHANGELOG.md
     LICENSE.md
@@ -26,7 +26,8 @@ library
   exposed-modules:
                   Data.Generics.Encode
                   Data.Generics.Encode.Val
-                  Data.Generics.Encode.Val2                  
+                  Data.Generics.Encode.Val2
+                  Data.Generics.Encode.ValFix                  
                   Data.Generics.Encode.OneHot
                   Data.Generics.Decode
                   Data.Generics.Internal.Value
@@ -41,6 +42,7 @@ library
   build-depends:
                 base > 4.9 && < 4.13
               , containers >= 0.5.7.1
+              , data-fix >= 0.0.4
               , exceptions >=0.8.3
               , generics-sop > 0.3.0
               , generic-trie >= 0.3.1

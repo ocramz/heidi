@@ -31,6 +31,8 @@ import qualified Data.GenericTrie as GT
 import Data.Generics.Encode.OneHot
 
 
+
+
 type Path = [String]
 
 data Val =
@@ -38,7 +40,7 @@ data Val =
   | VSum  Path String Val                     -- ^ sum
   | VOH   Path String (OneHot Int)            -- ^ 1-hot
   | VInt  Int
-  deriving (Eq, Show, G.Generic)
+  deriving (Eq, Show)
 
 class ToVal a where
   {-# MINIMAL toVal #-}
@@ -65,7 +67,7 @@ mkVal cinfo xs tyn oh = case cinfo of
 -- mkVal (Infix cn _ _) xs _ _ = Con cn $ npToVals xs
     Constructor cn
       | null cns  -> VOH [] tyn oh
-      | otherwise -> VProd [] cn $ mkAnonProd xs
+      | otherwise -> VProd [] cn  $ mkAnonProd xs
     Record _ fi   -> VProd [] tyn $ mkProd fi xs
   where
     cns :: [Val]
@@ -84,16 +86,16 @@ npToVals :: All ToVal xs => NP I xs -> [Val]
 npToVals xs = hcollapse $ hcmap (Proxy :: Proxy ToVal) (mapIK toVal) xs
 
 -- | >>> take 3 labels
--- ["_1","_2","_3"]
+-- ["_0","_1","_2"]
 labels :: [String]
-labels = map (('_' :) . show) [1 ..]
+labels = map (('_' :) . show) [0 ..]
 
 
 data A0 = A0 deriving (Eq, Show, G.Generic)
 instance ToVal A0
 data A = A Int deriving (Eq, Show, G.Generic)
 instance ToVal A
-data A2 = A2 { a2 :: Int} deriving (Eq, Show, G.Generic)
+data A2 = A2 { a2 :: Int } deriving (Eq, Show, G.Generic)
 instance ToVal A2
 data B = B Int Char deriving (Eq, Show, G.Generic)
 data B2 = B2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, G.Generic)
