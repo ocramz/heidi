@@ -7,6 +7,8 @@
   , TypeOperators
   , DefaultSignatures
   , ScopedTypeVariables
+  , TypeSynonymInstances
+  , FlexibleInstances
 #-}
 {-# OPTIONS_GHC -Wall #-}
 -----------------------------------------------------------------------------
@@ -20,8 +22,10 @@
 -- Portability :  GHC
 --
 -- Generic encoding of algebraic datatypes, using 'generics-sop'
+--
+-- the aim is to implement depth-first traversal of arbitrary ADTs to extract prefix lists e.g. @fromList [(DatatypeName, FieldName), ... , (DatatypeName, OneHot Int)]@
 -----------------------------------------------------------------------------
-module Data.Generics.Encode where
+module Data.Generics.Encode (ToVal(..), Val(..), OneHot, onehotDim, onehotIx) where
 
 import qualified GHC.Generics as G
 import Generics.SOP (All, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), FieldName, ConstructorInfo(..), constructorInfo, ConstructorName, Top, All, All2, hcliftA2, hindex, hmap, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse)
@@ -34,6 +38,8 @@ import qualified Data.Text as T
 -- import qualified Data.Map as M
 import qualified Data.HashMap.Strict as HM
 
+import qualified Data.GenericTrie as GT
+
 -- $setup
 -- >>> :set -XDeriveDataTypeable
 -- >>> :set -XDeriveGeneric
@@ -41,22 +47,23 @@ import qualified Data.HashMap.Strict as HM
 -- >>> import Generics.SOP.NP
 -- >>> import qualified GHC.Generics as G
 
-{-| alternative ADT representation
 
+newtype Trie a = Trie { unTrie :: GT.Trie [String] a } deriving (Show)
+
+insert :: [String] -> a -> Trie a -> Trie a
+insert k v t = Trie $ GT.insert k v (unTrie t)
+
+empty :: Trie a 
+empty = Trie GT.empty
+
+
+-- | alternative ADT representation (only sums and products)
 data VRep =
     VProduct DatatypeName (HM.HashMap FieldName VRep)
   | VSum DatatypeName FieldName VRep
   | VEnum DatatypeName (OneHot Int)
   deriving (Eq, Show)
 
-depth-first traversal to extract prefix lists
-e.g. [(DatatypeName, FieldName), ... , (DatatypeName, OneHot Int)]
--}
-
--- data TypeMD =
---   EnumMD DatatypeName Int
-
-data EnumMD = EnumMD DatatypeName Int deriving (Eq, Show, G.Generic)
 
 
 
@@ -64,30 +71,44 @@ data Val =
     Con FieldName [Val]  -- ^ Constructor (1 or more anonymous fields)
   | Enum DatatypeName (OneHot Int)  -- ^ Enum (Constructor with 0 fields)
   | Rec (HM.HashMap FieldName Val) -- ^ Record (1 or more named fields)
-  | VMaybe (Maybe Val)  -- ^ Maybe   
   | VInt Int  
   | VChar Char
+  | VString String 
   | VText T.Text
   deriving (Eq, Show, G.Generic)
 
 class ToVal a where
-  toVal :: a -> Val 
+  {-# MINIMAL toVal #-}
+  toVal :: a -> Val
   default toVal :: (G.Generic a, All Top (GCode a), All2 ToVal (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
   toVal x = sopToVal (gdatatypeInfo (Proxy :: Proxy a)) (gfrom x)  
 
+-- instance ToVal a => ToVal (Maybe a) where
+--   toVal mx = case mx of
+--     Nothing -> VMaybe Nothing
+--     Just x  -> VMaybe (Just $ toVal x)
+-- instance (ToVal l, ToVal r) => ToVal (Either l r)
+-- instance (ToVal l, ToVal r) => ToVal (l, r)
+
 instance ToVal a => ToVal (Maybe a) where
-  toVal mx = case mx of
-    Nothing -> VMaybe Nothing
-    Just x  -> VMaybe (Just $ toVal x)
-instance (ToVal l, ToVal r) => ToVal (Either l r)
-instance (ToVal l, ToVal r) => ToVal (l, r)
+    toVal Nothing  = Con "Nothing" []
+    toVal (Just x) = Con "Just" [toVal x]
+
+instance (ToVal a, ToVal b) => ToVal (Either a b) where
+    toVal (Left x)  = Con "Left"  [toVal x]
+    toVal (Right y) = Con "Right" [toVal y]
+
+instance (ToVal a, ToVal b) => ToVal (a, b) where
+    toVal (a, b) = Con "," [toVal a, toVal b]    
+
 
 instance ToVal Int where toVal = VInt
 instance ToVal Char where toVal = VChar
+instance ToVal String where toVal = VString
+-- instance ToVal a => ToVal [a]
 instance ToVal T.Text where toVal = VText
 
--- instance ToVal Val where
---     toVal = id
+
 
 
 {- | Examples :
@@ -129,7 +150,17 @@ mkOH di sop = oneHot where
      six = hindex sop
      sdim = length $ constructorList di
 
-data OneHot i = OH { ohDim :: i, ohIx :: i } deriving (Eq, Show)     
+-- | 1-hot encoded vector.
+--
+-- This representation is used to encode categorical variables as points in a vector space.
+data OneHot i = OH { ohDim :: i, ohIx :: i } deriving (Eq, Show)
+
+-- | Embedding dimension of the 1-hot encoded vector
+onehotDim :: OneHot i -> i
+onehotDim = ohDim
+-- | Active ('hot') index of the 1-hot encoded vector
+onehotIx :: OneHot i -> i
+onehotIx = ohIx
 
 npToVals :: (All ToVal xs) => NP I xs -> [Val]
 npToVals xs = hcollapse $ hcmap (Proxy :: Proxy ToVal) (mapIK toVal) xs
@@ -157,7 +188,7 @@ data C = C1 | C2 | C3 deriving (Eq, Show, G.Generic)
 instance ToVal C
 
 -- ADT "Core.Data.Frame.Generic" "D" (Constructor "D1" :* Constructor "D2" :* Constructor "D3" :* Nil)
-data D = D1 Int | D2 Char | D3 (Maybe Int) deriving (Eq, Show, G.Generic)
+data D = D1 Int | D2 Char (Maybe String) | D3 (Maybe Int) deriving (Eq, Show, G.Generic)
 instance ToVal D
 
 -- ADT "Core.Data.Frame.Generic" "E" (Record "E1" (FieldInfo "e1" :* Nil) :* Record "E2" (FieldInfo "e2" :* Nil) :* Record "E3" (FieldInfo "e3" :* Nil) :* Nil)
@@ -182,11 +213,16 @@ instance ToVal H
 data J = J1 { j11 :: D, j12 :: C, j13 :: F } deriving (Eq, Show, G.Generic)
 instance ToVal J
 
+data J2 = J2 D C F deriving (Eq, Show, G.Generic)
+instance ToVal J2
 
 
 
+j :: J
+j = J1 (D2 'z' (Just "ad")) C1 $ F (Left 42)
 
-
+j2 :: J2
+j2 = J2 (D2 'z' (Just "ad")) C1 $ F (Left 42)
 
 
 

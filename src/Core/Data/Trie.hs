@@ -9,6 +9,10 @@ import qualified Data.Map as M
 import Prelude hiding (lookup)
 
 
+
+
+
+
 unfoldL :: (t -> Maybe a) -> t -> [a]
 unfoldL insf x = case
   insf x of Nothing -> []
@@ -25,14 +29,14 @@ anaB :: (x -> BF a x) -> x -> B a
 anaB psi z = B $ ana psi z
 
 
-data SF k v x = SF { sV :: Maybe v, sRest :: M.Map k x } deriving (Eq, Show, Functor)
-newtype S k v = S (Fix (SF k v)) deriving (Eq, Show)
+-- data SF k v x = SF { sV :: Maybe v, sRest :: M.Map k x } deriving (Eq, Show, Functor)
+-- newtype S k v = S (Fix (SF k v)) deriving (Eq, Show)
 
-cataS :: (SF k v a -> a) -> S k v -> a
-cataS phi (S m) = cata phi m
+-- cataS :: (SF k v a -> a) -> S k v -> a
+-- cataS phi (S m) = cata phi m
 
-anaS :: (x -> SF k v x) -> x -> S k v
-anaS psi z = S $ ana psi z
+-- anaS :: (x -> SF k v x) -> x -> S k v
+-- anaS psi z = S $ ana psi z
 
 
 
@@ -56,7 +60,7 @@ anaTrie psi z = Trie $ ana psi z
 --   | otherwise = stot where
 --       stot = sum cs
 
-t0 = fromList [("mo", 1), ("ma", 2)]
+-- t0 = fromList [("mo", 1), ("ma", 2)]
 
 
 -- lookup1 k (TF _ mm) = M.lookup k mm

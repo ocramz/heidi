@@ -7,10 +7,8 @@ resolver: lts-13.17  # GHC 8.6.4
 packages:
 - .
 
-# Dependency packages to be pulled from upstream that are not in the resolver
-# using the same syntax as the packages field.
-# (e.g., acme-missiles-0.3)
-# extra-deps: []
+extra-deps:
+- generic-trie-0.3.1@sha256:203cfc0086372abaf99ffb4b4b565eba8a28e6020f1104ec479cd96d0c3baeb7
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

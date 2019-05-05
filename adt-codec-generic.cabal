@@ -30,7 +30,6 @@ library
                   Core.Data.Frame
                   Core.Data.Frame.Value.Generic
                   Core.Data.Frame.Generic
-                  Core.Data.Trie
   other-modules:
       Paths_adt_codec_generic
   hs-source-dirs:
@@ -38,10 +37,10 @@ library
   ghc-options: -Wall
   build-depends:
                 base > 4.9 && < 4.13
-              , containers
-              , data-fix 
+              , containers >= 0.6.0.1
               , exceptions >=0.8.3
               , generics-sop > 0.3.0
+              , generic-trie >= 0.3.1
               , hashable
               -- , logging-effect
               , text > 1.2.2
