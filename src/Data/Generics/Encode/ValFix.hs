@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -Wno-missing-methods #-}
 {-# OPTIONS_GHC -Wno-type-defaults #-}
-module Data.Generics.Encode.ValFix where
+module Data.Generics.Encode.ValFix (Val(..), ValF(..), TypeName, ConstructorName) where
 
 import qualified GHC.Generics as G
 import Generics.SOP (All, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), FieldName, ConstructorInfo(..), constructorInfo, Top, All, All2, hcliftA2, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse, SListI(..))
