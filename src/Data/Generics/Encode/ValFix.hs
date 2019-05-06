@@ -22,10 +22,13 @@ import Data.Fix (Fix(..), cata, cataM, ana, anaM, hylo, hyloM)
 import Data.Generics.Encode.OneHot
 
 
+type TypeName = String
+type ConstructorName = String
+
 data ValF x =
-    VProd String (HM.HashMap String x) -- ^ product
-  | VSum  String x                     -- ^ sum
-  | VOH   String (OneHot Int)          -- ^ 1-hot
+    VProd TypeName (HM.HashMap ConstructorName x) -- ^ product
+  | VSum  TypeName ConstructorName x              -- ^ sum
+  | VOH   TypeName (OneHot Int)                   -- ^ 1-hot
   | VInt  Int
   deriving (Eq, Show, Functor, Foldable, Traversable)
 

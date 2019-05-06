@@ -42,8 +42,15 @@ data Val =
   | VInt  Int
   deriving (Eq, Show)
 
+-- | NOTE: if your type has a 'G.Generic' instance you can just declare an empty instance of 'ToVal' for it.
+--
+-- example:
+--
+-- @
+-- data A = A Int Char deriving (G.Generic)
+-- instance ToVal A
+-- @
 class ToVal a where
-  {-# MINIMAL toVal #-}
   toVal :: a -> Val
   default toVal ::
     (G.Generic a, All2 ToVal (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
