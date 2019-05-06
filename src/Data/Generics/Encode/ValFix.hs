@@ -25,10 +25,11 @@ import Data.Generics.Encode.OneHot
 type TypeName = String
 type ConstructorName = String
 
+-- | Base functor of our abstract data syntax
 data ValF x =
-    VProd TypeName (HM.HashMap ConstructorName x) -- ^ product
-  | VSum  TypeName ConstructorName x              -- ^ sum
-  | VOH   TypeName (OneHot Int)                   -- ^ 1-hot
+    VProd TypeName (HM.HashMap ConstructorName x) -- ^ product (e.g. records, tuples)
+  | VSum  TypeName ConstructorName x              -- ^ sum (e.g. 'Maybe', 'Either')
+  | VOH   TypeName (OneHot Int)                   -- ^ 1-hot encoding of enums
   | VInt  Int
   deriving (Eq, Show, Functor, Foldable, Traversable)
 
