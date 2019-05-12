@@ -16,7 +16,7 @@
 {-# OPTIONS_GHC -Wno-type-defaults #-}
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.Generics.Encode
+-- Module      :  Data.Generics.Encode.Val
 -- Description :  Generic encoding of algebraic datatypes
 -- Copyright   :  (c) Marco Zocca (2019)
 -- License     :  MIT

@@ -7,6 +7,19 @@
   , ScopedTypeVariables
 #-}
 {-# OPTIONS_GHC -Wall #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Core.Data.Frame.Generic
+-- Description :  Populate dataframes with generically-encoded data
+-- Copyright   :  (c) Marco Zocca (2019)
+-- License     :  MIT
+-- Maintainer  :  ocramz fripost org
+-- Stability   :  experimental
+-- Portability :  GHC
+--
+-- Generic encoding of algebraic datatypes, using 'generics-sop'
+--
+-----------------------------------------------------------------------------
 module Core.Data.Frame.Generic (
     gToRow, gToTable,
     -- * Exceptione
