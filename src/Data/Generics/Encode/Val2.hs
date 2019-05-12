@@ -14,7 +14,12 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -Wno-missing-methods #-}
 {-# OPTIONS_GHC -Wno-type-defaults #-}
-module Data.Generics.Encode.Val2 (gflatten, VP(..), TC(..), ToVal(..)) where
+module Data.Generics.Encode.Val2 (gflatten,
+                                  VP(..),
+                                  -- * TC
+                                  TC(..), --, tcTyN, tcTyCon,
+                                  -- * ToVal
+                                  ToVal(..)) where
 
 import qualified GHC.Generics as G
 import Generics.SOP (All, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), FieldName, ConstructorInfo(..), constructorInfo, All, All2, hcliftA2, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse)
@@ -35,17 +40,21 @@ import Data.Generics.Encode.OneHot
 -- import Data.Sequence ((<|), (|>))
 
 
--- | Flatten a value into a 1-layer hashmap, via its generic encoding
+-- | Flatten a value into a 1-layer hashmap, via the value's generic encoding
 gflatten :: ToVal a => a -> HM.HashMap [TC] VP
 gflatten = flatten . toVal
 
 
 -- | A (type, constructor) name pair
-data TC = TC {
-   tcTypeN :: String    -- ^ Type name
-   , tcTyCon :: String  -- ^ Type constructor
-   } deriving (Eq, Show, Ord, G.Generic)
+data TC = TC String String deriving (Eq, Show, Ord, G.Generic)
 instance Hashable TC
+
+-- | Type name
+tcTyN :: TC -> String
+tcTyN (TC n _) = n
+-- | Type constructor
+tcTyCon :: TC -> String
+tcTyCon (TC _ c) = c
 
 flatten :: Val -> HM.HashMap [TC] VP
 flatten = go ([], HM.empty) where
@@ -69,6 +78,16 @@ data VP =
   | VPText   T.Text 
   | VPOH     (OneHot Int)
   deriving (Eq, Show)
+
+-- getInt :: VP -> Maybe Int
+-- getInt = \case
+--   VPInt i -> Just i
+--   _ -> Nothing
+
+-- getString :: VP -> Maybe String
+-- getString = \case
+--   VPString i -> Just i
+--   _ -> Nothing  
 
 
 -- | The String parameter contains the type name at the given level
