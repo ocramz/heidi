@@ -35,7 +35,7 @@
 module Data.Generics.Encode.Val (gflatten,
                                  VP(..),
                                  -- * TC
-                                 TC(..), --, tcTyN, tcTyCon,
+                                 TC(..), tcTyN, tcTyCon,
                                  -- * ToVal
                                  ToVal(..)) where
 

@@ -28,11 +28,11 @@ library
                   Data.Generics.Encode.Val
                   Data.Generics.Encode.OneHot
                   Data.Generics.Decode
-                  -- Data.Generics.Internal.Value
                   Core.Data.Frame
                   Core.Data.Frame.Generic
-  other-modules:
-                Data.Generics.Encode.ValFix                
+  -- other-modules:
+  --               Data.Generics.Encode.ValFix          
+                      
   --     Paths_adt_codec_generic
   hs-source-dirs:
       src
@@ -40,7 +40,7 @@ library
   build-depends:
                 base > 4.9 && < 4.13
               , containers >= 0.5.7.1
-              , data-fix >= 0.0.4
+              -- , data-fix >= 0.0.4
               , exceptions >=0.8.3
               , generics-sop > 0.3.0
               -- , generic-trie >= 0.3.1
