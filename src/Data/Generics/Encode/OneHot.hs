@@ -1,11 +1,11 @@
-{-# language DeriveGeneric, FlexibleContexts #-}
+{-# language DeriveGeneric, FlexibleContexts, ScopedTypeVariables #-}
 module Data.Generics.Encode.OneHot (OneHot, onehotDim, onehotIx, mkOH) where
 
 import qualified GHC.Generics as G
-import Generics.SOP (All, DatatypeInfo, ConstructorInfo(..), constructorInfo, ConstructorName, Top, All, hindex, hmap, SOP(..), I(..), K(..), hcollapse, SListI(..))
+import Generics.SOP (All, DatatypeInfo, ConstructorInfo(..), constructorInfo, ConstructorName, Top, All, hindex, hmap, SOP(..), I(..), K(..), hcollapse, SListI(..), Proxy(..))
 -- import Generics.SOP.NP (cpure_NP)
 -- import Generics.SOP.Constraint (SListIN)
--- import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
+import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
 
 -- $setup
 -- >>> :set -XDeriveDataTypeable
@@ -43,4 +43,4 @@ constructorList :: SListI xs => DatatypeInfo xs -> [ConstructorName]
 constructorList di = hcollapse $ hmap (\(Constructor x) -> K x) $ constructorInfo di
 
 
-
+-- data C = C1 | C2 | C3 deriving (Eq, Show, G.Generic)

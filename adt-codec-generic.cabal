@@ -45,7 +45,7 @@ library
               , data-fix >= 0.0.4
               , exceptions >=0.8.3
               , generics-sop > 0.3.0
-              , generic-trie >= 0.3.1
+              -- , generic-trie >= 0.3.1
               , hashable
               -- , logging-effect
               , text > 1.2.2

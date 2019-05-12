@@ -22,24 +22,63 @@ import Generics.SOP (All, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..
 -- import Generics.SOP.Constraint (SListIN)
 import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
 
--- import Data.Hashable (Hashable(..))
+import Data.Hashable (Hashable(..))
 -- import qualified Data.Text as T
 -- import qualified Data.Vector as V
 -- import qualified Data.Map as M
 import qualified Data.HashMap.Strict as HM
-import qualified Data.GenericTrie as GT
+-- import qualified Data.GenericTrie as GT
 
 import Data.Generics.Encode.OneHot
 
+import Data.List (unfoldr)
 
 -- type Path = [String]
 
 
+
+
+
+-- data T = TNode Int | TRec (HM.HashMap String T) deriving (Eq, Show)
+
+-- keys :: T -> HM.HashMap [String] Int
+-- keys = go ([], HM.empty) where
+--   go (ks, hmacc) = \case
+--     TNode i -> HM.insert ks i hmacc
+--     TRec hm -> HM.foldlWithKey' (\hm' k t -> go (k : ks, hm') t) hmacc hm
+
+
+newtype Row = Row { unRow :: HM.HashMap [TC] VP} deriving (Eq, Show)
+
+-- | A (type, constructor) pair
+data TC = TC String String deriving (Eq, Show, G.Generic)
+instance Hashable TC
+
+flatten :: Val -> HM.HashMap [TC] VP
+flatten = go ([], HM.empty) where
+  go (ks, hmacc) = \case
+    VProd ty hm -> HM.foldlWithKey' (\hm' k t -> go (TC ty k : ks, hm') t) hmacc hm
+    VSum  ty hm -> HM.foldlWithKey' (\hm' k t -> go (TC ty k : ks, hm') t) hmacc hm
+    VOH   ty cn oh -> HM.insert (TC ty cn : ks) (VPOH oh) hmacc
+    VInt i         -> HM.insert ks (VPInt i) hmacc
+    VChar c        -> HM.insert ks (VPChar c) hmacc
+    VString s      -> HM.insert ks (VPString s) hmacc        
+
+
+-- | Primitive values
+data VP =
+    VPInt    Int
+  | VPChar   Char
+  | VPString String 
+  | VPOH     (OneHot Int)
+  deriving (Eq, Show)
+
+
 -- | The String parameter contains the type name at the given level
 data Val =
-    VProd String (HM.HashMap String Val) -- ^ product
-  | VSum  String (HM.HashMap String Val) -- ^ sum
-  | VOH   String (OneHot Int)            -- ^ 1-hot
+    VProd String        (HM.HashMap String Val) -- ^ product
+  | VSum  String        (HM.HashMap String Val) -- ^ sum
+  | VOH   String String (OneHot Int)            -- ^ 1-hot
   | VInt  Int
   | VChar Char
   | VString String 
@@ -76,7 +115,7 @@ mkVal cinfo xs tyn oh = case cinfo of
   -- Infix cn _ _ -> undefined
 -- mkVal (Infix cn _ _) xs _ _ = Con cn $ npToVals xs
     Constructor cn
-      | null cns  -> VOH tyn oh
+      | null cns  -> VOH tyn cn oh
       | otherwise -> VProd cn  $ mkAnonProd xs
     Record _ fi   -> VProd tyn $ mkProd fi xs
   where
@@ -101,22 +140,6 @@ labels :: [String]
 labels = map (('_' :) . show) [0 ..]
 
 
-data A0 = A0 deriving (Eq, Show, G.Generic)
-instance ToVal A0
-data A = A Int deriving (Eq, Show, G.Generic)
-instance ToVal A
-data A2 = A2 { a2 :: Int } deriving (Eq, Show, G.Generic)
-instance ToVal A2
-data B = B Int Char deriving (Eq, Show, G.Generic)
-instance ToVal B
-data B2 = B2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, G.Generic)
-instance ToVal B2
-data C = C1 | C2 | C3 deriving (Eq, Show, G.Generic)
-instance ToVal C
-data D = D (Maybe Int) (Either Int String) deriving (Eq, Show, G.Generic)
-instance ToVal D
-
-
 instance ToVal Int where toVal = VInt
 instance ToVal Char where toVal = VChar
 instance ToVal String where toVal = VString
@@ -131,4 +154,26 @@ instance (ToVal a, ToVal b) => ToVal (Either a b) where
     Right r -> VSum "Either" $ HM.singleton "Right" $ toVal r
 
 instance (ToVal a, ToVal b) => ToVal (a, b) where
-  toVal (x, y) = VProd "*" $ HM.fromList $ zip labels [toVal x, toVal y]
+  toVal (x, y) = VProd "*" $ HM.fromList $ zip labels [toVal x, toVal y]         
+
+
+
+-- examples
+
+data A0 = A0 deriving (Eq, Show, G.Generic)
+instance ToVal A0
+newtype A = A Int deriving (Eq, Show, G.Generic)
+instance ToVal A
+newtype A2 = A2 { a2 :: Int } deriving (Eq, Show, G.Generic)
+instance ToVal A2
+data B = B Int Char deriving (Eq, Show, G.Generic)
+instance ToVal B
+data B2 = B2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, G.Generic)
+instance ToVal B2
+data C = C1 | C2 | C3 deriving (Eq, Show, G.Generic)
+instance ToVal C
+data D = D (Maybe Int) (Either Int String) deriving (Eq, Show, G.Generic)
+instance ToVal D
+
+
+

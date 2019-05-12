@@ -24,7 +24,7 @@ import qualified Data.Text as T
 -- import qualified Data.Vector as V
 -- import qualified Data.Map as M
 import qualified Data.HashMap.Strict as HM
-import qualified Data.GenericTrie as GT
+-- import qualified Data.GenericTrie as GT
 
 import Data.Generics.Encode.OneHot
 
