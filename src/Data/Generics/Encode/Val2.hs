@@ -41,10 +41,10 @@ gflatten = flatten . toVal
 
 
 -- | A (type, constructor) name pair
-data TC = TC
-   String  -- ^ Type name
-   String  -- ^ Type constructor
-   deriving (Eq, Show, Ord, G.Generic)
+data TC = TC {
+   tcTypeN :: String    -- ^ Type name
+   , tcTyCon :: String  -- ^ Type constructor
+   } deriving (Eq, Show, Ord, G.Generic)
 instance Hashable TC
 
 flatten :: Val -> HM.HashMap [TC] VP
