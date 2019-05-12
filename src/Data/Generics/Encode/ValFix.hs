@@ -13,13 +13,13 @@ import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
 -- import Data.Hashable (Hashable(..))
 -- import qualified Data.Text as T
 -- import qualified Data.Vector as V
--- import qualified Data.Map as M
+import qualified Data.IntMap as IM
 import qualified Data.HashMap.Strict as HM
 import qualified Data.GenericTrie as GT
 
 import Data.Fix (Fix(..), cata, cataM, ana, anaM, hylo, hyloM)
 
-import Data.Generics.Encode.OneHot
+import qualified Data.Generics.Encode.OneHot as OH (OneHot(..))
 
 
 type TypeName = String
@@ -29,11 +29,11 @@ type ConstructorName = String
 data ValF x =
     VProd TypeName (HM.HashMap ConstructorName x) -- ^ product (e.g. records, tuples)
   | VSum  TypeName ConstructorName x              -- ^ sum (e.g. 'Maybe', 'Either')
-  | VOH   TypeName (OneHot Int)                   -- ^ 1-hot encoding of enums
+  | VOH   TypeName (OH.OneHot Int)                   -- ^ 1-hot encoding of enums
   | VInt  Int
   deriving (Eq, Show, Functor, Foldable, Traversable)
 
-newtype Val = Val (Fix ValF)
+newtype Val = Val (Fix ValF) deriving (Eq, Show)
 
 cataVal :: (ValF a -> a) -> Val -> a
 cataVal phi (Val v) = cata phi v

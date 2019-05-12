@@ -9,6 +9,7 @@
   , ScopedTypeVariables
   , TypeSynonymInstances
   , FlexibleInstances
+  , LambdaCase
 #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -Wno-missing-methods #-}
@@ -31,15 +32,17 @@ import qualified Data.GenericTrie as GT
 import Data.Generics.Encode.OneHot
 
 
+-- type Path = [String]
 
 
-type Path = [String]
-
+-- | The String parameter contains the type name at the given level
 data Val =
-    VProd Path String (HM.HashMap String Val) -- ^ product
-  | VSum  Path String Val                     -- ^ sum
-  | VOH   Path String (OneHot Int)            -- ^ 1-hot
+    VProd String (HM.HashMap String Val) -- ^ product
+  | VSum  String (HM.HashMap String Val) -- ^ sum
+  | VOH   String (OneHot Int)            -- ^ 1-hot
   | VInt  Int
+  | VChar Char
+  | VString String 
   deriving (Eq, Show)
 
 -- | NOTE: if your type has a 'G.Generic' instance you can just declare an empty instance of 'ToVal' for it.
@@ -73,9 +76,9 @@ mkVal cinfo xs tyn oh = case cinfo of
   -- Infix cn _ _ -> undefined
 -- mkVal (Infix cn _ _) xs _ _ = Con cn $ npToVals xs
     Constructor cn
-      | null cns  -> VOH [] tyn oh
-      | otherwise -> VProd [] cn  $ mkAnonProd xs
-    Record _ fi   -> VProd [] tyn $ mkProd fi xs
+      | null cns  -> VOH tyn oh
+      | otherwise -> VProd cn  $ mkAnonProd xs
+    Record _ fi   -> VProd tyn $ mkProd fi xs
   where
     cns :: [Val]
     cns = npToVals xs
@@ -105,7 +108,27 @@ instance ToVal A
 data A2 = A2 { a2 :: Int } deriving (Eq, Show, G.Generic)
 instance ToVal A2
 data B = B Int Char deriving (Eq, Show, G.Generic)
+instance ToVal B
 data B2 = B2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, G.Generic)
+instance ToVal B2
+data C = C1 | C2 | C3 deriving (Eq, Show, G.Generic)
+instance ToVal C
+data D = D (Maybe Int) (Either Int String) deriving (Eq, Show, G.Generic)
+instance ToVal D
 
 
 instance ToVal Int where toVal = VInt
+instance ToVal Char where toVal = VChar
+instance ToVal String where toVal = VString
+instance ToVal a => ToVal (Maybe a) where
+  toVal = \case
+    Nothing -> VSum "Maybe" HM.empty
+    Just x  -> VSum "Maybe" $ HM.singleton "Just" $ toVal x
+  
+instance (ToVal a, ToVal b) => ToVal (Either a b) where
+  toVal = \case
+    Left  l -> VSum "Either" $ HM.singleton "Left" $ toVal l
+    Right r -> VSum "Either" $ HM.singleton "Right" $ toVal r
+
+instance (ToVal a, ToVal b) => ToVal (a, b) where
+  toVal (x, y) = VProd "*" $ HM.fromList $ zip labels [toVal x, toVal y]
