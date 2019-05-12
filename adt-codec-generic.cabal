@@ -44,7 +44,7 @@ library
               , exceptions >=0.8.3
               , generics-sop > 0.3.0
               -- , generic-trie >= 0.3.1
-              , hashable
+              , hashable >= 1.2.6.1
               -- , logging-effect
               , text > 1.2.2
               -- , transformers
