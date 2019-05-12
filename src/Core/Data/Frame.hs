@@ -63,15 +63,15 @@ import qualified Data.Foldable as F
 import qualified Data.HashMap.Strict as HM
 import qualified Data.List.NonEmpty as NE
 import Data.Hashable (Hashable(..))
-import Control.Monad.Catch(MonadThrow(..))
+-- import Control.Monad.Catch(MonadThrow(..))
 
-import qualified Data.Generics.Decode as D (Decode(..), mkDecode)
-import Data.Generics.Decode ((>>>))
+import qualified Data.Generics.Decode as D (Decode(..))
+-- import Data.Generics.Decode ((>>>))
 -- import Analyze.Common (Key, MissingKeyError(..))
-import Data.Generics.Internal.Value
+-- import Data.Generics.Internal.Value
 
 
-import Prelude hiding (filter, zipWith, lookup, scanl, scanr, head, getChar, take, drop)
+import Prelude hiding (filter, zipWith, lookup, scanl, scanr, head, take, drop)
 
 -- $setup
 -- >>> let row0 = fromKVs [(0, 'a'), (3, 'b')] :: Row Int Char

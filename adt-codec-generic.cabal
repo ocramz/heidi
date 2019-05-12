@@ -25,9 +25,7 @@ source-repository head
 library
   exposed-modules:
                   Data.Generics.Encode
-                  Data.Generics.Encode.Val
                   Data.Generics.Encode.Val2
-                  Data.Generics.Encode.ValFix                  
                   Data.Generics.Encode.OneHot
                   Data.Generics.Decode
                   Data.Generics.Internal.Value
@@ -35,7 +33,9 @@ library
                   Core.Data.Frame.Value.Generic
                   Core.Data.Frame.Generic
   other-modules:
-      Paths_adt_codec_generic
+                Data.Generics.Encode.Val
+                Data.Generics.Encode.ValFix                
+  --     Paths_adt_codec_generic
   hs-source-dirs:
       src
   ghc-options: -Wall

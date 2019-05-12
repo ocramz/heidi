@@ -14,74 +14,68 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -Wno-missing-methods #-}
 {-# OPTIONS_GHC -Wno-type-defaults #-}
-module Data.Generics.Encode.Val2 where
+module Data.Generics.Encode.Val2 (gflatten, VP(..), TC(..), ToVal(..)) where
 
 import qualified GHC.Generics as G
-import Generics.SOP (All, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), FieldName, ConstructorInfo(..), constructorInfo, Top, All, All2, hcliftA2, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse, SListI(..))
+import Generics.SOP (All, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), FieldName, ConstructorInfo(..), constructorInfo, All, All2, hcliftA2, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse)
 -- import Generics.SOP.NP (cpure_NP)
 -- import Generics.SOP.Constraint (SListIN)
 import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
 
 import Data.Hashable (Hashable(..))
--- import qualified Data.Text as T
+import qualified Data.Text as T
 -- import qualified Data.Vector as V
 -- import qualified Data.Map as M
 import qualified Data.HashMap.Strict as HM
 -- import qualified Data.GenericTrie as GT
-
 import Data.Generics.Encode.OneHot
-
-import Data.List (unfoldr)
-
--- type Path = [String]
-
-
+-- import Data.List (unfoldr)
+-- import qualified Data.Foldable as F
+-- import qualified Data.Sequence as S (Seq(..), empty)
+-- import Data.Sequence ((<|), (|>))
 
 
-
--- data T = TNode Int | TRec (HM.HashMap String T) deriving (Eq, Show)
-
--- keys :: T -> HM.HashMap [String] Int
--- keys = go ([], HM.empty) where
---   go (ks, hmacc) = \case
---     TNode i -> HM.insert ks i hmacc
---     TRec hm -> HM.foldlWithKey' (\hm' k t -> go (k : ks, hm') t) hmacc hm
+-- | Flatten a value into a 1-layer hashmap, via its generic encoding
+gflatten :: ToVal a => a -> HM.HashMap [TC] VP
+gflatten = flatten . toVal
 
 
-newtype Row = Row { unRow :: HM.HashMap [TC] VP} deriving (Eq, Show)
-
--- | A (type, constructor) pair
-data TC = TC String String deriving (Eq, Show, G.Generic)
+-- | A (type, constructor) name pair
+data TC = TC
+   String  -- ^ Type name
+   String  -- ^ Type constructor
+   deriving (Eq, Show, Ord, G.Generic)
 instance Hashable TC
 
 flatten :: Val -> HM.HashMap [TC] VP
 flatten = go ([], HM.empty) where
   go (ks, hmacc) = \case
-    VProd ty hm -> HM.foldlWithKey' (\hm' k t -> go (TC ty k : ks, hm') t) hmacc hm
-    VSum  ty hm -> HM.foldlWithKey' (\hm' k t -> go (TC ty k : ks, hm') t) hmacc hm
-    VOH   ty cn oh -> HM.insert (TC ty cn : ks) (VPOH oh) hmacc
-    VInt i         -> HM.insert ks (VPInt i) hmacc
-    VChar c        -> HM.insert ks (VPChar c) hmacc
-    VString s      -> HM.insert ks (VPString s) hmacc        
+    VRec ty hm     -> HM.foldlWithKey' (\hm' k t -> go (TC ty k : ks, hm') t) hmacc hm
+    VOH   ty cn oh -> insRev (TC ty cn : ks) (VPOH oh) hmacc
+    VPrim vp       -> insRev ks vp hmacc
+
+-- | Reverse keys list and use that to insert item
+insRev :: (Eq a, Hashable a) => [a] -> v -> HM.HashMap [a] v -> HM.HashMap [a] v
+insRev ks = HM.insert (reverse ks)
 
 
--- | Primitive values
+-- | Primitive types
 data VP =
-    VPInt    Int
+    VPInt    Int 
+  | VPFloat  Float
+  | VPDouble Double
   | VPChar   Char
-  | VPString String 
+  | VPString String
+  | VPText   T.Text 
   | VPOH     (OneHot Int)
   deriving (Eq, Show)
 
 
 -- | The String parameter contains the type name at the given level
 data Val =
-    VProd String        (HM.HashMap String Val) -- ^ product
-  | VSum  String        (HM.HashMap String Val) -- ^ sum
-  | VOH   String String (OneHot Int)            -- ^ 1-hot
-  | VInt  Int
-  | VChar Char
-  | VString String 
+    VRec   String        (HM.HashMap String Val) -- ^ recursion
+  | VOH    String String (OneHot Int)            -- ^ 1-hot
+  | VPrim  VP                                    -- ^ primitive types
   deriving (Eq, Show)
 
 -- | NOTE: if your type has a 'G.Generic' instance you can just declare an empty instance of 'ToVal' for it.
@@ -112,12 +106,11 @@ sopToVal di sop@(SOP xss) = hcollapse $ hcliftA2
 mkVal :: All ToVal xs =>
          ConstructorInfo xs -> NP I xs -> DatatypeName -> OneHot Int -> Val
 mkVal cinfo xs tyn oh = case cinfo of
-  -- Infix cn _ _ -> undefined
--- mkVal (Infix cn _ _) xs _ _ = Con cn $ npToVals xs
+    Infix cn _ _  -> VRec cn (mkAnonProd xs)
     Constructor cn
       | null cns  -> VOH tyn cn oh
-      | otherwise -> VProd cn  $ mkAnonProd xs
-    Record _ fi   -> VProd tyn $ mkProd fi xs
+      | otherwise -> VRec cn  $ mkAnonProd xs
+    Record _ fi   -> VRec tyn $ mkProd fi xs
   where
     cns :: [Val]
     cns = npToVals xs
@@ -140,21 +133,26 @@ labels :: [String]
 labels = map (('_' :) . show) [0 ..]
 
 
-instance ToVal Int where toVal = VInt
-instance ToVal Char where toVal = VChar
-instance ToVal String where toVal = VString
+instance ToVal Int where toVal = VPrim . VPInt
+instance ToVal Char where toVal = VPrim . VPChar
+instance ToVal String where toVal = VPrim . VPString
 instance ToVal a => ToVal (Maybe a) where
   toVal = \case
-    Nothing -> VSum "Maybe" HM.empty
-    Just x  -> VSum "Maybe" $ HM.singleton "Just" $ toVal x
+    Nothing -> VRec "Maybe" HM.empty
+    Just x  -> VRec "Maybe" $ HM.singleton "Just" $ toVal x
   
 instance (ToVal a, ToVal b) => ToVal (Either a b) where
   toVal = \case
-    Left  l -> VSum "Either" $ HM.singleton "Left" $ toVal l
-    Right r -> VSum "Either" $ HM.singleton "Right" $ toVal r
+    Left  l -> VRec "Either" $ HM.singleton "Left" $ toVal l
+    Right r -> VRec "Either" $ HM.singleton "Right" $ toVal r
 
 instance (ToVal a, ToVal b) => ToVal (a, b) where
-  toVal (x, y) = VProd "*" $ HM.fromList $ zip labels [toVal x, toVal y]         
+  toVal (x, y) = VRec "*" $ HM.fromList $ zip labels [toVal x, toVal y]         
+
+
+
+
+
 
 
 
@@ -174,6 +172,8 @@ data C = C1 | C2 | C3 deriving (Eq, Show, G.Generic)
 instance ToVal C
 data D = D (Maybe Int) (Either Int String) deriving (Eq, Show, G.Generic)
 instance ToVal D
-
-
+data E = E (Maybe Int) (Maybe Char) deriving (Eq, Show, G.Generic)
+instance ToVal E
+newtype F = F (Int, Char) deriving (Eq, Show, G.Generic)
+instance ToVal F
 

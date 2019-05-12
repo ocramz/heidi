@@ -1,11 +1,11 @@
 {-# language DeriveGeneric, FlexibleContexts, ScopedTypeVariables #-}
 module Data.Generics.Encode.OneHot (OneHot, onehotDim, onehotIx, mkOH) where
 
-import qualified GHC.Generics as G
-import Generics.SOP (All, DatatypeInfo, ConstructorInfo(..), constructorInfo, ConstructorName, Top, All, hindex, hmap, SOP(..), I(..), K(..), hcollapse, SListI(..), Proxy(..))
+-- import qualified GHC.Generics as G
+import Generics.SOP (DatatypeInfo, ConstructorInfo(..), constructorInfo, ConstructorName, hindex, hmap, SOP(..), I(..), K(..), hcollapse, SListI)
 -- import Generics.SOP.NP (cpure_NP)
 -- import Generics.SOP.Constraint (SListIN)
-import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
+-- import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
 
 -- $setup
 -- >>> :set -XDeriveDataTypeable

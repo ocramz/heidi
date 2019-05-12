@@ -2,24 +2,24 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -Wno-missing-methods #-}
 {-# OPTIONS_GHC -Wno-type-defaults #-}
-module Data.Generics.Encode.ValFix (Val(..), ValF(..), TypeName, ConstructorName) where
+module Data.Generics.Encode.ValFix (Val(..), ValF(..), cataVal, anaVal, cataValM, anaValM, TypeName, ConstructorName) where
 
-import qualified GHC.Generics as G
-import Generics.SOP (All, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), FieldName, ConstructorInfo(..), constructorInfo, Top, All, All2, hcliftA2, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse, SListI(..))
+-- import qualified GHC.Generics as G
+-- import Generics.SOP (All, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), FieldName, ConstructorInfo(..), constructorInfo, Top, All, All2, hcliftA2, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse, SListI)
 -- import Generics.SOP.NP (cpure_NP)
 -- import Generics.SOP.Constraint (SListIN)
-import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
+-- import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
 
 -- import Data.Hashable (Hashable(..))
 -- import qualified Data.Text as T
 -- import qualified Data.Vector as V
-import qualified Data.IntMap as IM
+-- import qualified Data.IntMap as IM
 import qualified Data.HashMap.Strict as HM
 -- import qualified Data.GenericTrie as GT
 
-import Data.Fix (Fix(..), cata, cataM, ana, anaM, hylo, hyloM)
+import Data.Fix (Fix(..), cata, cataM, ana, anaM)
 
-import qualified Data.Generics.Encode.OneHot as OH (OneHot(..))
+import qualified Data.Generics.Encode.OneHot as OH (OneHot)
 
 
 type TypeName = String
