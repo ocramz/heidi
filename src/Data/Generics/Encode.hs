@@ -11,9 +11,8 @@
 --
 -- Generic encoding of algebraic datatypes, using 'generics-sop'
 --
--- the aim is to implement depth-first traversal of arbitrary ADTs to extract prefix lists e.g. @fromList [(DatatypeName, FieldName), ... , (DatatypeName, OneHot Int)]@
 -----------------------------------------------------------------------------
-module Data.Generics.Encode (ToVal(..), Val(..), OneHot, onehotDim, onehotIx) where
+module Data.Generics.Encode (ToVal(..), OneHot, onehotDim, onehotIx) where
 
 -- import qualified GHC.Generics as G
 -- import Generics.SOP (All, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), FieldName, ConstructorInfo(..), constructorInfo, ConstructorName, Top, All, All2, hcliftA2, hindex, hmap, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse)

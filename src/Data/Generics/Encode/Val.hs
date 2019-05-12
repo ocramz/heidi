@@ -9,10 +9,35 @@
   , ScopedTypeVariables
   , TypeSynonymInstances
   , FlexibleInstances
+  , LambdaCase
 #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -Wno-missing-methods #-}
-module Data.Generics.Encode.Val where
+{-# OPTIONS_GHC -Wno-type-defaults #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Data.Generics.Encode
+-- Description :  Generic encoding of algebraic datatypes
+-- Copyright   :  (c) Marco Zocca (2019)
+-- License     :  MIT
+-- Maintainer  :  ocramz fripost org
+-- Stability   :  experimental
+-- Portability :  GHC
+--
+-- Generic encoding of algebraic datatypes, using 'generics-sop'
+--
+-- Examples :
+-- 
+-- * `basic-sop` - generic show function : https://hackage.haskell.org/package/basic-sop-0.2.0.2/docs/src/Generics-SOP-Show.html#gshow
+-- 
+-- * `tree-diff` - single-typed ADT reconstruction : http://hackage.haskell.org/package/tree-diff-0.0.2/docs/src/Data.TreeDiff.Class.html#sopToExpr
+-----------------------------------------------------------------------------
+module Data.Generics.Encode.Val (gflatten,
+                                 VP(..),
+                                 -- * TC
+                                 TC(..), --, tcTyN, tcTyCon,
+                                 -- * ToVal
+                                 ToVal(..)) where
 
 import qualified GHC.Generics as G
 import Generics.SOP (All, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), FieldName, ConstructorInfo(..), constructorInfo, All, All2, hcliftA2, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse)
@@ -20,13 +45,17 @@ import Generics.SOP (All, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..
 -- import Generics.SOP.Constraint (SListIN)
 import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
 
+import Data.Hashable (Hashable(..))
 import qualified Data.Text as T
 -- import qualified Data.Vector as V
 -- import qualified Data.Map as M
 import qualified Data.HashMap.Strict as HM
 -- import qualified Data.GenericTrie as GT
-
 import Data.Generics.Encode.OneHot
+-- import Data.List (unfoldr)
+-- import qualified Data.Foldable as F
+-- import qualified Data.Sequence as S (Seq(..), empty)
+-- import Data.Sequence ((<|), (|>))
 
 
 -- $setup
@@ -37,75 +66,80 @@ import Data.Generics.Encode.OneHot
 -- >>> import qualified GHC.Generics as G
 
 
--- newtype Trie a = Trie { unTrie :: GT.Trie [String] a } deriving (Show)
-
--- insert :: [String] -> a -> Trie a -> Trie a
--- insert k v t = Trie $ GT.insert k v (unTrie t)
-
--- empty :: Trie a 
--- empty = Trie GT.empty
+-- | Flatten a value into a 1-layer hashmap, via the value's generic encoding
+gflatten :: ToVal a => a -> HM.HashMap [TC] VP
+gflatten = flatten . toVal
 
 
+-- | A (type, constructor) name pair
+data TC = TC String String deriving (Eq, Show, Ord, G.Generic)
+instance Hashable TC
+
+-- | Type name
+tcTyN :: TC -> String
+tcTyN (TC n _) = n
+-- | Type constructor
+tcTyCon :: TC -> String
+tcTyCon (TC _ c) = c
+
+flatten :: Val -> HM.HashMap [TC] VP
+flatten = go ([], HM.empty) where
+  go (ks, hmacc) = \case
+    VRec ty hm     -> HM.foldlWithKey' (\hm' k t -> go (TC ty k : ks, hm') t) hmacc hm
+    VOH   ty cn oh -> insRev (TC ty cn : ks) (VPOH oh) hmacc
+    VPrim vp       -> insRev ks vp hmacc
+
+-- | Reverse keys list and use that to insert item
+insRev :: (Eq a, Hashable a) => [a] -> v -> HM.HashMap [a] v -> HM.HashMap [a] v
+insRev ks = HM.insert (reverse ks)
 
 
+-- | Primitive types
+data VP =
+    VPInt    Int 
+  | VPFloat  Float
+  | VPDouble Double
+  | VPChar   Char
+  | VPString String
+  | VPText   T.Text 
+  | VPOH     (OneHot Int)
+  deriving (Eq, Show)
+
+-- getInt :: VP -> Maybe Int
+-- getInt = \case
+--   VPInt i -> Just i
+--   _ -> Nothing
+
+-- getString :: VP -> Maybe String
+-- getString = \case
+--   VPString i -> Just i
+--   _ -> Nothing  
 
 
+-- | The String parameter contains the type name at the given level
 data Val =
-    Con FieldName [Val]  -- ^ Constructor (1 or more anonymous fields)
-  | Enum DatatypeName (OneHot Int)  -- ^ Enum (Constructor with 0 fields)
-  | Rec (HM.HashMap FieldName Val) -- ^ Record (1 or more named fields)
-  | VInt Int
-  | VFloat Float
-  | VChar Char
-  | VString String 
-  | VText T.Text
-  deriving (Eq, Show, G.Generic)
+    VRec   String        (HM.HashMap String Val) -- ^ recursion
+  | VOH    String String (OneHot Int)            -- ^ 1-hot
+  | VPrim  VP                                    -- ^ primitive types
+  deriving (Eq, Show)
 
+
+
+
+-- | NOTE: if your type has a 'G.Generic' instance you can just declare an empty instance of 'ToVal' for it.
+--
+-- example:
+--
+-- @
+-- data A = A Int Char deriving (G.Generic)
+-- instance ToVal A
+-- @
 class ToVal a where
-  {-# MINIMAL toVal #-}
   toVal :: a -> Val
-  default toVal :: (G.Generic a, All2 ToVal (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
-  toVal x = sopToVal (gdatatypeInfo (Proxy :: Proxy a)) (gfrom x)
+  default toVal ::
+    (G.Generic a, All2 ToVal (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
+  toVal x = sopToVal (gdatatypeInfo (Proxy :: Proxy a)) (gfrom x)  
 
--- All Top (GCode a),
-
-
-
--- instance ToVal a => ToVal (Maybe a) where
---   toVal mx = case mx of
---     Nothing -> VMaybe Nothing
---     Just x  -> VMaybe (Just $ toVal x)
--- instance (ToVal l, ToVal r) => ToVal (Either l r)
--- instance (ToVal l, ToVal r) => ToVal (l, r)
-
-instance ToVal a => ToVal (Maybe a) where
-    toVal Nothing  = Con "Nothing" []
-    toVal (Just x) = Con "Just" [toVal x]
-
-instance (ToVal a, ToVal b) => ToVal (Either a b) where
-    toVal (Left x)  = Con "Left"  [toVal x]
-    toVal (Right y) = Con "Right" [toVal y]
-
-instance (ToVal a, ToVal b) => ToVal (a, b) where
-    toVal (a, b) = Con "," [toVal a, toVal b]    
-
-
-instance ToVal Int where toVal = VInt
-instance ToVal Float where toVal = VFloat
-instance ToVal Char where toVal = VChar
-instance ToVal String where toVal = VString
--- instance ToVal a => ToVal [a]
-instance ToVal T.Text where toVal = VText
-
-
-
-
-{- | Examples :
-* `basic-sop` - generic show function  :
-https://hackage.haskell.org/package/basic-sop-0.2.0.2/docs/src/Generics-SOP-Show.html#gshow
-* `tree-diff` - single-typed ADT reconstruction :
-http://hackage.haskell.org/package/tree-diff-0.0.2/docs/src/Data.TreeDiff.Class.html#sopToExpr
--}
 
 sopToVal :: All2 ToVal xss => DatatypeInfo xss -> SOP I xss -> Val
 sopToVal di sop@(SOP xss) = hcollapse $ hcliftA2
@@ -118,21 +152,52 @@ sopToVal di sop@(SOP xss) = hcollapse $ hcliftA2
      oneHot = mkOH di sop
      
 mkVal :: All ToVal xs =>
-      ConstructorInfo xs -> NP I xs -> DatatypeName -> OneHot Int -> Val
-mkVal (Infix cn _ _) xs _ _ = Con cn $ npToVals xs
-mkVal (Constructor cn) xs tyn oh
-  | null cns  = Enum tyn oh
-  | otherwise = Con cn cns
+         ConstructorInfo xs -> NP I xs -> DatatypeName -> OneHot Int -> Val
+mkVal cinfo xs tyn oh = case cinfo of
+    Infix cn _ _  -> VRec cn (mkAnonProd xs)
+    Constructor cn
+      | null cns  -> VOH tyn cn oh
+      | otherwise -> VRec cn  $ mkAnonProd xs
+    Record _ fi   -> VRec tyn $ mkProd fi xs
   where
+    cns :: [Val]
     cns = npToVals xs
-mkVal (Record _ fi) xs _ _ = Rec $ HM.fromList $ hcollapse $ hcliftA2 (Proxy :: Proxy ToVal) mk fi xs
-  where
-    mk :: ToVal v => FieldInfo v -> I v -> K (FieldName, Val) v
-    mk (FieldInfo n) (I x) = K (n, toVal x)
+
+mkProd :: All ToVal xs => NP FieldInfo xs -> NP I xs -> HM.HashMap String Val
+mkProd fi xs = HM.fromList $ hcollapse $ hcliftA2 (Proxy :: Proxy ToVal) mk fi xs where
+  mk :: ToVal v => FieldInfo v -> I v -> K (FieldName, Val) v
+  mk (FieldInfo n) (I x) = K (n, toVal x)
+
+mkAnonProd :: All ToVal xs => NP I xs -> HM.HashMap String Val
+mkAnonProd xs = HM.fromList $ zip labels cns where
+  cns = npToVals xs
 
 npToVals :: All ToVal xs => NP I xs -> [Val]
 npToVals xs = hcollapse $ hcmap (Proxy :: Proxy ToVal) (mapIK toVal) xs
 
+-- | >>> take 3 labels
+-- ["_0","_1","_2"]
+labels :: [String]
+labels = map (('_' :) . show) [0 ..]
+
+
+instance ToVal Int where toVal = VPrim . VPInt
+instance ToVal Double where toVal = VPrim . VPDouble
+instance ToVal Char where toVal = VPrim . VPChar
+instance ToVal String where toVal = VPrim . VPString
+
+instance ToVal a => ToVal (Maybe a) where
+  toVal = \case
+    Nothing -> VRec "Maybe" HM.empty
+    Just x  -> VRec "Maybe" $ HM.singleton "Just" $ toVal x
+  
+instance (ToVal a, ToVal b) => ToVal (Either a b) where
+  toVal = \case
+    Left  l -> VRec "Either" $ HM.singleton "Left" $ toVal l
+    Right r -> VRec "Either" $ HM.singleton "Right" $ toVal r
+
+instance (ToVal a, ToVal b) => ToVal (a, b) where
+  toVal (x, y) = VRec "*" $ HM.fromList $ zip labels [toVal x, toVal y]         
 
 
 
@@ -141,69 +206,24 @@ npToVals xs = hcollapse $ hcmap (Proxy :: Proxy ToVal) (mapIK toVal) xs
 
 
 
--- λ> gdatatypeInfo (Proxy :: Proxy A)
--- ADT "Data.Generics.Encode.Val" "A" (Constructor "A" :* Nil)
-data A = A Int Char deriving (Eq, Show, G.Generic)
+-- examples
+
+data A0 = A0 deriving (Eq, Show, G.Generic)
+instance ToVal A0
+newtype A = A Int deriving (Eq, Show, G.Generic)
 instance ToVal A
-
--- ADT "Data.Generics.Encode.Val" "B" (Record "B" (FieldInfo "b1" :* FieldInfo "b2" :* Nil) :* Nil)
-data B = B { b1 :: Int, b2 :: Char } deriving (Eq, Show, G.Generic)
+newtype A2 = A2 { a2 :: Int } deriving (Eq, Show, G.Generic)
+instance ToVal A2
+data B = B Int Char deriving (Eq, Show, G.Generic)
 instance ToVal B
-
--- ADT "Data.Generics.Encode.Val" "C" (Constructor "C1" :* Constructor "C2" :* Constructor "C3" :* Nil)
+data B2 = B2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, G.Generic)
+instance ToVal B2
 data C = C1 | C2 | C3 deriving (Eq, Show, G.Generic)
 instance ToVal C
-
--- ADT "Data.Generics.Encode.Val" "D" (Constructor "D1" :* Constructor "D2" :* Constructor "D3" :* Nil)
-data D = D1 Int | D2 Char (Maybe String) | D3 (Maybe Int) deriving (Eq, Show, G.Generic)
+data D = D (Maybe Int) (Either Int String) deriving (Eq, Show, G.Generic)
 instance ToVal D
-
--- ADT "Data.Generics.Encode.Val" "E" (Record "E1" (FieldInfo "e1" :* Nil) :* Record "E2" (FieldInfo "e2" :* Nil) :* Record "E3" (FieldInfo "e3" :* Nil) :* Nil)
-data E = E1 { e1 :: Int } | E2 { e2 :: Char } | E3 { e3 :: Maybe Int } deriving (Eq, Show, G.Generic)
+data E = E (Maybe Int) (Maybe Char) deriving (Eq, Show, G.Generic)
 instance ToVal E
-
--- Newtype "Data.Generics.Encode.Val" "F" (Constructor "F")
-newtype F = F (Either Int Char) deriving (Eq, Show, G.Generic)
+newtype F = F (Int, Char) deriving (Eq, Show, G.Generic)
 instance ToVal F
-
--- Newtype "Data.Generics.Encode.Val" "G" (Record "G" (FieldInfo "g" :* Nil))
-newtype G = G { g :: Either Int (Maybe Char) } deriving (Eq, Show, G.Generic)
-instance ToVal G
-
--- ADT "Data.Generics.Encode.Val" ":@" (Infix ":+" LeftAssociative 9 :* Infix ":-" LeftAssociative 9 :* Nil)
-data a :@ b = a :+ b | a :- b deriving (Eq, Show, G.Generic)
-instance (ToVal a, ToVal b) => ToVal (a :@ b)
-
-data H = H1 C deriving (Eq, Show, G.Generic)
-instance ToVal H
-
-data J = J1 { j11 :: D, j12 :: C, j13 :: F } deriving (Eq, Show, G.Generic)
-instance ToVal J
-
-data J2 = J2 D C F deriving (Eq, Show, G.Generic)
-instance ToVal J2
-
--- ADT "Data.Generics.Encode.Val" "L" (Constructor "L" :* Nil)
-data L = L Int Char Float deriving (Eq, Show, G.Generic)
-instance ToVal L
-
-
-j :: J
-j = J1 (D2 'z' (Just "ad")) C1 $ F (Left 42)
-
-j2 :: J2
-j2 = J2 (D2 'z' (Just "ad")) C1 $ F (Left 42)
-
-
-
-{-
-Con "J2" [
-           Con "D2" [
-                      VChar 'z', Con "Just" [VString "ad"]
-                    ],
-           Enum "C" (OH {ohDim = 3, ohIx = 0}),
-           Con "F" [
-                     Con "Left" [
-                                  VInt 42]]]
--}
 

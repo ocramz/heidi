@@ -25,15 +25,13 @@ source-repository head
 library
   exposed-modules:
                   Data.Generics.Encode
-                  Data.Generics.Encode.Val2
+                  Data.Generics.Encode.Val
                   Data.Generics.Encode.OneHot
                   Data.Generics.Decode
-                  Data.Generics.Internal.Value
+                  -- Data.Generics.Internal.Value
                   Core.Data.Frame
-                  Core.Data.Frame.Value.Generic
                   Core.Data.Frame.Generic
   other-modules:
-                Data.Generics.Encode.Val
                 Data.Generics.Encode.ValFix                
   --     Paths_adt_codec_generic
   hs-source-dirs:
