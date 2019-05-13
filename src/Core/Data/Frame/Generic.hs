@@ -101,7 +101,7 @@ gToTable ds
   | null ds = throwM NoDataE 
   | otherwise = pure $ fromList $ map (mkRow . AV.gflatten) ds
 
-
+-- | Populate a 'Row' with a generic encoding of the input value
 gToRow :: AV.ToVal a => a -> Row [AV.TC] AV.VP
 gToRow = mkRow . AV.gflatten
 

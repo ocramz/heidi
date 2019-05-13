@@ -39,16 +39,6 @@ import Data.Generics.Encode.OneHot
 
 
 
--- -- | alternative ADT representation (only sums and products)
--- data VRep =
---     VProduct DatatypeName (HM.HashMap FieldName VRep)
---   | VSum DatatypeName FieldName VRep
---   | VEnum DatatypeName (OneHot Int)
---   deriving (Eq, Show)
-
-
-
-
 
 
 

@@ -1,4 +1,17 @@
 {-# language DeriveGeneric, FlexibleContexts, ScopedTypeVariables #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Data.Generics.Encode.OneHot
+-- Description :  Generic 1-hot encoding of enumeration types 
+-- Copyright   :  (c) Marco Zocca (2019)
+-- License     :  MIT
+-- Maintainer  :  ocramz fripost org
+-- Stability   :  experimental
+-- Portability :  GHC
+--
+-- Generic 1-hot encoding of enumeration types
+--
+-----------------------------------------------------------------------------
 module Data.Generics.Encode.OneHot (OneHot, onehotDim, onehotIx, mkOH) where
 
 -- import qualified GHC.Generics as G
@@ -16,7 +29,7 @@ import Generics.SOP (DatatypeInfo, ConstructorInfo(..), constructorInfo, Constru
 -- >>> import Generics.SOP.GGP (gdatatypeInfo, gfrom)
 -- >>> data C = C1 | C2 | C3 deriving (Eq, Show, G.Generic)
 
--- | Construct a 'OneHot' from generic datatype and value information
+-- | Construct a 'OneHot' encoding from generic datatype and value information
 -- 
 -- >>> mkOH (gdatatypeInfo (Proxy :: Proxy C)) (gfrom C2)
 -- OH {ohDim = 3, ohIx = 1}

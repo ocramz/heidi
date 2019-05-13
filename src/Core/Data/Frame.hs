@@ -29,7 +29,7 @@ module Core.Data.Frame (
   -- ** Construction
   fromNEList, fromList,
   -- ** Access
-  head, take, drop, zipWith, unionRowsWith, numRows, 
+  head, take, drop, zipWith, unionColsWith, numRows, 
   -- ** Filtering 
   filter, filterByKey,
   -- ** Scans (row-wise cumulative operations)
@@ -65,7 +65,7 @@ import qualified Data.List.NonEmpty as NE
 import Data.Hashable (Hashable(..))
 -- import Control.Monad.Catch(MonadThrow(..))
 
-import qualified Data.Generics.Decode as D (Decode(..))
+import qualified Data.Generics.Decode as D (Decode, runDecode)
 -- import Data.Generics.Decode ((>>>))
 -- import Analyze.Common (Key, MissingKeyError(..))
 -- import Data.Generics.Internal.Value
@@ -303,13 +303,18 @@ fromNEList l = Frame <$> NE.nonEmpty l
 fromList :: [row] -> Frame row
 fromList = Frame . NE.fromList 
 
+-- | Zip two frames with a row combining function
 zipWith :: (a -> b -> row)
         -> Frame a -> Frame b -> Frame row
 zipWith f tt1 tt2 = Frame $ NE.zipWith f (tableRows tt1) (tableRows tt2)
 
-unionRowsWith :: (Eq k, Hashable k) =>
-                 (v -> v -> v) -> Frame (Row k v) -> Frame (Row k v) -> Frame (Row k v)
-unionRowsWith f = zipWith (unionWith f)
+-- | Merge two frames by taking the set union of the columns
+unionColsWith :: (Eq k, Hashable k) =>
+                 (v -> v -> v)   -- ^ Element combination function
+              -> Frame (Row k v)
+              -> Frame (Row k v)
+              -> Frame (Row k v)
+unionColsWith f = zipWith (unionWith f)
 
 -- | Filters a 'Frame' according to a predicate. Returns Nothing only if the resulting table is empty (i.e. if no rows satisfy the predicate).
 --

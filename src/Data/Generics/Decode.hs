@@ -15,7 +15,7 @@
 --
 -- Composable decoding of terms
 -----------------------------------------------------------------------------
-module Data.Generics.Decode where
+module Data.Generics.Decode (Decode, mkDecode, runDecode, (>>>)) where
 
 import Control.Applicative      (Alternative(..))
 import Control.Category (Category(..)) 
@@ -33,8 +33,13 @@ import Prelude hiding ((.))
 --
 -- Note : 'Decode' is called Kleisli in base.Control.Arrow; among other things it has a Profunctor instance.
 
-newtype Decode m i o = Decode { runDecode :: i -> m o } deriving (Functor)
+newtype Decode m i o = Decode { runDecode_ :: i -> m o } deriving (Functor)
 
+-- | Run a decoding function
+runDecode :: Decode m i o -> i -> m o
+runDecode = runDecode_
+
+-- | Construct a 'Decode' from a monadic arrow.
 mkDecode :: (i -> m o) -> Decode m i o
 mkDecode = Decode
 
@@ -42,18 +47,18 @@ instance Applicative m => Applicative (Decode m i) where
   pure x = Decode $ \ _ -> pure x
   Decode af <*> Decode aa = Decode $ \ v -> af v <*> aa v
 
-
 instance Alternative m => Alternative (Decode m i) where
   empty = Decode $ const empty
   Decode p <|> Decode q = Decode $ \v -> p v <|> q v
 
--- | This instance is copied from 'Kleisli' (defined in Control.Arrow)
+-- | This instance is copied from @Kleisli@ (defined in Control.Arrow)
 instance Monad m => Category (Decode m) where
   id = Decode return
   (Decode f) . (Decode g) = Decode (g >=> f)
 
--- | Left-to-right composition 
--- (>>>) :: Monad m => Decode m a b -> Decode m b c -> Decode m a c
+-- | Left-to-right composition
+--
+-- @(>>>) :: Monad m => Decode m a b -> Decode m b c -> Decode m a c@
 (>>>) :: Category cat => cat a b -> cat b c -> cat a c
 (>>>) = flip (.)
 {-# inline (>>>) #-}

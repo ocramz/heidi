@@ -1,13 +1,10 @@
 {-# language
     DeriveGeneric
-  , DataKinds
   , FlexibleContexts
   , GADTs
   , OverloadedStrings
-  , TypeOperators
   , DefaultSignatures
   , ScopedTypeVariables
-  , TypeSynonymInstances
   , FlexibleInstances
   , LambdaCase
 #-}
@@ -33,11 +30,13 @@
 -- * `tree-diff` - single-typed ADT reconstruction : http://hackage.haskell.org/package/tree-diff-0.0.2/docs/src/Data.TreeDiff.Class.html#sopToExpr
 -----------------------------------------------------------------------------
 module Data.Generics.Encode.Val (gflatten,
+                                 -- * VP (Primitive types)
                                  VP(..),
-                                 -- * TC
-                                 TC(..), tcTyN, tcTyCon,
-                                 -- * ToVal
-                                 ToVal(..)) where
+                                 getInt, getFloat, getDouble, getChar, getString, getText, getOH,
+                                 -- * TC (Type and Constructor annotation)
+                                 TC(..), tcTyN, tcTyCon, 
+                                 -- * ToVal (generic ADT encoding)
+                                 ToVal(..), Val) where
 
 import qualified GHC.Generics as G
 import Generics.SOP (All, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), FieldName, ConstructorInfo(..), constructorInfo, All, All2, hcliftA2, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse)
@@ -46,7 +45,8 @@ import Generics.SOP (All, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..
 import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
 
 import Data.Hashable (Hashable(..))
-import qualified Data.Text as T
+-- import qualified Data.Text as T ()
+import Data.Text (Text)
 -- import qualified Data.Vector as V
 -- import qualified Data.Map as M
 import qualified Data.HashMap.Strict as HM
@@ -56,7 +56,7 @@ import Data.Generics.Encode.OneHot
 -- import qualified Data.Foldable as F
 -- import qualified Data.Sequence as S (Seq(..), empty)
 -- import Data.Sequence ((<|), (|>))
-
+import Prelude hiding (getChar)
 
 -- $setup
 -- >>> :set -XDeriveDataTypeable
@@ -101,19 +101,31 @@ data VP =
   | VPDouble Double
   | VPChar   Char
   | VPString String
-  | VPText   T.Text 
+  | VPText   Text 
   | VPOH     (OneHot Int)
   deriving (Eq, Show)
 
--- getInt :: VP -> Maybe Int
--- getInt = \case
---   VPInt i -> Just i
---   _ -> Nothing
-
--- getString :: VP -> Maybe String
--- getString = \case
---   VPString i -> Just i
---   _ -> Nothing  
+-- | Extract an Int
+getInt :: VP -> Maybe Int
+getInt = \case {VPInt i -> Just i; _ -> Nothing}
+-- | Extract a Float
+getFloat :: VP -> Maybe Float
+getFloat = \case {VPFloat i -> Just i; _ -> Nothing}
+-- | Extract a Double
+getDouble :: VP -> Maybe Double
+getDouble = \case {VPDouble i -> Just i; _ -> Nothing}
+-- | Extract a Char
+getChar :: VP -> Maybe Char
+getChar = \case {VPChar i -> Just i; _ -> Nothing}
+-- | Extract a String
+getString :: VP -> Maybe String
+getString = \case {VPString i -> Just i; _ -> Nothing}
+-- | Extract a Text string
+getText :: VP -> Maybe Text
+getText = \case {VPText i -> Just i; _ -> Nothing}
+-- | Extract a OneHot value
+getOH :: VP -> Maybe (OneHot Int)
+getOH = \case {VPOH i -> Just i; _ -> Nothing}
 
 
 -- | The String parameter contains the type name at the given level
@@ -126,13 +138,13 @@ data Val =
 
 
 
--- | NOTE: if your type has a 'G.Generic' instance you can just declare an empty instance of 'ToVal' for it.
+-- | NOTE: if your type has a 'G.Generic' instance you just need to declare an empty instance of 'ToVal' for it (a default implementation of 'toVal' is provided).
 --
 -- example:
 --
 -- @
--- data A = A Int Char deriving (G.Generic)
--- instance ToVal A
+-- data A = A Int Char deriving ('G.Generic')
+-- instance 'ToVal' A
 -- @
 class ToVal a where
   toVal :: a -> Val
