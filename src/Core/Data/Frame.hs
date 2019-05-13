@@ -194,6 +194,7 @@ data ValueError =
     DoubleCastError
   | IntCastError
   | StringCastError
+  | TextCastError
   deriving (Show, Eq, Typeable)
 instance Exception ValueError 
 
@@ -208,7 +209,7 @@ getDoubleM x = decodeM DoubleCastError pure (getDouble x)
 getStringM :: MonadThrow m => VP -> m String
 getStringM x = decodeM StringCastError pure (getString x)
 getTextM :: MonadThrow m => VP -> m Text
-getTextM x = decodeM StringCastError pure (getText x)
+getTextM x = decodeM TextCastError pure (getText x)
 
 -- | Decode into MonadThrow
 decIntM :: MonadThrow m => D.Decode m VP Int
@@ -220,15 +221,20 @@ decStringM = D.mkDecode getStringM
 decTextM :: MonadThrow m => D.Decode m VP Text
 decTextM = D.mkDecode getTextM
 
+-- | Lookup and decode a real number
 real :: (Key k, MonadThrow m, Alternative m) => k -> D.Decode m (Row k VP) Double
 real k = decodeColM k >>> decodeRealM
 
+-- | Lookup and decode a text string
 text :: (Key k, MonadThrow m, Alternative m) => k -> D.Decode m (Row k VP) Text
 text k = decodeColM k >>> decodeTextM
 
-sumCols :: (Key k, MonadThrow m, Alternative m) =>
-           k -> k -> D.Decode m (Row k VP) Double
-sumCols k1 k2 = (+) <$> real k1 <*> real k2
+-- -- example
+-- sumCols :: (Key k, MonadThrow m, Alternative m) =>
+--            k -> k -> D.Decode m (Row k VP) Double
+-- sumCols k1 k2 = (+) <$> real k1 <*> real k2
+
+
 
 
 -- test data
