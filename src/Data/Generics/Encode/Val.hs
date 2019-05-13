@@ -82,6 +82,7 @@ tcTyN (TC n _) = n
 tcTyCon :: TC -> String
 tcTyCon (TC _ c) = c
 
+-- | Fold a 'Val' into a 1-layer hashmap indexed by the input value's (type, constructor) metadata
 flatten :: Val -> HM.HashMap [TC] VP
 flatten = go ([], HM.empty) where
   go (ks, hmacc) = \case
@@ -194,9 +195,11 @@ labels = map (('_' :) . show) [0 ..]
 
 
 instance ToVal Int where toVal = VPrim . VPInt
+instance ToVal Float where toVal = VPrim . VPFloat
 instance ToVal Double where toVal = VPrim . VPDouble
 instance ToVal Char where toVal = VPrim . VPChar
 instance ToVal String where toVal = VPrim . VPString
+instance ToVal Text where toVal = VPrim . VPText
 
 instance ToVal a => ToVal (Maybe a) where
   toVal = \case
