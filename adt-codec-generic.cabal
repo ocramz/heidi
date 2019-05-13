@@ -49,6 +49,7 @@ library
               , text > 1.2.2
               -- , transformers
               , unordered-containers > 0.2.8
+              , vector
   default-language: Haskell2010
 
 test-suite test

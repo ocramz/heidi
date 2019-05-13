@@ -69,7 +69,8 @@ import Data.Typeable (Typeable)
 import qualified Data.Generics.Decode as D (Decode, runDecode, mkDecode)
 import Data.Generics.Decode ((>>>))
 -- import Analyze.Common (Key, MissingKeyError(..))
-import Data.Generics.Encode.Val (VP, getInt, getDouble, getString, getText)
+import Data.Generics.Encode.Val (VP, getInt, getDouble, getString, getText, getOH)
+import Data.Generics.Encode.OneHot (OneHot, oneHotV)
 
 
 import Prelude hiding (filter, zipWith, lookup, scanl, scanr, head, take, drop)
@@ -191,27 +192,32 @@ decodeTextM =
 
 -- | Value exceptions 
 data ValueError =
-    DoubleCastError
-  | IntCastError
-  | StringCastError
-  | TextCastError
+    DoubleCastE
+  | IntCastE
+  | StringCastE
+  | TextCastE
+  | OneHotCastE
   deriving (Show, Eq, Typeable)
 instance Exception ValueError 
 
+-- | Helper function for decoding into a 'MonadThrow'.
 decodeM :: (MonadThrow m, Exception e) =>
            e -> (a -> m b) -> Maybe a -> m b
 decodeM e = maybe (throwM e)
 
+-- | 'MonadThrow' getters
 getIntM :: MonadThrow m => VP -> m Int
-getIntM x = decodeM IntCastError pure (getInt x)
+getIntM x = decodeM IntCastE pure (getInt x)
 getDoubleM :: MonadThrow m => VP -> m Double
-getDoubleM x = decodeM DoubleCastError pure (getDouble x)
+getDoubleM x = decodeM DoubleCastE pure (getDouble x)
 getStringM :: MonadThrow m => VP -> m String
-getStringM x = decodeM StringCastError pure (getString x)
+getStringM x = decodeM StringCastE pure (getString x)
 getTextM :: MonadThrow m => VP -> m Text
-getTextM x = decodeM TextCastError pure (getText x)
+getTextM x = decodeM TextCastE pure (getText x)
+getOneHotM :: MonadThrow m => VP -> m (OneHot Int)
+getOneHotM x = decodeM OneHotCastE pure (getOH x)
 
--- | Decode into MonadThrow
+-- | Decode into 'MonadThrow'
 decIntM :: MonadThrow m => D.Decode m VP Int
 decIntM = D.mkDecode getIntM
 decDoubleM :: MonadThrow m => D.Decode m VP Double
@@ -220,6 +226,8 @@ decStringM :: MonadThrow m => D.Decode m VP String
 decStringM = D.mkDecode getStringM
 decTextM :: MonadThrow m => D.Decode m VP Text
 decTextM = D.mkDecode getTextM
+decOneHotM :: MonadThrow m => D.Decode m VP (OneHot Int)
+decOneHotM = D.mkDecode getOneHotM
 
 -- | Lookup and decode a real number
 real :: (Key k, MonadThrow m, Alternative m) => k -> D.Decode m (Row k VP) Double
@@ -228,6 +236,11 @@ real k = decodeColM k >>> decodeRealM
 -- | Lookup and decode a text string
 text :: (Key k, MonadThrow m, Alternative m) => k -> D.Decode m (Row k VP) Text
 text k = decodeColM k >>> decodeTextM
+
+-- | Lookup and decode a one-hot encoded enum
+oneHot :: (Key k, MonadThrow m) =>
+          k -> D.Decode m (Row k VP) (OneHot Int)
+oneHot k = decodeColM k >>> decOneHotM
 
 -- -- example
 -- sumCols :: (Key k, MonadThrow m, Alternative m) =>

@@ -12,9 +12,13 @@
 -- Generic 1-hot encoding of enumeration types
 --
 -----------------------------------------------------------------------------
-module Data.Generics.Encode.OneHot (OneHot, onehotDim, onehotIx, mkOH) where
+module Data.Generics.Encode.OneHot (OneHot, onehotDim, onehotIx, oneHotV
+                                   -- ** Internal
+                                   , mkOH) where
 
 -- import qualified GHC.Generics as G
+import qualified Data.Vector as V
+import qualified Data.Vector.Mutable as VM
 import Generics.SOP (DatatypeInfo, ConstructorInfo(..), constructorInfo, ConstructorName, hindex, hmap, SOP(..), I(..), K(..), hcollapse, SListI)
 -- import Generics.SOP.NP (cpure_NP)
 -- import Generics.SOP.Constraint (SListIN)
@@ -54,6 +58,16 @@ onehotIx = ohIx
 
 constructorList :: SListI xs => DatatypeInfo xs -> [ConstructorName]
 constructorList di = hcollapse $ hmap (\(Constructor x) -> K x) $ constructorInfo di
+
+
+-- | Create a one-hot vector
+oneHotV :: Num a =>
+           OneHot Int
+        -> V.Vector a
+oneHotV (OH n i) = V.create $ do
+  vm <- VM.replicate n 0
+  VM.write vm i 1
+  return vm
 
 
 -- data C = C1 | C2 | C3 deriving (Eq, Show, G.Generic)
