@@ -65,10 +65,10 @@ import qualified Data.List.NonEmpty as NE
 import Data.Hashable (Hashable(..))
 -- import Control.Monad.Catch(MonadThrow(..))
 
-import qualified Data.Generics.Decode as D (Decode, runDecode)
--- import Data.Generics.Decode ((>>>))
+import qualified Data.Generics.Decode as D (Decode, runDecode, mkDecode)
+import Data.Generics.Decode ((>>>))
 -- import Analyze.Common (Key, MissingKeyError(..))
--- import Data.Generics.Internal.Value
+import Data.Generics.Encode.Val (VP, getInt, getDouble)
 
 
 import Prelude hiding (filter, zipWith, lookup, scanl, scanr, head, take, drop)
@@ -132,6 +132,9 @@ toList = HM.toList . unRow
 lookup :: (Eq k, Hashable k) => k -> Row k v -> Maybe v
 lookup k = HM.lookup k . unRow
 
+-- lookupWith :: (Eq k, Hashable k) => (x -> k) -> x -> Row k v -> Maybe v
+-- lookupWith f k = lookup (f k)
+
 -- -- | Like 'lookup', but throws a 'MissingKeyError' if the lookup is unsuccessful
 -- lookupThrowM :: (MonadThrow m, Key k) =>
 --                 k -> Row k v -> m v
@@ -155,25 +158,28 @@ lookup k = HM.lookup k . unRow
 -- -- decodeRow :: (Eq k, Hashable k) => Row k o -> D.Decode Maybe k o
 -- decodeRow r = D.mkDecode (`lookupThrowM` r)
 
--- -- decodeCol :: (Eq k, Hashable k) => k -> D.Decode Maybe (Row k o) o
--- decodeCol k = D.mkDecode (lookupThrowM k)
+decodeCol :: (Eq k, Hashable k) => k -> D.Decode Maybe (Row k o) o
+decodeCol k = D.mkDecode (lookup k)
 
--- decInt = D.mkDecode getInt
+decInt :: D.Decode Maybe VP Int
+decInt = D.mkDecode getInt
 -- decInteger = D.mkDecode getInteger
--- decDouble = D.mkDecode getDouble
+decDouble = D.mkDecode getDouble
 -- decChar = D.mkDecode getChar
 -- decText = D.mkDecode getText
 
 -- -- | Decode any numerical value into a real number
 -- -- decodeReal :: D.Decode Maybe Value Double
--- decodeReal =
---   (fromIntegral <$> decInt)     <|>
---   decDouble                     <|>
+decodeReal =
+  (fromIntegral <$> decInt)     <|>
+  decDouble                     
 --   (fromIntegral <$> decInteger)
 
 
--- -- real :: (Eq k, Hashable k) => k -> D.Decode Maybe (Row k Value) Double
--- real k = decodeCol k >>> decodeReal
+real :: (Eq k, Hashable k) => k -> D.Decode Maybe (Row k VP) Double
+real k = decodeCol k >>> decodeReal
+
+sumCols k1 k2 = (+) <$> real k1 <*> real k2
 
 
 -- test data

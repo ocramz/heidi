@@ -103,7 +103,7 @@ data VP =
   | VPChar   Char
   | VPString String
   | VPText   Text 
-  | VPOH     (OneHot Int)
+  | VPOH     (OneHot Int)  -- ^ A 1-hot encoding of an enum value
   deriving (Eq, Show)
 
 -- | Extract an Int
@@ -129,7 +129,9 @@ getOH :: VP -> Maybe (OneHot Int)
 getOH = \case {VPOH i -> Just i; _ -> Nothing}
 
 
--- | The String parameter contains the type name at the given level
+-- | Internal representation of encoded ADTs values
+-- 
+-- The first String parameter contains the type name at the given level, the second contains the type constructor name
 data Val =
     VRec   String        (HM.HashMap String Val) -- ^ recursion
   | VOH    String String (OneHot Int)            -- ^ 1-hot
