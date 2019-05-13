@@ -23,11 +23,11 @@
 --
 -- Generic encoding of algebraic datatypes, using 'generics-sop'
 --
--- Examples :
+-- Examples, inspiration and code borrowed from :
 -- 
--- * `basic-sop` - generic show function : https://hackage.haskell.org/package/basic-sop-0.2.0.2/docs/src/Generics-SOP-Show.html#gshow
+-- * @basic-sop@ - generic show function : https://hackage.haskell.org/package/basic-sop-0.2.0.2/docs/src/Generics-SOP-Show.html#gshow
 -- 
--- * `tree-diff` - single-typed ADT reconstruction : http://hackage.haskell.org/package/tree-diff-0.0.2/docs/src/Data.TreeDiff.Class.html#sopToExpr
+-- * @tree-diff@ - single-typed ADT reconstruction : http://hackage.haskell.org/package/tree-diff-0.0.2/docs/src/Data.TreeDiff.Class.html#sopToExpr
 -----------------------------------------------------------------------------
 module Data.Generics.Encode.Val (gflatten,
                                  -- * VP (Primitive types)
