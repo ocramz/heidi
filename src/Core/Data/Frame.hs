@@ -53,47 +53,47 @@ module Core.Data.Frame (
   -- ** Row functions
   elemSatisfies, (!:),  
   -- * Relational operations
-  groupBy, innerJoin) where
+  groupBy, innerJoin, 
+  -- * Decode
+  D.Decode, real, text
+  ) where
 
 -- import Data.Maybe (fromMaybe)
 import Control.Applicative (Alternative(..))
 import qualified Data.Foldable as F
 -- import qualified Data.Vector as V
-import qualified Data.Text as T (pack, unpack)
+import qualified Data.Text as T (pack)
 import Data.Text (Text)
 import qualified Data.HashMap.Strict as HM
 import qualified Data.List.NonEmpty as NE
 import Data.Hashable (Hashable(..))
 import Control.Monad.Catch(Exception(..), MonadThrow(..))
+import Data.Scientific (Scientific, toRealFloat)
 import Data.Typeable (Typeable)
 import qualified Data.Generics.Decode as D (Decode, runDecode, mkDecode)
 import Data.Generics.Decode ((>>>))
 -- import Analyze.Common (Key, MissingKeyError(..))
-import Data.Generics.Encode.Val (VP, getInt, getDouble, getString, getText, getOH)
-import Data.Generics.Encode.OneHot (OneHot, oneHotV)
+import Data.Generics.Encode.Val (VP, getIntM, getFloatM, getDoubleM, getScientificM, getStringM, getTextM, getOneHotM)
+import Data.Generics.Encode.OneHot (OneHot)
 
 
 import Prelude hiding (filter, zipWith, lookup, scanl, scanr, head, take, drop)
 
 -- $setup
 -- >>> let row0 = fromKVs [(0, 'a'), (3, 'b')] :: Row Int Char
--- >>> let row1 = fromKVs [(0, 'x'), (1, 'b'), (666, 'z')] :: Row Int Char 
+-- >>> let row1 = fromKVs [(0, 'x'), (1, 'b'), (666, 'z')] :: Row Int Char
+-- >>> let book1 = fromKVs [("item", "book"), ("id.0", "129"), ("qty", "1")]
+-- >>> let book2 = fromKVs [("item", "book"), ("id.0", "129"), ("qty", "5")]
+-- >>> let ball = fromKVs [("item", "ball"), ("id.0", "234"), ("qty", "1")]
+-- >>> let bike = fromKVs [("item", "bike"), ("id.0", "410"), ("qty", "1")]
+-- >>> let t0 = fromList [ book1, ball, bike, book2 ] :: Frame (Row String String)
+-- >>> let r1 = fromKVs [("id.1", "129"), ("price", "100")]
+-- >>> let r2 = fromKVs [("id.1", "234"), ("price", "50")]
+-- >>> let r3 = fromKVs [("id.1", "3"), ("price", "150")]
+-- >>> let r4 = fromKVs [("id.1", "99"), ("price", "30")]
+-- >>> let t1 = fromList [ r1, r2, r3, r4 ] :: Frame (Row String String)
 
-t0 :: Frame (Row String String)
-t0 = fromList [ book1, ball, bike, book2 ] 
-           where
-             book1 = fromKVs [("item", "book"), ("id.0", "129"), ("qty", "1")]
-             book2 = fromKVs [("item", "book"), ("id.0", "129"), ("qty", "5")]  
-             ball = fromKVs [("item", "ball"), ("id.0", "234"), ("qty", "1")]  
-             bike = fromKVs [("item", "bike"), ("id.0", "410"), ("qty", "1")]
 
-t1 :: Frame (Row String String)
-t1 = fromList [ r1, r2, r3, r4 ] :: Frame (Row String String)
-           where
-             r1 = fromKVs [("id.1", "129"), ("price", "100")]
-             r2 = fromKVs [("id.1", "234"), ("price", "50")]  
-             r3 = fromKVs [("id.1", "3"), ("price", "150")]
-             r4 = fromKVs [("id.1", "99"), ("price", "30")]
 
 
 
@@ -151,14 +151,14 @@ instance (Show k, Typeable k) => Exception (KeyError k)
 
 
 
--- -- | Lookup a key using a default value for non-existing keys
--- --
--- -- >>> lookupDefault 'x' 0 row0
--- -- 'a'
--- -- >>> lookupDefault 'x' 2 row0
--- -- 'x'
--- lookupDefault :: (Eq k, Hashable k) => v -> k -> Row k v -> v
--- lookupDefault v k = HM.lookupDefault v k . unRow
+-- | Lookup a key using a default value for non-existing keys
+--
+-- >>> lookupDefault 'x' 0 row0
+-- 'a'
+-- >>> lookupDefault 'x' 2 row0
+-- 'x'
+lookupDefault :: (Eq k, Hashable k) => v -> k -> Row k v -> v
+lookupDefault v k = HM.lookupDefault v k . unRow
 
 decodeColM :: (MonadThrow m, Key k) =>
               k -> D.Decode m (Row k o) o
@@ -169,20 +169,20 @@ decodeCol k = D.mkDecode (lookup k)
 
 
 
-decInt :: D.Decode Maybe VP Int
-decInt = D.mkDecode getInt
--- decInteger = D.mkDecode getInteger
-decDouble :: D.Decode Maybe VP Double
-decDouble = D.mkDecode getDouble
--- decChar = D.mkDecode getChar
--- decText = D.mkDecode getText
+-- decInt :: D.Decode Maybe VP Int
+-- decInt = D.mkDecode getInt
+-- -- decInteger = D.mkDecode getInteger
+-- decDouble :: D.Decode Maybe VP Double
+-- decDouble = D.mkDecode getDouble
+-- -- decChar = D.mkDecode getChar
+-- -- decText = D.mkDecode getText
 
--- | Decode any numerical value into a real number
+-- | Decode any real numerical value (integer or double) into a Double
 decodeRealM :: (Alternative m, MonadThrow m) => D.Decode m VP Double
 decodeRealM =
   (fromIntegral <$> decIntM)     <|>
-  decDoubleM                     
---   (fromIntegral <$> decInteger)
+  decDoubleM                     <|>
+  (toRealFloat <$> decScientificM) 
 
 decodeTextM :: (Alternative m, MonadThrow m) => D.Decode m VP Text
 decodeTextM =
@@ -190,38 +190,15 @@ decodeTextM =
   decTextM
 
 
--- | Value exceptions 
-data ValueError =
-    DoubleCastE
-  | IntCastE
-  | StringCastE
-  | TextCastE
-  | OneHotCastE
-  deriving (Show, Eq, Typeable)
-instance Exception ValueError 
-
--- | Helper function for decoding into a 'MonadThrow'.
-decodeM :: (MonadThrow m, Exception e) =>
-           e -> (a -> m b) -> Maybe a -> m b
-decodeM e = maybe (throwM e)
-
--- | 'MonadThrow' getters
-getIntM :: MonadThrow m => VP -> m Int
-getIntM x = decodeM IntCastE pure (getInt x)
-getDoubleM :: MonadThrow m => VP -> m Double
-getDoubleM x = decodeM DoubleCastE pure (getDouble x)
-getStringM :: MonadThrow m => VP -> m String
-getStringM x = decodeM StringCastE pure (getString x)
-getTextM :: MonadThrow m => VP -> m Text
-getTextM x = decodeM TextCastE pure (getText x)
-getOneHotM :: MonadThrow m => VP -> m (OneHot Int)
-getOneHotM x = decodeM OneHotCastE pure (getOH x)
-
 -- | Decode into 'MonadThrow'
 decIntM :: MonadThrow m => D.Decode m VP Int
 decIntM = D.mkDecode getIntM
 decDoubleM :: MonadThrow m => D.Decode m VP Double
 decDoubleM = D.mkDecode getDoubleM
+decScientificM :: MonadThrow m => D.Decode m VP Scientific
+decScientificM = D.mkDecode getScientificM
+decFloatM :: MonadThrow m => D.Decode m VP Float
+decFloatM = D.mkDecode getFloatM
 decStringM :: MonadThrow m => D.Decode m VP String
 decStringM = D.mkDecode getStringM
 decTextM :: MonadThrow m => D.Decode m VP Text

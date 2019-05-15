@@ -1,5 +1,6 @@
 {-# language
     DeriveGeneric
+  , DeriveDataTypeable
   , FlexibleContexts
   , GADTs
   , OverloadedStrings
@@ -32,18 +33,20 @@
 module Data.Generics.Encode.Val (gflatten,
                                  -- * VP (Primitive types)
                                  VP(..),
-                                 getInt, getFloat, getDouble, getChar, getString, getText, getOH,
+                                 getIntM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM,
                                  -- * TC (Type and Constructor annotation)
                                  TC(..), tcTyN, tcTyCon, 
                                  -- * ToVal (generic ADT encoding)
                                  ToVal(..), Val) where
 
+import Data.Typeable (Typeable)
 import qualified GHC.Generics as G
 import Generics.SOP (All, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), FieldName, ConstructorInfo(..), constructorInfo, All, All2, hcliftA2, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse)
 -- import Generics.SOP.NP (cpure_NP)
 -- import Generics.SOP.Constraint (SListIN)
 import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
 
+import Control.Monad.Catch(Exception(..), MonadThrow(..))
 import Data.Hashable (Hashable(..))
 -- import qualified Data.Text as T ()
 import Data.Text (Text)
@@ -51,7 +54,8 @@ import Data.Text (Text)
 -- import qualified Data.Map as M
 import qualified Data.HashMap.Strict as HM
 -- import qualified Data.GenericTrie as GT
-import Data.Generics.Encode.OneHot
+import Data.Scientific (Scientific)
+import Data.Generics.Encode.OneHot (OneHot, mkOH)
 -- import Data.List (unfoldr)
 -- import qualified Data.Foldable as F
 -- import qualified Data.Sequence as S (Seq(..), empty)
@@ -91,6 +95,8 @@ flatten = go ([], HM.empty) where
     VPrim vp       -> insRev ks vp hmacc
 
 -- | Reverse keys list and use that to insert item
+--
+-- NB: this is a hack because we are using lists; the problem is that Data.Seq (finger tree-based sequences) which would have an efficient right-append don't have a Hashable instance so cannot be used as keys.
 insRev :: (Eq a, Hashable a) => [a] -> v -> HM.HashMap [a] v -> HM.HashMap [a] v
 insRev ks = HM.insert (reverse ks)
 
@@ -100,6 +106,7 @@ data VP =
     VPInt    Int 
   | VPFloat  Float
   | VPDouble Double
+  | VPScientific Scientific
   | VPChar   Char
   | VPString String
   | VPText   Text 
@@ -115,6 +122,9 @@ getFloat = \case {VPFloat i -> Just i; _ -> Nothing}
 -- | Extract a Double
 getDouble :: VP -> Maybe Double
 getDouble = \case {VPDouble i -> Just i; _ -> Nothing}
+-- | Extract a Scientific
+getScientific :: VP -> Maybe Scientific
+getScientific = \case {VPScientific i -> Just i; _ -> Nothing}
 -- | Extract a Char
 getChar :: VP -> Maybe Char
 getChar = \case {VPChar i -> Just i; _ -> Nothing}
@@ -125,8 +135,44 @@ getString = \case {VPString i -> Just i; _ -> Nothing}
 getText :: VP -> Maybe Text
 getText = \case {VPText i -> Just i; _ -> Nothing}
 -- | Extract a OneHot value
-getOH :: VP -> Maybe (OneHot Int)
-getOH = \case {VPOH i -> Just i; _ -> Nothing}
+getOneHot :: VP -> Maybe (OneHot Int)
+getOneHot = \case {VPOH i -> Just i; _ -> Nothing}
+
+-- | Helper function for decoding into a 'MonadThrow'.
+decodeM :: (MonadThrow m, Exception e) =>
+           e -> (a -> m b) -> Maybe a -> m b
+decodeM e = maybe (throwM e)
+
+-- | 'MonadThrow' getters
+getIntM :: MonadThrow m => VP -> m Int
+getIntM x = decodeM IntCastE pure (getInt x)
+getFloatM :: MonadThrow m => VP -> m Float
+getFloatM x = decodeM FloatCastE pure (getFloat x)
+getDoubleM :: MonadThrow m => VP -> m Double
+getDoubleM x = decodeM DoubleCastE pure (getDouble x)
+getScientificM :: MonadThrow m => VP -> m Scientific
+getScientificM x = decodeM ScientificCastE pure (getScientific x)
+getCharM :: MonadThrow m => VP -> m Char
+getCharM x = decodeM CharCastE pure (getChar x)
+getStringM :: MonadThrow m => VP -> m String
+getStringM x = decodeM StringCastE pure (getString x)
+getTextM :: MonadThrow m => VP -> m Text
+getTextM x = decodeM TextCastE pure (getText x)
+getOneHotM :: MonadThrow m => VP -> m (OneHot Int)
+getOneHotM x = decodeM OneHotCastE pure (getOneHot x)
+
+-- | Type errors
+data TypeError =
+    FloatCastE
+  | DoubleCastE
+  | ScientificCastE
+  | IntCastE
+  | CharCastE
+  | StringCastE
+  | TextCastE
+  | OneHotCastE
+  deriving (Show, Eq, Typeable)
+instance Exception TypeError 
 
 
 -- | Internal representation of encoded ADTs values

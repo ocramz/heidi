@@ -46,6 +46,7 @@ library
               -- , generic-trie >= 0.3.1
               , hashable >= 1.2.6.1
               -- , logging-effect
+              , scientific
               , text > 1.2.2
               -- , transformers
               , unordered-containers > 0.2.8
@@ -55,14 +56,14 @@ library
 test-suite test
   type: exitcode-stdio-1.0
   main-is: Main.hs
-  other-modules:
+  other-modules: Unit
   hs-source-dirs:
       test
   ghc-options: -Wall -rtsopts -threaded -with-rtsopts=-N
   build-depends:
                 adt-codec-generic
               , base
-              , doctest
+              -- , doctest
               , tasty
               , tasty-hspec
   default-language: Haskell2010
