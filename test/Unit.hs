@@ -15,10 +15,10 @@ employee = fromList [e1, e2, e3, e4, e5, e6] where
 
 department :: Frame (Row String String)
 department = fromList [d1, d2, d3, d4] where
-  d1 = fromKVs [("id.dep1", "31"), ("dep", "Sales")]
-  d2 = fromKVs [("id.dep1", "33"), ("dep", "Engineering")]
-  d3 = fromKVs [("id.dep1", "34"), ("dep", "Clerical")]
-  d4 = fromKVs [("id.dep1", "35"), ("dep", "Marketing")]  
+  d1 = fromKVs [("id.dep", "31"), ("dept", "Sales")]
+  d2 = fromKVs [("id.dep", "33"), ("dept", "Engineering")]
+  d3 = fromKVs [("id.dep", "34"), ("dept", "Clerical")]
+  d4 = fromKVs [("id.dep", "35"), ("dept", "Marketing")]  
 
 
 t0 :: Frame (Row String String)
