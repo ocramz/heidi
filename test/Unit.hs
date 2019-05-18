@@ -2,7 +2,7 @@ module Unit where
 
 import Test.Tasty.Hspec (Spec, it, shouldBe)
 
-import Core.Data.Frame (Frame, Row, fromList, fromKVs, innerJoin)
+import Core.Data.Frame (Frame, Row, fromList, fromKVs, groupBy, innerJoin)
 
 
 test_innerJoin :: Spec
@@ -10,11 +10,14 @@ test_innerJoin = it "innerJoin" $ do
   let jt = innerJoin "id.dep" "id.dep" employee department
   length jt `shouldBe` 5
 
+test_groupBy :: Spec
+test_groupBy = it "groupBy" $ do
+  let gt = groupBy "id.dep" employee
+  length gt `shouldBe` 3
 
 
 
-
--- https://en.wikipedia.org/wiki/Join_(SQL)
+-- example data from https://en.wikipedia.org/wiki/Join_(SQL)
 
 employee :: Frame (Row String String)
 employee = fromList [e1, e2, e3, e4, e5, e6] where

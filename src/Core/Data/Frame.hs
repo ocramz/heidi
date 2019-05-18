@@ -405,22 +405,28 @@ numRows = length . tableRows
 
 -- | GROUP BY : given a key and a table that uses it, split the table in multiple tables, one per value taken by the key.
 --
--- >>> numRows <$> (groupBy "id.0" t0 >>= HM.lookup "129")
+-- >>> numRows <$> (HM.lookup "129" $ groupBy "id.0" t0)
 -- Just 2
 groupBy :: (Foldable t, Hashable k, Hashable v, Eq k, Eq v) =>
            k  -- ^ Key to group by
         -> t (Row k v) -- ^ A @Frame (Row k v)@ can be used here
-        -> Maybe (HM.HashMap v (Frame (Row k v)))
-groupBy k tab = do
-  groups <- groupL k tab
-  pure $ fromList <$> groups
+        -> HM.HashMap v (Frame (Row k v))
+groupBy k tbl = fromList <$> groupL k tbl
 
 groupL :: (Foldable t, Hashable k, Hashable v, Eq k, Eq v) =>
-         k -> t (Row k v) -> Maybe (HM.HashMap v [Row k v])
-groupL k tab = F.foldlM insf HM.empty tab where
-  insf acc row = do
-    v <- lookup k row
-    pure $ HM.insertWith (++) v [row] acc
+          k -> t (Row k v) -> HM.HashMap v [Row k v]
+groupL k tbl = F.foldl insf HM.empty tbl where
+  insf acc row = maybe acc (\v -> HM.insertWith (++) v [row] acc) (lookup k row)
+
+
+
+
+-- join f k1 k2 table1 table2 = fromList $ F.foldl insf [] table1 where
+--   insf acc row1 = f acc (lookup k1 row1) where
+--     appendMatchRows v = map (union row1) mr2 ++ acc where
+--       mr2 = matchingRows k2 v table2
+
+
 
 
 -- | INNER JOIN : given two dataframes and one key from each, compute the inner join using the keys as relations.
@@ -443,7 +449,7 @@ innerJoin k1 k2 table1 table2 = fromList $ F.foldl insf [] table1 where
   insf acc row1 = maybe acc appendMatchRows (lookup k1 row1) where
     appendMatchRows v = map (union row1) mr2 ++ acc where
       mr2 = matchingRows k2 v table2
-
+      
 matchingRows :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
                 k
              -> v
@@ -453,6 +459,8 @@ matchingRows k v rows = fromMaybe [] (HM.lookup v rowMap) where
   rowMap = hjBuild k rows
     
 -- | "build" phase of the hash-join algorithm
+--
+-- For a given key 'k' and a set of frame rows, populates a hashmap from the _values_ corresponding to 'k' to the corresponding rows.
 hjBuild :: (Foldable t, Eq v, Eq k, Hashable v, Hashable k) =>
            k -> t (Row k v) -> HM.HashMap v [Row k v]
 hjBuild k = F.foldl insf HM.empty where
@@ -494,7 +502,7 @@ hjBuild k = F.foldl insf HM.empty where
 --   e3 = fromKVs [("name", "Heisenberg"), ("id.dep", "33")]
 --   e4 = fromKVs [("name", "Robinson"), ("id.dep", "34")]
 --   e5 = fromKVs [("name", "Smith"), ("id.dep", "34")]
---   e6 = fromKVs [("name", "Williams")]   -- missing key causes first lookup in innerJoin to return Nothing, so the whole thing returns Nothing
+--   e6 = fromKVs [("name", "Williams")]   
 
 -- department :: Frame (Row String String)
 -- department = fromList [d1, d2, d3, d4] where
