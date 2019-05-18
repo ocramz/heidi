@@ -111,7 +111,8 @@ data VP =
   | VPString String
   | VPText   Text 
   | VPOH     (OneHot Int)  -- ^ A 1-hot encoding of an enum value
-  deriving (Eq, Show)
+  deriving (Eq, Show, G.Generic)
+instance Hashable VP
 
 -- | Extract an Int
 getInt :: VP -> Maybe Int

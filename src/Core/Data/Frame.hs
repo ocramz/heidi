@@ -30,29 +30,28 @@ module Core.Data.Frame (
   -- ** Filtering 
   filter, filterByKey,
   -- ** Scans (row-wise cumulative operations)
-  scanl, scanr, 
+  scanl, scanr,
+  -- * Relational operations
+  groupBy, innerJoin, leftOuterJoin,   
   -- * Row
   Row,
-  -- ** Construction 
+  -- ** Construction
   fromKVs,
   -- *** (unsafe)
   mkRow, 
+  -- ** Update
+  insert, insertRowFun, insertRowFunM, 
   -- ** Access
-  keys, elems, toList, 
-  -- ** Traversal
-  traverseWithKey, 
-  -- ** Lookup 
-  lookup, -- lookupDefault,
-  -- ** Insertion 
-  insert, insertRowFun, insertRowFunM,
-  -- ** Set-like row operations
+  toList, keys, elems,
+  -- *** Decoders
+  real, text, oneHot, 
+  -- ** Lookup
+  lookup, lookupThrowM, lookupDefault, (!:), elemSatisfies, 
+  -- ** Set operations
   union, unionWith,
-  -- ** Row functions
-  elemSatisfies, (!:),  
-  -- * Relational operations
-  groupBy, innerJoin, leftOuterJoin, 
-  -- -- * Decode
-  -- D.Decode, real, text,
+  -- ** Traversals
+  traverseWithKey,
+  -- * Key constraint
   Key
   ) where
 

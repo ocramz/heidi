@@ -18,9 +18,11 @@
 module Core.Data.Row (
   Row,
   -- * Construction
-  fromKVs, insert,
+  fromKVs,
+  -- ** (unsafe)
+  mkRow, 
   -- * Update
-  insertRowFun, insertRowFunM, 
+  insert, insertRowFun, insertRowFunM, 
   -- * Access
   toList, keys, elems,
   -- ** Decoders
@@ -33,8 +35,6 @@ module Core.Data.Row (
   traverseWithKey,
   -- * Key constraint
   Key,
-  -- * (unsafe)
-  mkRow
   ) where
 
 import Data.Typeable (Typeable)

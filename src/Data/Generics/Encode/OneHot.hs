@@ -16,7 +16,8 @@ module Data.Generics.Encode.OneHot (OneHot, onehotDim, onehotIx, oneHotV
                                    -- ** Internal
                                    , mkOH) where
 
--- import qualified GHC.Generics as G
+import qualified GHC.Generics as G
+import Data.Hashable (Hashable(..))
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
 import Generics.SOP (DatatypeInfo, ConstructorInfo(..), constructorInfo, ConstructorName, hindex, hmap, SOP(..), I(..), K(..), hcollapse, SListI)
@@ -46,7 +47,8 @@ mkOH di sop = oneHot where
 -- | 1-hot encoded vector.
 --
 -- This representation is used to encode categorical variables as points in a vector space.
-data OneHot i = OH { ohDim :: i, ohIx :: i } deriving (Eq, Show)
+data OneHot i = OH { ohDim :: i, ohIx :: i } deriving (Eq, Show, G.Generic)
+instance Hashable i => Hashable (OneHot i)
 
 -- | Embedding dimension of the 1-hot encoded vector
 onehotDim :: OneHot i -> i
