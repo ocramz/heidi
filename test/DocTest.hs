@@ -7,5 +7,6 @@ main = doctest [
   "src/Data/Generics/Encode/OneHot.hs",
   "src/Data/Generics/Encode/Val.hs",  
   "src/Core/Data/Frame/Generic.hs",
-  "src/Core/Data/Frame.hs"
+  "src/Core/Data/Frame.hs",
+  "src/Core/Data/Row.hs"
   ]

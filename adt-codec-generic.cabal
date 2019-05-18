@@ -29,6 +29,7 @@ library
                   Data.Generics.Encode.OneHot
                   Data.Generics.Decode
                   Core.Data.Frame
+                  Core.Data.Row
                   Core.Data.Frame.Generic
   -- other-modules:
   --               Data.Generics.Encode.ValFix          
