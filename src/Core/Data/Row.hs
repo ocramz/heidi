@@ -15,7 +15,27 @@
 -- supports the possibility of missing features in the dataset.
 --
 -----------------------------------------------------------------------------
-module Core.Data.Row where
+module Core.Data.Row (
+  Row,
+  -- * Construction
+  fromKVs, insert,
+  -- * Update
+  insertRowFun, insertRowFunM, 
+  -- * Access
+  toList, keys, elems,
+  -- ** Decoders
+  real, text, oneHot, 
+  -- * Lookup
+  lookup, lookupThrowM, lookupDefault, (!:), elemSatisfies, 
+  -- * Set operations
+  union, unionWith,
+  -- * Traversals
+  traverseWithKey,
+  -- * Key constraint
+  Key,
+  -- * (unsafe)
+  mkRow
+  ) where
 
 import Data.Typeable (Typeable)
 import Control.Applicative (Alternative(..))
@@ -160,7 +180,7 @@ elemSatisfies f k row = maybe False f (lookup k row)
 (!:) :: (Eq k, Hashable k) => k -> (a -> Bool) -> Row k a -> Bool
 k !: f = elemSatisfies f k 
 
--- | Creates or updates a column with a function of the whole row
+-- | Updates a column with a function of the whole row
 insertRowFun :: (Eq k, Hashable k) => (Row k v -> v) -> k -> Row k v -> Row k v
 insertRowFun f knew row = insert knew (f row) row
 
@@ -174,11 +194,12 @@ insertRowFunM fm knew row = do
 
 
 
-
+-- | Decode a value from a Row indexed at the given key (returns in a MonadThrow type)
 decodeColM :: (MonadThrow m, Key k) =>
               k -> D.Decode m (Row k o) o
 decodeColM k = D.mkDecode (lookupThrowM k)
 
+-- | Decode a value from a Row indexed at the given key (returns in the Maybe monad)
 decodeCol :: (Eq k, Hashable k) => k -> D.Decode Maybe (Row k o) o
 decodeCol k = D.mkDecode (lookup k)
 
@@ -192,13 +213,14 @@ decodeCol k = D.mkDecode (lookup k)
 -- -- decChar = D.mkDecode getChar
 -- -- decText = D.mkDecode getText
 
--- | Decode any real numerical value (integer or double) into a Double
+-- | Decode any real numerical value (integer, double or 'Scientific') into a Double
 decodeRealM :: (Alternative m, MonadThrow m) => D.Decode m VP Double
 decodeRealM =
   (fromIntegral <$> decIntM)     <|>
   decDoubleM                     <|>
   (toRealFloat <$> decScientificM) 
 
+-- | Decode a string ('String' or 'Text') into a Text
 decodeTextM :: (Alternative m, MonadThrow m) => D.Decode m VP Text
 decodeTextM =
   (T.pack <$> decStringM) <|>

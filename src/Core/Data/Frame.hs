@@ -44,7 +44,7 @@ module Core.Data.Frame (
   -- ** Lookup 
   lookup, -- lookupDefault,
   -- ** Insertion 
-  insert, insertRowFun, insertRowFunM, 
+  insert, insertRowFun, insertRowFunM,
   -- ** Set-like row operations
   union, unionWith,
   -- ** Row functions
