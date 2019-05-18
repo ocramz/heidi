@@ -58,7 +58,7 @@ module Core.Data.Frame (
   D.Decode, real, text
   ) where
 
--- import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe)
 import Control.Applicative (Alternative(..))
 import qualified Data.Foldable as F
 -- import qualified Data.Vector as V
@@ -431,36 +431,74 @@ groupL k tab = F.foldlM insf HM.empty tab where
 -- >>> head t1
 -- [("id.1","129"),("price","100")]
 -- 
--- >>> head <$> innerJoin "id.0" "id.1" t0 t1
--- Just [("id.1","129"),("id.0","129"),("qty","5"),("item","book"),("price","100")]
+-- >>> head $ innerJoin "id.0" "id.1" t0 t1
+-- [("id.1","129"),("id.0","129"),("qty","5"),("item","book"),("price","100")]
 innerJoin :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
              k  -- ^ Key into the first table
           -> k  -- ^ Key into the second table
           -> t (Row k v)  -- ^ First dataframe
           -> t (Row k v)  -- ^ Second dataframe
-          -> Maybe (Frame (Row k v))
-innerJoin k1 k2 table1 table2 = fromList <$> F.foldlM insf [] table1 where
-  insf acc row1 = do
-    v <- lookup k1 row1
-    matchRows2 <- matchingRows k2 v table2 <|> Just [] 
-    let rows' = map (union row1) matchRows2
-    pure (rows' ++ acc)
+          -> Frame (Row k v)
+innerJoin k1 k2 table1 table2 = fromList $ F.foldl insf [] table1 where
+  insf acc row1 = maybe acc appendMatchRows (lookup k1 row1) where
+    appendMatchRows v = map (union row1) mr2 ++ acc where
+      mr2 = matchingRows k2 v table2
 
--- | Return all rows that match a value at a given key
 matchingRows :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
                 k
              -> v
              -> t (Row k v)
-             -> Maybe [Row k v]
-matchingRows k v rows = do
-  rowMap <- hjBuild k rows
-  HM.lookup v rowMap
-
+             -> [Row k v]
+matchingRows k v rows = fromMaybe [] (HM.lookup v rowMap) where
+  rowMap = hjBuild k rows
+    
 -- | "build" phase of the hash-join algorithm
-hjBuild :: (Foldable t, Hashable a, Hashable k, Eq a, Eq k) =>
-            k -> t (Row k a) -> Maybe (HM.HashMap a [Row k a])
-hjBuild k = F.foldlM insf HM.empty where
-  insf hmAcc row = do
-    v <- lookup k row
-    let hm' = HM.insertWith mappend v [row] hmAcc
-    pure hm'
+hjBuild :: (Foldable t, Eq v, Eq k, Hashable v, Hashable k) =>
+           k -> t (Row k v) -> HM.HashMap v [Row k v]
+hjBuild k = F.foldl insf HM.empty where
+  insf hmAcc row = maybe hmAcc (\v -> HM.insertWith (++) v [row] hmAcc) $ lookup k row
+    
+
+
+
+
+
+
+
+
+
+
+-- -- test data
+
+
+-- e0 :: Frame (Row String String)
+-- e0 = fromList [r] where
+--   r = fromKVs [("name", "Smith"), ("id.dep", "34")]
+ 
+-- e0' :: Frame (Row String String)
+-- e0' = fromList [r] where
+--   r = fromKVs [("name", "Smith")] 
+
+-- d0 :: Frame (Row String String)
+-- d0 = fromList [r] where
+--   r = fromKVs [("id.dep", "34"), ("dept", "Clerical")]
+
+
+  
+
+
+-- employee :: Frame (Row String String)
+-- employee = fromList [e1, e2, e3, e4, e5, e6] where
+--   e1 = fromKVs [("name", "Rafferty"), ("id.dep", "31")]
+--   e2 = fromKVs [("name", "Jones"), ("id.dep", "33")]
+--   e3 = fromKVs [("name", "Heisenberg"), ("id.dep", "33")]
+--   e4 = fromKVs [("name", "Robinson"), ("id.dep", "34")]
+--   e5 = fromKVs [("name", "Smith"), ("id.dep", "34")]
+--   e6 = fromKVs [("name", "Williams")]   -- missing key causes first lookup in innerJoin to return Nothing, so the whole thing returns Nothing
+
+-- department :: Frame (Row String String)
+-- department = fromList [d1, d2, d3, d4] where
+--   d1 = fromKVs [("id.dep", "31"), ("dept", "Sales")]
+--   d2 = fromKVs [("id.dep", "33"), ("dept", "Engineering")]
+--   d3 = fromKVs [("id.dep", "34"), ("dept", "Clerical")]
+--   d4 = fromKVs [("id.dep", "35"), ("dept", "Marketing")]  

@@ -1,6 +1,18 @@
 module Unit where
 
+import Test.Tasty.Hspec (Spec, it, shouldBe)
+
 import Core.Data.Frame (Frame, Row, fromList, fromKVs, innerJoin)
+
+
+test_innerJoin :: Spec
+test_innerJoin = it "innerJoin" $ do
+  let jt = innerJoin "id.dep" "id.dep" employee department
+  length jt `shouldBe` 5
+
+
+
+
 
 -- https://en.wikipedia.org/wiki/Join_(SQL)
 
@@ -19,6 +31,10 @@ department = fromList [d1, d2, d3, d4] where
   d2 = fromKVs [("id.dep", "33"), ("dept", "Engineering")]
   d3 = fromKVs [("id.dep", "34"), ("dept", "Clerical")]
   d4 = fromKVs [("id.dep", "35"), ("dept", "Marketing")]  
+
+
+
+
 
 
 t0 :: Frame (Row String String)

@@ -53,6 +53,7 @@ library
               , vector
   default-language: Haskell2010
 
+-- unit tests
 test-suite test
   type: exitcode-stdio-1.0
   main-is: Main.hs
@@ -63,11 +64,13 @@ test-suite test
   build-depends:
                 adt-codec-generic
               , base
-              -- , doctest
               , tasty
+              -- , tasty-hunit
               , tasty-hspec
+              -- , hspec-expectations
   default-language: Haskell2010
 
+  
 test-suite doctest
   default-language:    Haskell2010           
   type: exitcode-stdio-1.0
