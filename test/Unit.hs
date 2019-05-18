@@ -2,13 +2,18 @@ module Unit where
 
 import Test.Tasty.Hspec (Spec, it, shouldBe)
 
-import Core.Data.Frame (Frame, Row, fromList, fromKVs, groupBy, innerJoin)
+import Core.Data.Frame (Frame, Row, fromList, fromKVs, groupBy, innerJoin, leftOuterJoin)
 
 
 test_innerJoin :: Spec
 test_innerJoin = it "innerJoin" $ do
   let jt = innerJoin "id.dep" "id.dep" employee department
   length jt `shouldBe` 5
+
+test_leftOuterJoin :: Spec
+test_leftOuterJoin = it "leftOuterJoin" $ do
+  let jt = leftOuterJoin "id.dep" "id.dep" employee department
+  length jt `shouldBe` 6  
 
 test_groupBy :: Spec
 test_groupBy = it "groupBy" $ do

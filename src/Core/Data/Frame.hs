@@ -53,9 +53,10 @@ module Core.Data.Frame (
   -- ** Row functions
   elemSatisfies, (!:),  
   -- * Relational operations
-  groupBy, innerJoin, 
+  groupBy, innerJoin, leftOuterJoin, 
   -- * Decode
-  D.Decode, real, text
+  D.Decode, real, text,
+  Key
   ) where
 
 import Data.Maybe (fromMaybe)
@@ -397,7 +398,7 @@ scanr f z tt = Frame $ NE.scanr f z (tableRows tt)
 -- >>> numRows t0
 -- 4
 numRows :: Frame row -> Int 
-numRows = length . tableRows
+numRows = length
 
 
 
@@ -427,6 +428,19 @@ groupL k tbl = F.foldl insf HM.empty tbl where
 --       mr2 = matchingRows k2 v table2
 
 
+-- | LEFT (OUTER) JOIN : given two dataframes and one key from each, compute the left outer join using the keys as relations.
+leftOuterJoin :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
+                 k
+              -> k
+              -> t (Row k v)
+              -> t (Row k v)
+              -> Frame (Row k v)
+leftOuterJoin k1 k2 table1 table2 = fromList $ F.foldl insf [] table1 where
+  insf acc row1 = maybe (row1 : acc) appendMatchRows (lookup k1 row1) where
+    appendMatchRows v = map (union row1) mr2 ++ acc where
+      mr2 = matchingRows k2 v table2   
+
+
 
 
 -- | INNER JOIN : given two dataframes and one key from each, compute the inner join using the keys as relations.
@@ -449,7 +463,8 @@ innerJoin k1 k2 table1 table2 = fromList $ F.foldl insf [] table1 where
   insf acc row1 = maybe acc appendMatchRows (lookup k1 row1) where
     appendMatchRows v = map (union row1) mr2 ++ acc where
       mr2 = matchingRows k2 v table2
-      
+
+   
 matchingRows :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
                 k
              -> v
@@ -457,6 +472,7 @@ matchingRows :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
              -> [Row k v]
 matchingRows k v rows = fromMaybe [] (HM.lookup v rowMap) where
   rowMap = hjBuild k rows
+{-# INLINE matchingRows #-}
     
 -- | "build" phase of the hash-join algorithm
 --
@@ -465,7 +481,7 @@ hjBuild :: (Foldable t, Eq v, Eq k, Hashable v, Hashable k) =>
            k -> t (Row k v) -> HM.HashMap v [Row k v]
 hjBuild k = F.foldl insf HM.empty where
   insf hmAcc row = maybe hmAcc (\v -> HM.insertWith (++) v [row] hmAcc) $ lookup k row
-    
+{-# INLINE hjBuild #-}
 
 
 
@@ -495,18 +511,18 @@ hjBuild k = F.foldl insf HM.empty where
   
 
 
--- employee :: Frame (Row String String)
--- employee = fromList [e1, e2, e3, e4, e5, e6] where
---   e1 = fromKVs [("name", "Rafferty"), ("id.dep", "31")]
---   e2 = fromKVs [("name", "Jones"), ("id.dep", "33")]
---   e3 = fromKVs [("name", "Heisenberg"), ("id.dep", "33")]
---   e4 = fromKVs [("name", "Robinson"), ("id.dep", "34")]
---   e5 = fromKVs [("name", "Smith"), ("id.dep", "34")]
---   e6 = fromKVs [("name", "Williams")]   
+employee :: Frame (Row String String)
+employee = fromList [e1, e2, e3, e4, e5, e6] where
+  e1 = fromKVs [("name", "Rafferty"), ("id.dep", "31")]
+  e2 = fromKVs [("name", "Jones"), ("id.dep", "33")]
+  e3 = fromKVs [("name", "Heisenberg"), ("id.dep", "33")]
+  e4 = fromKVs [("name", "Robinson"), ("id.dep", "34")]
+  e5 = fromKVs [("name", "Smith"), ("id.dep", "34")]
+  e6 = fromKVs [("name", "Williams")]   
 
--- department :: Frame (Row String String)
--- department = fromList [d1, d2, d3, d4] where
---   d1 = fromKVs [("id.dep", "31"), ("dept", "Sales")]
---   d2 = fromKVs [("id.dep", "33"), ("dept", "Engineering")]
---   d3 = fromKVs [("id.dep", "34"), ("dept", "Clerical")]
---   d4 = fromKVs [("id.dep", "35"), ("dept", "Marketing")]  
+department :: Frame (Row String String)
+department = fromList [d1, d2, d3, d4] where
+  d1 = fromKVs [("id.dep", "31"), ("dept", "Sales")]
+  d2 = fromKVs [("id.dep", "33"), ("dept", "Engineering")]
+  d3 = fromKVs [("id.dep", "34"), ("dept", "Clerical")]
+  d4 = fromKVs [("id.dep", "35"), ("dept", "Marketing")]  

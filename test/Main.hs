@@ -17,12 +17,13 @@ import Unit
 
 main :: IO ()
 main = do
-    test <- testSpec "adt-codec-generic" spec
+    test <- testSpec "Core.Data.Frame" spec_Frame
     defaultMain test
 
-spec :: Spec
-spec = parallel $ do
+spec_Frame :: Spec
+spec_Frame = parallel $ do
   test_innerJoin
+  test_leftOuterJoin
   test_groupBy
 
 -- spec :: Spec
