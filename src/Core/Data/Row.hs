@@ -1,5 +1,5 @@
 {-# language DeriveFunctor, GeneralizedNewtypeDeriving, DeriveTraversable, DeriveDataTypeable #-}
-{-# language ConstraintKinds #-}
+-- {-# language ConstraintKinds #-}
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 -----------------------------------------------------------------------------
 -- |
@@ -104,7 +104,7 @@ lookupThrowM :: (MonadThrow m, Key k) =>
 lookupThrowM k r = maybe (throwM $ MissingKeyError k) pure (lookup k r)
 
 -- | A 'Key' must be 'Eq', 'Hashable', 'Show', 'Typeable'
-type Key k = (Eq k, Hashable k, Show k, Typeable k)
+class (Eq k, Hashable k, Show k, Typeable k) => Key k 
 
 -- | Key exceptions 
 data KeyError k = MissingKeyError k deriving (Show, Eq, Typeable)

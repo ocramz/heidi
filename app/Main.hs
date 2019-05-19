@@ -3,8 +3,10 @@ module Main where
 
 import GHC.Generics (Generic)
 
-import Data.Hashable (Hashable)
+-- import Data.Hashable (Hashable)
 import qualified Data.HashMap.Strict as HM
+
+import qualified Data.Text as T
 
 import Core.Data.Frame
 import Core.Data.Frame.Generic
@@ -12,13 +14,15 @@ import Data.Generics.Encode.Val (ToVal, TC(..), VP(..))
 
 import Prelude hiding (filter, lookup)
 
+main :: IO ()
 main = pure ()
 
 
-
+-- | Item
 data Item a = Itm String a deriving (Eq, Show, Generic)
 instance ToVal a => ToVal (Item a)
 
+-- | Purchase
 data Purchase a = Pur {
     date :: Int
   , pers :: String
@@ -40,18 +44,23 @@ purchases = [p1, p2, p3, p4, p5] where
   p3 = Pur 4 "bob" "legal" 20
   p4 = Pur 3 "alice" "computer" 2
   p5 = Pur 1 "bob" "computer" 1
+
+gItems, gPurchases :: Maybe (Frame (Row [TC] VP))
+gItems = gToFrame items
+gPurchases = gToFrame purchases
+
   
-legal :: [TC]
-legal = [TC "Purchase" "item"]
+-- itemKey :: [TC]
+-- itemKey = [TC "Purchase" "item"]
 
-removeLegalExpenses :: Frame (Row [TC] VP) -> Maybe (Frame (Row [TC] VP))
-removeLegalExpenses = filterByKey legal (/= VPString "legal")
+-- removeLegalExpenses :: Frame (Row [TC] VP) -> Maybe (Frame (Row [TC] VP))
+-- removeLegalExpenses = filterByKey itemKey (/= VPString "legal")
 
-joinTables :: (Foldable t, Hashable v, Eq v) =>
-              t (Row [TC] v) -> t (Row [TC] v) -> Frame (Row [TC] v)
-joinTables = innerJoin k1 k2 where
-  k1 = [TC "Itm" "_0"]
-  k2 = [TC "Purchase" "item"]
+-- joinTables :: (Foldable t, Hashable v, Eq v) =>
+--               t (Row [TC] v) -> t (Row [TC] v) -> Frame (Row [TC] v)
+-- joinTables = innerJoin k1 k2 where
+--   k1 = [TC "Itm" "_0"]
+--   k2 = itemKey
 
 
 {-

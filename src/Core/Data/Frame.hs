@@ -31,7 +31,7 @@ module Core.Data.Frame (
   filter, filterByKey,
   -- ** Scans (row-wise cumulative operations)
   scanl, scanr,
-  -- * Relational operations
+  -- ** Relational operations
   groupBy, innerJoin, leftOuterJoin,   
   -- * Row
   Row,
@@ -44,7 +44,8 @@ module Core.Data.Frame (
   -- ** Access
   toList, keys, elems,
   -- *** Decoders
-  real, text, oneHot, 
+  D.Decode, D.mkDecode, D.runDecode, 
+  real, text, oneHot, OneHot, 
   -- ** Lookup
   lookup, lookupThrowM, lookupDefault, (!:), elemSatisfies, 
   -- ** Set operations
@@ -68,11 +69,11 @@ import Data.Hashable (Hashable(..))
 -- import Data.Scientific (Scientific, toRealFloat)
 -- import Data.Typeable (Typeable)
 
--- import qualified Data.Generics.Decode as D (Decode, runDecode, mkDecode)
+import qualified Data.Generics.Decode as D (Decode, runDecode, mkDecode)
 -- import Data.Generics.Decode ((>>>))
 import Core.Data.Row
 -- import Data.Generics.Encode.Val (VP, getIntM, getFloatM, getDoubleM, getScientificM, getStringM, getTextM, getOneHotM)
--- import Data.Generics.Encode.OneHot (OneHot)
+import Data.Generics.Encode.OneHot (OneHot)
 
 
 import Prelude hiding (filter, zipWith, lookup, scanl, scanr, head, take, drop)
