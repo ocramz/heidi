@@ -13,13 +13,11 @@
 -- Stability   :  experimental
 -- Portability :  GHC
 --
--- Rows are internally represented with HashMaps; this format
--- supports the possibility of missing features in the dataset.
 --
 -----------------------------------------------------------------------------
 module Core.Data.Row
   (
-  Row
+  Row, RowKey
   -- ,
   -- -- * Construction
   -- fromKVs,
@@ -63,6 +61,18 @@ module Core.Data.Row
 
 class RowKey k v where
   type RowRep k :: * -> *
+  -- fromKVs :: [(k, v)] -> Row k v
+  rowEmpty :: Row k v
+
+  rNull :: Row k v -> Bool
+
+  rLookup :: k -> Row k v -> Maybe v
+
+  rInsert :: k -> v -> Row k v -> Row k v
+
+  rSingleton :: k -> v -> Row k v
+
+  -- rMap :: (a -> b) -> Row k a -> Row k b
 
 
 newtype Row k v = MkRow (RowRep k v)
