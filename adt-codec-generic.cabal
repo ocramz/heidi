@@ -55,7 +55,7 @@ library
   default-language: Haskell2010
 
 -- unit tests
-test-suite test
+test-suite unit
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules: Unit
@@ -71,7 +71,6 @@ test-suite test
               -- , hspec-expectations
   default-language: Haskell2010
 
-  
 test-suite doctest
   default-language:    Haskell2010           
   type: exitcode-stdio-1.0
