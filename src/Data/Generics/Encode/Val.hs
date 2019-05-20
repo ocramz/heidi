@@ -30,7 +30,7 @@
 -- 
 -- * @tree-diff@ - single-typed ADT reconstruction : http://hackage.haskell.org/package/tree-diff-0.0.2/docs/src/Data.TreeDiff.Class.html#sopToExpr
 -----------------------------------------------------------------------------
-module Data.Generics.Encode.Val (gflatten,
+module Data.Generics.Encode.Val (gflatten, gflattenGT,
                                  -- * VP (Primitive types)
                                  VP(..),
                                  -- ** 'MonadThrow' getters
@@ -61,6 +61,7 @@ import Data.Generics.Encode.OneHot (OneHot, mkOH)
 -- import qualified Data.Foldable as F
 -- import qualified Data.Sequence as S (Seq(..), empty)
 -- import Data.Sequence ((<|), (|>))
+import qualified Data.GenericTrie as GT
 import Prelude hiding (getChar)
 
 -- $setup
@@ -75,10 +76,15 @@ import Prelude hiding (getChar)
 gflatten :: ToVal a => a -> HM.HashMap [TC] VP
 gflatten = flatten . toVal
 
+-- | Flatten a value into a 'GT.Trie', via the value's generic encoding
+gflattenGT :: ToVal a => a -> GT.Trie [TC] VP
+gflattenGT = flattenGT . toVal
+
 
 -- | A (type, constructor) name pair
 data TC = TC String String deriving (Eq, Show, Ord, G.Generic)
 instance Hashable TC
+instance GT.TrieKey TC
 
 -- | Type name
 tcTyN :: TC -> String
@@ -86,6 +92,20 @@ tcTyN (TC n _) = n
 -- | Type constructor
 tcTyCon :: TC -> String
 tcTyCon (TC _ c) = c
+
+-- | Fold a 'Val' into a 1-layer 'GT.Trie' indexed by the input value's (type, constructor) metadata
+flattenGT :: Val -> GT.Trie [TC] VP
+flattenGT = go ([], GT.empty) where
+  go (ks, hmacc) = \case
+    VRec ty hm     -> HM.foldlWithKey' (\hm' k t -> go (TC ty k : ks, hm') t) hmacc hm
+    VOH   ty cn oh -> insRevGT (TC ty cn : ks) (VPOH oh) hmacc
+    VPrim vp       -> insRevGT ks vp hmacc
+
+insRevGT :: GT.TrieKey k =>
+            [k] -> a -> GT.Trie [k] a -> GT.Trie [k] a
+insRevGT ks = GT.insert (reverse ks)
+
+
 
 -- | Fold a 'Val' into a 1-layer hashmap indexed by the input value's (type, constructor) metadata
 flatten :: Val -> HM.HashMap [TC] VP
