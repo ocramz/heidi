@@ -14,7 +14,7 @@
 {-# OPTIONS_GHC -Wno-type-defaults #-}
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.Generics.Encode.Val
+-- Module      :  Data.Generics.Encode.Internal
 -- Description :  Generic encoding of algebraic datatypes
 -- Copyright   :  (c) Marco Zocca (2019)
 -- License     :  MIT
@@ -30,15 +30,15 @@
 -- 
 -- * @tree-diff@ - single-typed ADT reconstruction : http://hackage.haskell.org/package/tree-diff-0.0.2/docs/src/Data.TreeDiff.Class.html#sopToExpr
 -----------------------------------------------------------------------------
-module Data.Generics.Encode.Val (gflatten, gflattenGT,
-                                 -- * VP (Primitive types)
-                                 VP(..),
-                                 -- ** 'MonadThrow' getters
-                                 getIntM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM,
-                                 -- * TC (Type and Constructor annotation)
-                                 TC(..), tcTyN, tcTyCon, 
-                                 -- * ToVal (generic ADT encoding)
-                                 ToVal(..), Val) where
+module Data.Generics.Encode.Internal (gflatten, gflattenGT,
+                                      -- * VP (Primitive types)
+                                      VP(..),
+                                      -- ** 'MonadThrow' getters
+                                       getIntM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM,
+                                       -- * TC (Type and Constructor annotation)
+                                       TC(..), tcTyN, tcTyCon, 
+                                       -- * HasGE (generic ADT encoding)
+                                       HasGE) where
 
 import Data.Typeable (Typeable)
 import qualified GHC.Generics as G
@@ -73,11 +73,11 @@ import Prelude hiding (getChar)
 
 
 -- | Flatten a value into a 1-layer hashmap, via the value's generic encoding
-gflatten :: ToVal a => a -> HM.HashMap [TC] VP
+gflatten :: HasGE a => a -> HM.HashMap [TC] VP
 gflatten = flatten . toVal
 
 -- | Flatten a value into a 'GT.Trie', via the value's generic encoding
-gflattenGT :: ToVal a => a -> GT.Trie [TC] VP
+gflattenGT :: HasGE a => a -> GT.Trie [TC] VP
 gflattenGT = flattenGT . toVal
 
 
@@ -104,7 +104,6 @@ flattenGT = go ([], GT.empty) where
 insRevGT :: GT.TrieKey k =>
             [k] -> a -> GT.Trie [k] a -> GT.Trie [k] a
 insRevGT ks = GT.insert (reverse ks)
-
 
 
 -- | Fold a 'Val' into a 1-layer hashmap indexed by the input value's (type, constructor) metadata
@@ -209,24 +208,24 @@ data Val =
 
 
 
--- | NOTE: if your type has a 'G.Generic' instance you just need to declare an empty instance of 'ToVal' for it (a default implementation of 'toVal' is provided).
+-- | NOTE: if your type has a 'G.Generic' instance you just need to declare an empty instance of 'HasGE' for it (a default implementation of 'toVal' is provided).
 --
 -- example:
 --
 -- @
 -- data A = A Int Char deriving ('G.Generic')
--- instance 'ToVal' A
+-- instance 'HasGE' A
 -- @
-class ToVal a where
+class HasGE a where
   toVal :: a -> Val
   default toVal ::
-    (G.Generic a, All2 ToVal (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
-  toVal x = sopToVal (gdatatypeInfo (Proxy :: Proxy a)) (gfrom x)  
+    (G.Generic a, All2 HasGE (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
+  toVal x = sopHasGE (gdatatypeInfo (Proxy :: Proxy a)) (gfrom x)  
 
 
-sopToVal :: All2 ToVal xss => DatatypeInfo xss -> SOP I xss -> Val
-sopToVal di sop@(SOP xss) = hcollapse $ hcliftA2
-    (Proxy :: Proxy (All ToVal))
+sopHasGE :: All2 HasGE xss => DatatypeInfo xss -> SOP I xss -> Val
+sopHasGE di sop@(SOP xss) = hcollapse $ hcliftA2
+    (Proxy :: Proxy (All HasGE))
     (\ci xs -> K (mkVal ci xs tyName oneHot))
     (constructorInfo di)
     xss
@@ -234,7 +233,7 @@ sopToVal di sop@(SOP xss) = hcollapse $ hcliftA2
      tyName = datatypeName di
      oneHot = mkOH di sop
      
-mkVal :: All ToVal xs =>
+mkVal :: All HasGE xs =>
          ConstructorInfo xs -> NP I xs -> DatatypeName -> OneHot Int -> Val
 mkVal cinfo xs tyn oh = case cinfo of
     Infix cn _ _  -> VRec cn $ mkAnonProd xs
@@ -244,19 +243,19 @@ mkVal cinfo xs tyn oh = case cinfo of
     Record _ fi   -> VRec tyn $ mkProd fi xs
   where
     cns :: [Val]
-    cns = npToVals xs
+    cns = npHasGEs xs
 
-mkProd :: All ToVal xs => NP FieldInfo xs -> NP I xs -> HM.HashMap String Val
-mkProd fi xs = HM.fromList $ hcollapse $ hcliftA2 (Proxy :: Proxy ToVal) mk fi xs where
-  mk :: ToVal v => FieldInfo v -> I v -> K (FieldName, Val) v
+mkProd :: All HasGE xs => NP FieldInfo xs -> NP I xs -> HM.HashMap String Val
+mkProd fi xs = HM.fromList $ hcollapse $ hcliftA2 (Proxy :: Proxy HasGE) mk fi xs where
+  mk :: HasGE v => FieldInfo v -> I v -> K (FieldName, Val) v
   mk (FieldInfo n) (I x) = K (n, toVal x)
 
-mkAnonProd :: All ToVal xs => NP I xs -> HM.HashMap String Val
+mkAnonProd :: All HasGE xs => NP I xs -> HM.HashMap String Val
 mkAnonProd xs = HM.fromList $ zip labels cns where
-  cns = npToVals xs
+  cns = npHasGEs xs
 
-npToVals :: All ToVal xs => NP I xs -> [Val]
-npToVals xs = hcollapse $ hcmap (Proxy :: Proxy ToVal) (mapIK toVal) xs
+npHasGEs :: All HasGE xs => NP I xs -> [Val]
+npHasGEs xs = hcollapse $ hcmap (Proxy :: Proxy HasGE) (mapIK toVal) xs
 
 -- | >>> take 3 labels
 -- ["_0","_1","_2"]
@@ -264,28 +263,28 @@ labels :: [String]
 labels = map (('_' :) . show) [0 ..]
 
 
-instance ToVal Int where toVal = VPrim . VPInt
-instance ToVal Float where toVal = VPrim . VPFloat
-instance ToVal Double where toVal = VPrim . VPDouble
-instance ToVal Scientific where toVal = VPrim . VPScientific
-instance ToVal Char where toVal = VPrim . VPChar
-instance ToVal String where toVal = VPrim . VPString
-instance ToVal Text where toVal = VPrim . VPText
+instance HasGE Int where toVal = VPrim . VPInt
+instance HasGE Float where toVal = VPrim . VPFloat
+instance HasGE Double where toVal = VPrim . VPDouble
+instance HasGE Scientific where toVal = VPrim . VPScientific
+instance HasGE Char where toVal = VPrim . VPChar
+instance HasGE String where toVal = VPrim . VPString
+instance HasGE Text where toVal = VPrim . VPText
 
-instance ToVal a => ToVal (Maybe a) where
+instance HasGE a => HasGE (Maybe a) where
   toVal = \case
     Nothing -> VRec "Maybe" HM.empty
     Just x  -> VRec "Maybe" $ HM.singleton "Just" $ toVal x
   
-instance (ToVal a, ToVal b) => ToVal (Either a b) where
+instance (HasGE a, HasGE b) => HasGE (Either a b) where
   toVal = \case
     Left  l -> VRec "Either" $ HM.singleton "Left" $ toVal l
     Right r -> VRec "Either" $ HM.singleton "Right" $ toVal r
 
-instance (ToVal a, ToVal b) => ToVal (a, b) where
+instance (HasGE a, HasGE b) => HasGE (a, b) where
   toVal (x, y) = VRec "(,)" $ HM.fromList $ zip labels [toVal x, toVal y]
 
-instance (ToVal a, ToVal b, ToVal c) => ToVal (a, b, c) where
+instance (HasGE a, HasGE b, HasGE c) => HasGE (a, b, c) where
   toVal (x, y, z) = VRec "(,,)" $ HM.fromList $ zip labels [toVal x, toVal y, toVal z] 
 
 
@@ -298,21 +297,21 @@ instance (ToVal a, ToVal b, ToVal c) => ToVal (a, b, c) where
 -- examples
 
 data A0 = A0 deriving (Eq, Show, G.Generic)
-instance ToVal A0
+instance HasGE A0
 newtype A = A Int deriving (Eq, Show, G.Generic)
-instance ToVal A
+instance HasGE A
 newtype A2 = A2 { a2 :: Int } deriving (Eq, Show, G.Generic)
-instance ToVal A2
+instance HasGE A2
 data B = B Int Char deriving (Eq, Show, G.Generic)
-instance ToVal B
+instance HasGE B
 data B2 = B2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, G.Generic)
-instance ToVal B2
+instance HasGE B2
 data C = C1 | C2 | C3 deriving (Eq, Show, G.Generic)
-instance ToVal C
+instance HasGE C
 data D = D (Maybe Int) (Either Int String) deriving (Eq, Show, G.Generic)
-instance ToVal D
+instance HasGE D
 data E = E (Maybe Int) (Maybe Char) deriving (Eq, Show, G.Generic)
-instance ToVal E
+instance HasGE E
 newtype F = F (Int, Char) deriving (Eq, Show, G.Generic)
-instance ToVal F
+instance HasGE F
 

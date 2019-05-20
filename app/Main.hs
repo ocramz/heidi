@@ -4,13 +4,12 @@ module Main where
 import GHC.Generics (Generic)
 
 -- import Data.Hashable (Hashable)
-import qualified Data.HashMap.Strict as HM
-
-import qualified Data.Text as T
+-- import qualified Data.HashMap.Strict as HM
+-- import qualified Data.Text as T
 
 import Core.Data.Frame
 import Core.Data.Frame.Generic
-import Data.Generics.Encode.Val (ToVal, TC(..), VP(..))
+import Data.Generics.Encode.Internal (HasGE, TC, VP)
 
 import Prelude hiding (filter, lookup)
 
@@ -20,7 +19,7 @@ main = pure ()
 
 -- | Item
 data Item a = Itm String a deriving (Eq, Show, Generic)
-instance ToVal a => ToVal (Item a)
+instance HasGE a => HasGE (Item a)
 
 -- | Purchase
 data Purchase a = Pur {
@@ -29,7 +28,7 @@ data Purchase a = Pur {
   , item :: String
   , qty :: a
   } deriving (Eq, Show, Generic)
-instance ToVal a => ToVal (Purchase a)
+instance HasGE a => HasGE (Purchase a)
 
 items :: [Item Double]
 items = [i1, i2, i3] where

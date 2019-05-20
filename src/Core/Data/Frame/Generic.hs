@@ -53,7 +53,7 @@ import Control.Monad.Catch (MonadThrow(..))
 -- import Data.Hashable (Hashable(..))
 
 import Core.Data.Frame (Row, Frame, fromList, mkRow)
-import Data.Generics.Encode.Val (gflatten, ToVal, TC, VP)
+import Data.Generics.Encode.Internal (gflatten, HasGE, TC, VP)
 
 
 -- $setup
@@ -94,7 +94,7 @@ import Data.Generics.Encode.Val (gflatten, ToVal, TC, VP)
 -- Frame {tableRows = [([TC "Q" "_1",TC "Either" "Left"],VPDouble 1.2),([TC "Q" "_0",TC "Maybe" "Just"],VPInt 42)] :| [[([TC "Q" "_1",TC "Either" "Right"],VPChar 'b')]]}
 --
 -- NB: as the last example above demonstrates, 'Nothing' values are not inserted in the rows, which can be used to encode missing data features.
-gToFrame :: (MonadThrow m, ToVal a) =>
+gToFrame :: (MonadThrow m, HasGE a) =>
             [a]
          -> m (Frame (Row [TC] VP))
 gToFrame ds
@@ -102,7 +102,7 @@ gToFrame ds
   | otherwise = pure $ fromList $ map gToRow ds
 
 -- | Populate a 'Row' with a generic encoding of the input value
-gToRow :: ToVal a => a -> Row [TC] VP
+gToRow :: HasGE a => a -> Row [TC] VP
 gToRow = mkRow . gflatten
 
 

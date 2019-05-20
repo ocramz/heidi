@@ -52,7 +52,7 @@ import Prelude hiding (lookup)
 
 import qualified Data.Generics.Decode as D (Decode, runDecode, mkDecode)
 import Data.Generics.Decode ((>>>))
-import Data.Generics.Encode.Val (VP, getIntM, getFloatM, getDoubleM, getScientificM, getStringM, getTextM, getOneHotM)
+import Data.Generics.Encode.Internal (VP, getIntM, getFloatM, getDoubleM, getScientificM, getStringM, getTextM, getOneHotM)
 import Data.Generics.Encode.OneHot (OneHot)
 
 -- $setup

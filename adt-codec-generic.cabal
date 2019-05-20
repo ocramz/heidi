@@ -25,8 +25,8 @@ source-repository head
 library
   exposed-modules:
                   Data.Generics.Encode
-                  Data.Generics.Encode.Val
                   Data.Generics.Encode.OneHot
+                  Data.Generics.Encode.Internal                  
                   Data.Generics.Decode
                   Core.Data.Frame
                   Core.Data.Row
