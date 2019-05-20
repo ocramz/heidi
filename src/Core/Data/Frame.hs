@@ -74,7 +74,8 @@ import Data.Hashable (Hashable(..))
 
 import qualified Data.Generics.Decode as D (Decode, runDecode, mkDecode)
 -- import Data.Generics.Decode ((>>>))
-import Core.Data.Row
+import Core.Data.Row.HashMap
+import Core.Data.Row.Internal
 -- import Data.Generics.Encode.Val (VP, getIntM, getFloatM, getDoubleM, getScientificM, getStringM, getTextM, getOneHotM)
 import Data.Generics.Encode.OneHot (OneHot)
 

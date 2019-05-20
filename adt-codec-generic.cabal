@@ -30,6 +30,8 @@ library
                   Data.Generics.Decode
                   Core.Data.Frame
                   Core.Data.Row
+                  Core.Data.Row.HashMap
+                  Core.Data.Row.Internal
                   Core.Data.Frame.Generic
   -- other-modules:
   --               Data.Generics.Encode.ValFix          
