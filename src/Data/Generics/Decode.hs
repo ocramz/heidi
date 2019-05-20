@@ -29,7 +29,7 @@ import Prelude hiding ((.))
 
 
 -- | We can decouple lookup and value conversion and have distinct error behaviour.
--- Multiple value decoding functions can be combined via the Alternative instance.
+-- Multiple value decoding functions can be combined via the Applicative and Alternative instance.
 --
 -- Note : 'Decode' is called Kleisli in base.Control.Arrow; among other things it has a Profunctor instance.
 

@@ -34,11 +34,11 @@ module Data.Generics.Encode.Internal (gflatten, gflattenGT,
                                       -- * VP (Primitive types)
                                       VP(..),
                                       -- ** 'MonadThrow' getters
-                                       getIntM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM,
-                                       -- * TC (Type and Constructor annotation)
-                                       TC(..), tcTyN, tcTyCon, 
-                                       -- * HasGE (generic ADT encoding)
-                                       HasGE) where
+                                     getIntM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM,
+                                     -- * TC (Type and Constructor annotation)
+                                     TC(..), tcTyN, tcTyCon, 
+                                     -- * HasGE (generic ADT encoding)
+                                     HasGE) where
 
 import Data.Typeable (Typeable)
 import qualified GHC.Generics as G

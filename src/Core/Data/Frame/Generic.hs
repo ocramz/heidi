@@ -59,13 +59,13 @@ import Data.Generics.Encode.Internal (gflatten, HasGE, TC, VP)
 -- $setup
 -- >>> :set -XDeriveGeneric
 -- >>> import qualified GHC.Generics as G
--- >>> import qualified Data.Generics.Encode.Val as AV
+-- >>> import qualified Data.Generics.Encode.Internal as GE
 -- >>> data P1 = P1 Int Char deriving (Eq, Show, G.Generic)
--- >>> instance AV.ToVal P1
+-- >>> instance GE.HasGE P1
 -- >>> data P2 = P2 { p2i :: Int, p2c :: Char } deriving (Eq, Show, G.Generic)
--- >>> instance AV.ToVal P2
+-- >>> instance GE.HasGE P2
 -- >>> data Q = Q (Maybe Int) (Either Double Char) deriving (Eq, Show, G.Generic)
--- >>> instance AV.ToVal Q
+-- >>> instance GE.HasGE Q
 
 -- | Populate a 'Frame' with the generic encoding of the row data and throws a 'DataException' if the input data is malformed.
 --
@@ -73,13 +73,13 @@ import Data.Generics.Encode.Internal (gflatten, HasGE, TC, VP)
 --
 -- @
 -- data P1 = P1 Int Char deriving (Eq, Show, 'G.Generic')
--- instance 'AV.ToVal' P1
+-- instance 'GE.HasGE' P1
 -- 
 -- data P2 = P2 { p2i :: Int, p2c :: Char } deriving (Eq, Show, Generic)
--- instance ToVal P2
+-- instance HasGE P2
 --
 -- data Q = Q (Maybe Int) (Either Double Char) deriving (Eq, Show, Generic)
--- instance ToVal Q
+-- instance HasGE Q
 -- @
 --
 -- >>> gToFrame [P1 42 'z']
