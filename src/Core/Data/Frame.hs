@@ -34,16 +34,16 @@ module Core.Data.Frame (
   scanl, scanr,
   -- ** Relational operations
   groupBy, innerJoin, leftOuterJoin,   
-  -- * Row
-  Row,
-  -- ** Construction
-  fromKVs,
-  -- *** (unsafe)
-  mkRow, 
-  -- ** Update
-  insert, insertRowFun, insertRowFunM, 
-  -- ** Access
-  toList, keys, elems,
+  -- -- * Row
+  -- Row,
+  -- -- ** Construction
+  -- fromKVs,
+  -- -- *** (unsafe)
+  -- mkRow, 
+  -- -- ** Update
+  -- insert, insertRowFun, insertRowFunM, 
+  -- -- ** Access
+  -- toList, keys, elems,
   -- *** Decoders
   D.Decode, D.mkDecode, D.runDecode, 
   real, scientific, text, oneHot, 

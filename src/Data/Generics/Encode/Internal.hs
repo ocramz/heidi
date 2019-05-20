@@ -34,7 +34,7 @@ module Data.Generics.Encode.Internal (gflatten, gflattenGT,
                                       -- * VP (Primitive types)
                                       VP(..),
                                       -- ** 'MonadThrow' getters
-                                     getIntM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM,
+                                     getIntM, getBoolM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM, TypeError(..),
                                      -- * TC (Type and Constructor annotation)
                                      TC(..), tcTyN, tcTyCon, 
                                      -- * HasGE (generic ADT encoding)
@@ -123,7 +123,8 @@ insRev ks = HM.insert (reverse ks)
 
 -- | Primitive types
 data VP =
-    VPInt    Int 
+    VPInt    Int
+  | VPBool    Bool
   | VPFloat  Float
   | VPDouble Double
   | VPScientific Scientific
@@ -137,6 +138,9 @@ instance Hashable VP
 -- | Extract an Int
 getInt :: VP -> Maybe Int
 getInt = \case {VPInt i -> Just i; _ -> Nothing}
+-- | Extract an Bool
+getBool :: VP -> Maybe Bool
+getBool = \case {VPBool i -> Just i; _ -> Nothing}
 -- | Extract a Float
 getFloat :: VP -> Maybe Float
 getFloat = \case {VPFloat i -> Just i; _ -> Nothing}
@@ -167,6 +171,8 @@ decodeM e = maybe (throwM e)
 
 getIntM :: MonadThrow m => VP -> m Int
 getIntM x = decodeM IntCastE pure (getInt x)
+getBoolM :: MonadThrow m => VP -> m Bool
+getBoolM x = decodeM BoolCastE pure (getBool x)
 getFloatM :: MonadThrow m => VP -> m Float
 getFloatM x = decodeM FloatCastE pure (getFloat x)
 getDoubleM :: MonadThrow m => VP -> m Double
@@ -188,6 +194,7 @@ data TypeError =
   | DoubleCastE
   | ScientificCastE
   | IntCastE
+  | BoolCastE
   | CharCastE
   | StringCastE
   | TextCastE

@@ -37,7 +37,7 @@ module Core.Data.Row.GenericTrie (
 
 import Data.Typeable (Typeable)
 import Control.Applicative (Alternative(..))
-import Control.Monad (filterM)
+-- import Control.Monad (filterM)
 import Control.Monad.Catch(MonadThrow(..))
 import Data.Scientific (Scientific)
 import Data.Text (Text)
