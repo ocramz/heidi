@@ -30,6 +30,8 @@ module Core.Data.Frame (
   head, take, drop, zipWith, unionColsWith, numRows, 
   -- ** Filtering 
   filter, filterByKey,
+  -- ** Folds
+  foldl, foldr, foldlM, foldrM,
   -- ** Scans (row-wise cumulative operations)
   scanl, scanr,
   -- ** Relational operations
@@ -44,19 +46,19 @@ module Core.Data.Frame (
   -- insert, insertRowFun, insertRowFunM, 
   -- -- ** Access
   -- toList, keys, elems,
-  -- *** Decoders
-  D.Decode, D.mkDecode, D.runDecode, 
-  real, scientific, text, oneHot, 
-  -- ** Lookup
-  lookup, lookupThrowM, lookupDefault, (!:), elemSatisfies, 
-  -- ** Set operations
-  union, unionWith,
-  -- ** Traversals
-  traverseWithKey,
+  -- -- *** Decoders
+  -- D.Decode, D.mkDecode, D.runDecode, 
+  -- real, scientific, text, oneHot, 
+  -- -- ** Lookup
+  -- HMR.lookup, lookupThrowM, lookupDefault, (!:), elemSatisfies, 
+  -- -- ** Set operations
+  -- union, unionWith,
+  -- -- ** Traversals
+  -- traverseWithKey,
   -- * One-Hot
   OneHot, 
   -- * Key constraint
-  Key
+  HMR.Key
   ) where
 
 import Data.Maybe (fromMaybe)
@@ -72,29 +74,29 @@ import Data.Hashable (Hashable(..))
 -- import Data.Scientific (Scientific, toRealFloat)
 -- import Data.Typeable (Typeable)
 
-import qualified Data.Generics.Decode as D (Decode, runDecode, mkDecode)
+-- import qualified Data.Generics.Decode as D (Decode, runDecode, mkDecode)
 -- import Data.Generics.Decode ((>>>))
-import Core.Data.Row.HashMap
+import qualified Core.Data.Row.HashMap as HMR
 -- import Core.Data.Row.Internal
 -- import Data.Generics.Encode.Val (VP, getIntM, getFloatM, getDoubleM, getScientificM, getStringM, getTextM, getOneHotM)
 import Data.Generics.Encode.OneHot (OneHot)
 
 
-import Prelude hiding (filter, zipWith, lookup, scanl, scanr, head, take, drop)
+import Prelude hiding (filter, zipWith, lookup, foldl, foldr, scanl, scanr, head, take, drop)
 
 -- $setup
--- >>> let row0 = fromKVs [(0, 'a'), (3, 'b')] :: Row Int Char
--- >>> let row1 = fromKVs [(0, 'x'), (1, 'b'), (666, 'z')] :: Row Int Char
--- >>> let book1 = fromKVs [("item", "book"), ("id.0", "129"), ("qty", "1")]
--- >>> let book2 = fromKVs [("item", "book"), ("id.0", "129"), ("qty", "5")]
--- >>> let ball = fromKVs [("item", "ball"), ("id.0", "234"), ("qty", "1")]
--- >>> let bike = fromKVs [("item", "bike"), ("id.0", "410"), ("qty", "1")]
--- >>> let t0 = fromList [ book1, ball, bike, book2 ] :: Frame (Row String String)
--- >>> let r1 = fromKVs [("id.1", "129"), ("price", "100")]
--- >>> let r2 = fromKVs [("id.1", "234"), ("price", "50")]
--- >>> let r3 = fromKVs [("id.1", "3"), ("price", "150")]
--- >>> let r4 = fromKVs [("id.1", "99"), ("price", "30")]
--- >>> let t1 = fromList [ r1, r2, r3, r4 ] :: Frame (Row String String)
+-- >>> let row0 = HMR.fromKVs [(0, 'a'), (3, 'b')] :: HMR.Row Int Char
+-- >>> let row1 = HMR.fromKVs [(0, 'x'), (1, 'b'), (666, 'z')] :: HMR.Row Int Char
+-- >>> let book1 = HMR.fromKVs [("item", "book"), ("id.0", "129"), ("qty", "1")]
+-- >>> let book2 = HMR.fromKVs [("item", "book"), ("id.0", "129"), ("qty", "5")]
+-- >>> let ball = HMR.fromKVs [("item", "ball"), ("id.0", "234"), ("qty", "1")]
+-- >>> let bike = HMR.fromKVs [("item", "bike"), ("id.0", "410"), ("qty", "1")]
+-- >>> let t0 = fromList [ book1, ball, bike, book2 ] :: Frame (HMR.Row String String)
+-- >>> let r1 = HMR.fromKVs [("id.1", "129"), ("price", "100")]
+-- >>> let r2 = HMR.fromKVs [("id.1", "234"), ("price", "50")]
+-- >>> let r3 = HMR.fromKVs [("id.1", "3"), ("price", "150")]
+-- >>> let r4 = HMR.fromKVs [("id.1", "99"), ("price", "30")]
+-- >>> let t1 = fromList [ r1, r2, r3, r4 ] :: Frame (HMR.Row String String)
 
 
 
@@ -152,10 +154,10 @@ zipWith f tt1 tt2 = Frame $ NE.zipWith f (tableRows tt1) (tableRows tt2)
 -- | Merge two frames by taking the set union of the columns
 unionColsWith :: (Eq k, Hashable k) =>
                  (v -> v -> v)   -- ^ Element combination function
-              -> Frame (Row k v)
-              -> Frame (Row k v)
-              -> Frame (Row k v)
-unionColsWith f = zipWith (unionWith f)
+              -> Frame (HMR.Row k v)
+              -> Frame (HMR.Row k v)
+              -> Frame (HMR.Row k v)
+unionColsWith f = zipWith (HMR.unionWith f)
 
 -- | Filters a 'Frame' according to a predicate. Returns Nothing only if the resulting table is empty (i.e. if no rows satisfy the predicate).
 --
@@ -169,9 +171,25 @@ filter ff = fromNEList . NE.filter ff . tableRows
 filterByKey :: (Eq k, Hashable k) =>
                k            -- ^ Key
             -> (v -> Bool)  -- ^ Predicate to be applied to the element
-            -> Frame (Row k v)
-            -> Maybe (Frame (Row k v))
-filterByKey k ff = filter (k !: ff)
+            -> Frame (HMR.Row k v)
+            -> Maybe (Frame (HMR.Row k v))
+filterByKey k ff = filter (k HMR.!: ff)
+
+-- | Left-associative fold
+foldl :: (b -> a -> b) -> b -> Frame a -> b
+foldl = F.foldl
+
+-- | Right-associative fold
+foldr :: (a -> b -> b) -> b -> Frame a -> b
+foldr = F.foldr
+
+-- | Left-associative monadic fold
+foldlM :: (Monad m) => (b -> a -> m b) -> b -> Frame a -> m b
+foldlM = F.foldlM
+
+-- | Right-associative monadic fold
+foldrM :: (Monad m) => (a -> b -> m b) -> b -> Frame a -> m b
+foldrM = F.foldrM
 
 
 -- | Left-associative scan
@@ -191,6 +209,12 @@ numRows = length
 
 
 
+
+-- gather = foldlM insf [] where
+--   insf acc fr = do
+    
+
+
 -- * Relational operations
 
 -- | GROUP BY : given a key and a table that uses it, split the table in multiple tables, one per value taken by the key.
@@ -199,14 +223,14 @@ numRows = length
 -- Just 2
 groupBy :: (Foldable t, Hashable k, Hashable v, Eq k, Eq v) =>
            k  -- ^ Key to group by
-        -> t (Row k v) -- ^ A @Frame (Row k v)@ can be used here
-        -> HM.HashMap v (Frame (Row k v))
+        -> t (HMR.Row k v) -- ^ A @Frame (Row k v)@ can be used here
+        -> HM.HashMap v (Frame (HMR.Row k v))
 groupBy k tbl = fromList <$> groupL k tbl
 
 groupL :: (Foldable t, Hashable k, Hashable v, Eq k, Eq v) =>
-          k -> t (Row k v) -> HM.HashMap v [Row k v]
+          k -> t (HMR.Row k v) -> HM.HashMap v [HMR.Row k v]
 groupL k tbl = F.foldl insf HM.empty tbl where
-  insf acc row = maybe acc (\v -> HM.insertWith (++) v [row] acc) (lookup k row)
+  insf acc row = maybe acc (\v -> HM.insertWith (++) v [row] acc) (HMR.lookup k row)
 
 
 
@@ -217,12 +241,12 @@ groupL k tbl = F.foldl insf HM.empty tbl where
 leftOuterJoin :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
                  k
               -> k
-              -> t (Row k v)
-              -> t (Row k v)
-              -> Frame (Row k v)
+              -> t (HMR.Row k v)
+              -> t (HMR.Row k v)
+              -> Frame (HMR.Row k v)
 leftOuterJoin k1 k2 table1 table2 = fromList $ F.foldl insf [] table1 where
-  insf acc row1 = maybe (row1 : acc) appendMatchRows (lookup k1 row1) where
-    appendMatchRows v = map (union row1) mr2 ++ acc where
+  insf acc row1 = maybe (row1 : acc) appendMatchRows (HMR.lookup k1 row1) where
+    appendMatchRows v = map (HMR.union row1) mr2 ++ acc where
       mr2 = matchingRows k2 v table2   
 
 
@@ -241,20 +265,20 @@ leftOuterJoin k1 k2 table1 table2 = fromList $ F.foldl insf [] table1 where
 innerJoin :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
              k  -- ^ Key into the first table
           -> k  -- ^ Key into the second table
-          -> t (Row k v)  -- ^ First dataframe
-          -> t (Row k v)  -- ^ Second dataframe
-          -> Frame (Row k v)
+          -> t (HMR.Row k v)  -- ^ First dataframe
+          -> t (HMR.Row k v)  -- ^ Second dataframe
+          -> Frame (HMR.Row k v)
 innerJoin k1 k2 table1 table2 = fromList $ F.foldl insf [] table1 where
-  insf acc row1 = maybe acc appendMatchRows (lookup k1 row1) where
-    appendMatchRows v = map (union row1) mr2 ++ acc where
+  insf acc row1 = maybe acc appendMatchRows (HMR.lookup k1 row1) where
+    appendMatchRows v = map (HMR.union row1) mr2 ++ acc where
       mr2 = matchingRows k2 v table2
 
    
 matchingRows :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
                 k
              -> v
-             -> t (Row k v)
-             -> [Row k v]
+             -> t (HMR.Row k v)
+             -> [HMR.Row k v]
 matchingRows k v rows = fromMaybe [] (HM.lookup v rowMap) where
   rowMap = hjBuild k rows
 {-# INLINE matchingRows #-}
@@ -263,9 +287,9 @@ matchingRows k v rows = fromMaybe [] (HM.lookup v rowMap) where
 --
 -- For a given key 'k' and a set of frame rows, populates a hashmap from the _values_ corresponding to 'k' to the corresponding rows.
 hjBuild :: (Foldable t, Eq v, Eq k, Hashable v, Hashable k) =>
-           k -> t (Row k v) -> HM.HashMap v [Row k v]
+           k -> t (HMR.Row k v) -> HM.HashMap v [HMR.Row k v]
 hjBuild k = F.foldl insf HM.empty where
-  insf hmAcc row = maybe hmAcc (\v -> HM.insertWith (++) v [row] hmAcc) $ lookup k row
+  insf hmAcc row = maybe hmAcc (\v -> HM.insertWith (++) v [row] hmAcc) $ HMR.lookup k row
 {-# INLINE hjBuild #-}
 
 
@@ -296,18 +320,18 @@ hjBuild k = F.foldl insf HM.empty where
   
 
 
-employee :: Frame (Row String String)
+employee :: Frame (HMR.Row String String)
 employee = fromList [e1, e2, e3, e4, e5, e6] where
-  e1 = fromKVs [("name", "Rafferty"), ("id.dep", "31")]
-  e2 = fromKVs [("name", "Jones"), ("id.dep", "33")]
-  e3 = fromKVs [("name", "Heisenberg"), ("id.dep", "33")]
-  e4 = fromKVs [("name", "Robinson"), ("id.dep", "34")]
-  e5 = fromKVs [("name", "Smith"), ("id.dep", "34")]
-  e6 = fromKVs [("name", "Williams")]   
+  e1 = HMR.fromKVs [("name", "Rafferty"), ("id.dep", "31")]
+  e2 = HMR.fromKVs [("name", "Jones"), ("id.dep", "33")]
+  e3 = HMR.fromKVs [("name", "Heisenberg"), ("id.dep", "33")]
+  e4 = HMR.fromKVs [("name", "Robinson"), ("id.dep", "34")]
+  e5 = HMR.fromKVs [("name", "Smith"), ("id.dep", "34")]
+  e6 = HMR.fromKVs [("name", "Williams")]   
 
-department :: Frame (Row String String)
+department :: Frame (HMR.Row String String)
 department = fromList [d1, d2, d3, d4] where
-  d1 = fromKVs [("id.dep", "31"), ("dept", "Sales")]
-  d2 = fromKVs [("id.dep", "33"), ("dept", "Engineering")]
-  d3 = fromKVs [("id.dep", "34"), ("dept", "Clerical")]
-  d4 = fromKVs [("id.dep", "35"), ("dept", "Marketing")]  
+  d1 = HMR.fromKVs [("id.dep", "31"), ("dept", "Sales")]
+  d2 = HMR.fromKVs [("id.dep", "33"), ("dept", "Engineering")]
+  d3 = HMR.fromKVs [("id.dep", "34"), ("dept", "Clerical")]
+  d4 = HMR.fromKVs [("id.dep", "35"), ("dept", "Marketing")]  
