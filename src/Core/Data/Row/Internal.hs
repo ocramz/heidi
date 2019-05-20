@@ -5,15 +5,12 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Core.Data.Row.Internal
--- Description :  A sparse dataframe row
+-- Description :  Core.Data.Row internal bits and pieces
 -- Copyright   :  (c) Marco Zocca (2018-2019)
 -- License     :  BSD-style
 -- Maintainer  :  ocramz fripost org
 -- Stability   :  experimental
 -- Portability :  GHC
---
--- Rows are internally represented with HashMaps; this format
--- supports the possibility of missing features in the dataset.
 --
 -----------------------------------------------------------------------------
 module Core.Data.Row.Internal where

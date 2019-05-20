@@ -45,17 +45,19 @@ import Control.Applicative (Alternative(..))
 import Data.Hashable (Hashable(..))
 import Control.Monad.Catch(MonadThrow(..))
 import qualified Data.HashMap.Strict as HM
-import Data.Scientific (Scientific, toRealFloat, fromFloatDigits)
-import qualified Data.Text as T (pack)
+import Data.Scientific (Scientific)
+-- import qualified Data.Text as T (pack)
 import Data.Text (Text)
+
+import qualified Data.Generics.Decode as D (Decode, mkDecode)
+import Data.Generics.Decode ((%>))
+import Data.Generics.Encode.Internal (VP)
+import Data.Generics.Encode.OneHot (OneHot)
+import Core.Data.Row.Decode
+import Core.Data.Row.Internal (KeyError(..))
 
 import Prelude hiding (lookup)
 
-import qualified Data.Generics.Decode as D (Decode, runDecode, mkDecode)
-import Data.Generics.Decode ((>>>))
-import Data.Generics.Encode.Internal (VP, getIntM, getFloatM, getDoubleM, getScientificM, getStringM, getTextM, getOneHotM)
-import Data.Generics.Encode.OneHot (OneHot)
-import Core.Data.Row.Internal (KeyError(..))
 
 
 -- $setup
@@ -194,80 +196,39 @@ insertRowFunM fm knew row = do
 
 
 
--- | Decode a value from a Row indexed at the given key (returns in a MonadThrow type)
-decodeColM :: (MonadThrow m, Key k) =>
+-- | Lookup a value from a Row indexed at the given key (returns in a MonadThrow type)
+lookupColM :: (MonadThrow m, Key k) =>
               k -> D.Decode m (Row k o) o
-decodeColM k = D.mkDecode (lookupThrowM k)
+lookupColM k = D.mkDecode (lookupThrowM k)
 
--- | Decode a value from a Row indexed at the given key (returns in the Maybe monad)
-decodeCol :: (Eq k, Hashable k) => k -> D.Decode Maybe (Row k o) o
-decodeCol k = D.mkDecode (lookup k)
-
-
-
--- decInt :: D.Decode Maybe VP Int
--- decInt = D.mkDecode getInt
--- -- decInteger = D.mkDecode getInteger
--- decDouble :: D.Decode Maybe VP Double
--- decDouble = D.mkDecode getDouble
--- -- decChar = D.mkDecode getChar
--- -- decText = D.mkDecode getText
-
--- | Decode any real numerical value (integer, double, float or 'Scientific') into a Double
-decodeRealM :: (Alternative m, MonadThrow m) => D.Decode m VP Double
-decodeRealM =
-  (fromIntegral <$> decIntM)     <|>
-  decDoubleM                     <|>
-  (realToFrac <$> decFloatM)     <|>
-  (toRealFloat <$> decScientificM) 
-
--- | Decode any real numerical value (integer, double, float or 'Scientific') into a Scientific
-decodeScientificM :: (Alternative m, MonadThrow m) => D.Decode m VP Scientific
-decodeScientificM =
-  decScientificM <|>
-  (fromFloatDigits . fromIntegral <$> decIntM) <|>
-  (fromFloatDigits <$> decDoubleM)             <|>
-  (fromFloatDigits <$> decFloatM)             
-
--- | Decode a string ('String' or 'Text') into a Text
-decodeTextM :: (Alternative m, MonadThrow m) => D.Decode m VP Text
-decodeTextM =
-  (T.pack <$> decStringM) <|>
-  decTextM
+-- | Lookup a value from a Row indexed at the given key (returns in the Maybe monad)
+lookupCol :: (Eq k, Hashable k) => k -> D.Decode Maybe (Row k o) o
+lookupCol k = D.mkDecode (lookup k)
 
 
--- | Decode into 'MonadThrow'
-decIntM :: MonadThrow m => D.Decode m VP Int
-decIntM = D.mkDecode getIntM
-decDoubleM :: MonadThrow m => D.Decode m VP Double
-decDoubleM = D.mkDecode getDoubleM
-decScientificM :: MonadThrow m => D.Decode m VP Scientific
-decScientificM = D.mkDecode getScientificM
-decFloatM :: MonadThrow m => D.Decode m VP Float
-decFloatM = D.mkDecode getFloatM
-decStringM :: MonadThrow m => D.Decode m VP String
-decStringM = D.mkDecode getStringM
-decTextM :: MonadThrow m => D.Decode m VP Text
-decTextM = D.mkDecode getTextM
-decOneHotM :: MonadThrow m => D.Decode m VP (OneHot Int)
-decOneHotM = D.mkDecode getOneHotM
+
+
+
+
+
+
 
 -- | Lookup and decode a real number
 real :: (Key k, MonadThrow m, Alternative m) => k -> D.Decode m (Row k VP) Double
-real k = decodeColM k >>> decodeRealM
+real k = lookupColM k %> decodeRealM
 
 -- | Lookup and decode a real 'Scientific' value
 scientific :: (Key k, MonadThrow m, Alternative m) => k -> D.Decode m (Row k VP) Scientific
-scientific k = decodeColM k >>> decodeScientificM
+scientific k = lookupColM k %> decodeScientificM
 
 -- | Lookup and decode a text string
 text :: (Key k, MonadThrow m, Alternative m) => k -> D.Decode m (Row k VP) Text
-text k = decodeColM k >>> decodeTextM
+text k = lookupColM k %> decodeTextM
 
 -- | Lookup and decode a one-hot encoded enum
 oneHot :: (Key k, MonadThrow m) =>
           k -> D.Decode m (Row k VP) (OneHot Int)
-oneHot k = decodeColM k >>> decOneHotM
+oneHot k = lookupColM k %> decOneHotM
 
 -- -- example
 -- sumCols :: (Key k, MonadThrow m, Alternative m) =>
@@ -284,7 +245,7 @@ oneHot k = decodeColM k >>> decOneHotM
 
 
 
-newtype Dec k v m a = Dec { unDec :: D.Decode m (Row k v) a } deriving (Functor, Applicative, Alternative)
+-- newtype Dec k v m a = Dec { unDec :: D.Decode m (Row k v) a } deriving (Functor, Applicative, Alternative)
 
-runDec :: Dec k v m a -> Row k v -> m a
-runDec = D.runDecode . unDec
+-- runDec :: Dec k v m a -> Row k v -> m a
+-- runDec = D.runDecode . unDec
