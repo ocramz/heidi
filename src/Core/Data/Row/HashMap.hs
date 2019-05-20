@@ -12,8 +12,9 @@
 -- Stability   :  experimental
 -- Portability :  GHC
 --
--- Rows are internally represented with HashMaps; this format
--- supports the possibility of missing features in the dataset.
+-- Rows are internally represented with hash maps, as provided by the
+-- @unordered-containers@ library; this format supports the possibility of missing features
+-- in the dataset.
 --
 -----------------------------------------------------------------------------
 module Core.Data.Row.HashMap (

@@ -30,6 +30,7 @@ library
                   Data.Generics.Decode
                   Core.Data.Frame
                   Core.Data.Row
+                  Core.Data.Row.GenericTrie
                   Core.Data.Row.HashMap
                   Core.Data.Row.Internal
                   Core.Data.Frame.Generic
