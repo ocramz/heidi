@@ -61,9 +61,9 @@ import Data.Generics.Encode.OneHot (OneHot)
 
 -- | A 'Row' type is internally a hashmap:
 --
--- * /O(log n)/ random access
--- * /O(n log n)/ set operations
--- * Supports missing elements
+-- * Fast random access (logarithmic on average)
+-- * Fast set operations 
+-- * Supports missing elements 
 newtype Row k v = Row { unRow :: HM.HashMap k v } deriving (Eq, Functor, Foldable, Traversable)
 instance (Show k, Show v) => Show (Row k v) where
   show = show . HM.toList . unRow
@@ -214,19 +214,21 @@ decodeCol k = D.mkDecode (lookup k)
 -- -- decChar = D.mkDecode getChar
 -- -- decText = D.mkDecode getText
 
--- | Decode any real numerical value (integer, double or 'Scientific') into a Double
+-- | Decode any real numerical value (integer, double, float or 'Scientific') into a Double
 decodeRealM :: (Alternative m, MonadThrow m) => D.Decode m VP Double
 decodeRealM =
   (fromIntegral <$> decIntM)     <|>
   decDoubleM                     <|>
+  (realToFrac <$> decFloatM)     <|>
   (toRealFloat <$> decScientificM) 
 
--- | Decode any real numerical value (integer, double or 'Scientific') into a Scientific
+-- | Decode any real numerical value (integer, double, float or 'Scientific') into a Scientific
 decodeScientificM :: (Alternative m, MonadThrow m) => D.Decode m VP Scientific
 decodeScientificM =
   decScientificM <|>
   (fromFloatDigits . fromIntegral <$> decIntM) <|>
-  (fromFloatDigits <$> decDoubleM)
+  (fromFloatDigits <$> decDoubleM)             <|>
+  (fromFloatDigits <$> decFloatM)             
 
 -- | Decode a string ('String' or 'Text') into a Text
 decodeTextM :: (Alternative m, MonadThrow m) => D.Decode m VP Text
