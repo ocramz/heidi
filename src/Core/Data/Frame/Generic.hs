@@ -22,7 +22,7 @@
 -----------------------------------------------------------------------------
 module Core.Data.Frame.Generic (
     gToRow, gToFrame,
-    -- * Exceptione
+    -- * Exceptions
     DataException(..)
   ) where
 

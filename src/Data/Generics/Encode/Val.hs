@@ -22,7 +22,7 @@
 -- Stability   :  experimental
 -- Portability :  GHC
 --
--- Generic encoding of algebraic datatypes, using 'generics-sop'
+-- Generic encoding of algebraic datatypes, using @generics-sop@
 --
 -- Examples, inspiration and code borrowed from :
 -- 
@@ -33,6 +33,7 @@
 module Data.Generics.Encode.Val (gflatten,
                                  -- * VP (Primitive types)
                                  VP(..),
+                                 -- ** 'MonadThrow' getters
                                  getIntM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM,
                                  -- * TC (Type and Constructor annotation)
                                  TC(..), tcTyN, tcTyCon, 
@@ -144,7 +145,7 @@ decodeM :: (MonadThrow m, Exception e) =>
            e -> (a -> m b) -> Maybe a -> m b
 decodeM e = maybe (throwM e)
 
--- | 'MonadThrow' getters
+
 getIntM :: MonadThrow m => VP -> m Int
 getIntM x = decodeM IntCastE pure (getInt x)
 getFloatM :: MonadThrow m => VP -> m Float
@@ -216,7 +217,7 @@ sopToVal di sop@(SOP xss) = hcollapse $ hcliftA2
 mkVal :: All ToVal xs =>
          ConstructorInfo xs -> NP I xs -> DatatypeName -> OneHot Int -> Val
 mkVal cinfo xs tyn oh = case cinfo of
-    Infix cn _ _  -> VRec cn (mkAnonProd xs)
+    Infix cn _ _  -> VRec cn $ mkAnonProd xs
     Constructor cn
       | null cns  -> VOH tyn cn oh
       | otherwise -> VRec cn  $ mkAnonProd xs
@@ -246,6 +247,7 @@ labels = map (('_' :) . show) [0 ..]
 instance ToVal Int where toVal = VPrim . VPInt
 instance ToVal Float where toVal = VPrim . VPFloat
 instance ToVal Double where toVal = VPrim . VPDouble
+instance ToVal Scientific where toVal = VPrim . VPScientific
 instance ToVal Char where toVal = VPrim . VPChar
 instance ToVal String where toVal = VPrim . VPString
 instance ToVal Text where toVal = VPrim . VPText
@@ -261,7 +263,10 @@ instance (ToVal a, ToVal b) => ToVal (Either a b) where
     Right r -> VRec "Either" $ HM.singleton "Right" $ toVal r
 
 instance (ToVal a, ToVal b) => ToVal (a, b) where
-  toVal (x, y) = VRec "*" $ HM.fromList $ zip labels [toVal x, toVal y]         
+  toVal (x, y) = VRec "(,)" $ HM.fromList $ zip labels [toVal x, toVal y]
+
+instance (ToVal a, ToVal b, ToVal c) => ToVal (a, b, c) where
+  toVal (x, y, z) = VRec "(,,)" $ HM.fromList $ zip labels [toVal x, toVal y, toVal z] 
 
 
 

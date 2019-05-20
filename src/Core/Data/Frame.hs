@@ -1,8 +1,9 @@
 {-# language OverloadedStrings #-}
 {-# language FlexibleInstances #-}
 {-# language DeriveFunctor, DeriveFoldable, DeriveTraversable, GeneralizedNewtypeDeriving #-}
-{-# language DeriveDataTypeable, ConstraintKinds #-}
+{-# language ConstraintKinds #-}
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
+{-# OPTIONS_GHC -Wno-type-defaults #-}
 -- {-# OPTIONS_HADDOCK show-extensions #-}
 -----------------------------------------------------------------------------
 -- |
@@ -45,13 +46,15 @@ module Core.Data.Frame (
   toList, keys, elems,
   -- *** Decoders
   D.Decode, D.mkDecode, D.runDecode, 
-  real, text, oneHot, OneHot, 
+  real, scientific, text, oneHot, 
   -- ** Lookup
   lookup, lookupThrowM, lookupDefault, (!:), elemSatisfies, 
   -- ** Set operations
   union, unionWith,
   -- ** Traversals
   traverseWithKey,
+  -- * One-Hot
+  OneHot, 
   -- * Key constraint
   Key
   ) where

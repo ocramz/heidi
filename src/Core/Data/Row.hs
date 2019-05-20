@@ -1,6 +1,7 @@
 {-# language DeriveFunctor, GeneralizedNewtypeDeriving, DeriveTraversable, DeriveDataTypeable #-}
 -- {-# language ConstraintKinds #-}
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
+{-# OPTIONS_GHC -Wno-type-defaults #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Core.Data.Row
@@ -26,7 +27,7 @@ module Core.Data.Row (
   -- * Access
   toList, keys, elems,
   -- ** Decoders
-  real, text, oneHot, 
+  real, scientific, text, oneHot, 
   -- * Lookup
   lookup, lookupThrowM, lookupDefault, (!:), elemSatisfies, 
   -- * Set operations
@@ -43,7 +44,7 @@ import Control.Applicative (Alternative(..))
 import Data.Hashable (Hashable(..))
 import Control.Monad.Catch(Exception(..), MonadThrow(..))
 import qualified Data.HashMap.Strict as HM
-import Data.Scientific (Scientific, toRealFloat)
+import Data.Scientific (Scientific, toRealFloat, fromFloatDigits)
 import qualified Data.Text as T (pack)
 import Data.Text (Text)
 
@@ -220,6 +221,13 @@ decodeRealM =
   decDoubleM                     <|>
   (toRealFloat <$> decScientificM) 
 
+-- | Decode any real numerical value (integer, double or 'Scientific') into a Scientific
+decodeScientificM :: (Alternative m, MonadThrow m) => D.Decode m VP Scientific
+decodeScientificM =
+  decScientificM <|>
+  (fromFloatDigits . fromIntegral <$> decIntM) <|>
+  (fromFloatDigits <$> decDoubleM)
+
 -- | Decode a string ('String' or 'Text') into a Text
 decodeTextM :: (Alternative m, MonadThrow m) => D.Decode m VP Text
 decodeTextM =
@@ -246,6 +254,10 @@ decOneHotM = D.mkDecode getOneHotM
 -- | Lookup and decode a real number
 real :: (Key k, MonadThrow m, Alternative m) => k -> D.Decode m (Row k VP) Double
 real k = decodeColM k >>> decodeRealM
+
+-- | Lookup and decode a real 'Scientific' value
+scientific :: (Key k, MonadThrow m, Alternative m) => k -> D.Decode m (Row k VP) Scientific
+scientific k = decodeColM k >>> decodeScientificM
 
 -- | Lookup and decode a text string
 text :: (Key k, MonadThrow m, Alternative m) => k -> D.Decode m (Row k VP) Text
