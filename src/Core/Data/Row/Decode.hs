@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wno-type-defaults #-}
-module Core.Data.Row.Decode where
+module Core.Data.Row.Decode (decodeRealM, decodeScientificM, decodeTextM, decOneHotM) where
 
 import Control.Applicative (Alternative(..))
 import Data.Scientific (Scientific, fromFloatDigits, toRealFloat)
@@ -57,6 +57,8 @@ decStringM :: MonadThrow m => D.Decode m VP String
 decStringM = D.mkDecode getStringM
 decTextM :: MonadThrow m => D.Decode m VP Text
 decTextM = D.mkDecode getTextM
+
+-- | Decode a one-hot value
 decOneHotM :: MonadThrow m => D.Decode m VP (OneHot Int)
 decOneHotM = D.mkDecode getOneHotM
 

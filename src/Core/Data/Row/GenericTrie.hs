@@ -28,7 +28,7 @@ module Core.Data.Row.GenericTrie (
   -- ** Decoders  
   , real, scientific, text, oneHot
   -- * Lookup  
-  , lookup, lookupThrowM
+  , lookup, lookupThrowM, elemSatisfies
   -- * Set operations  
   , union, unionWith
   -- * Traversals  
@@ -37,6 +37,7 @@ module Core.Data.Row.GenericTrie (
 
 import Data.Typeable (Typeable)
 import Control.Applicative (Alternative(..))
+import Control.Monad (filterM)
 import Control.Monad.Catch(MonadThrow(..))
 import Data.Scientific (Scientific)
 import Data.Text (Text)
@@ -153,9 +154,9 @@ lookupColM :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k) =>
               k -> D.Decode m (Row k o) o
 lookupColM k = D.mkDecode (lookupThrowM k)
 
--- | Lookup a value from a Row indexed at the given key (returns in the Maybe monad)
-lookupCol :: GT.TrieKey k => k -> D.Decode Maybe (Row k o) o
-lookupCol k = D.mkDecode (lookup k)
+-- -- | Lookup a value from a Row indexed at the given key (returns in the Maybe monad)
+-- lookupCol :: GT.TrieKey k => k -> D.Decode Maybe (Row k o) o
+-- lookupCol k = D.mkDecode (lookup k)
 
 
 
@@ -182,3 +183,10 @@ text k = lookupColM k %> decodeTextM
 oneHot :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k) =>
           k -> D.Decode m (Row k VP) (OneHot Int)
 oneHot k = lookupColM k %> decOneHotM
+
+
+
+
+-- spork k1 k2 = (>) <$> real k1 <*> real k2
+
+
