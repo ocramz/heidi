@@ -15,7 +15,25 @@
 -- @generic-trie@ library; in addition to supporting the possibility of missing features in the dataset, tries provide fast insertion and lookup functionality when keyed with structured datatypes (such as lists or trees).
 --
 -----------------------------------------------------------------------------
-module Core.Data.Row.GenericTrie where
+module Core.Data.Row.GenericTrie (
+    Row
+    -- * Construction
+  , fromKVs
+  -- ** (unsafe)  
+  , mkRow
+  -- * Update  
+  , insert
+  -- * Access  
+  , toList, keys
+  -- ** Decoders  
+  , real, scientific, text, oneHot
+  -- * Lookup  
+  , lookup, lookupThrowM
+  -- * Set operations  
+  , union, unionWith
+  -- * Traversals  
+  , traverseWithKey
+  ) where
 
 import Data.Typeable (Typeable)
 import Control.Applicative (Alternative(..))
@@ -33,6 +51,11 @@ import Core.Data.Row.Decode
 import Core.Data.Row.Internal (KeyError(..))
 
 import Prelude hiding (lookup)
+
+
+
+
+
 
 -- $setup
 -- >>> import Data.Generics.Encode.Internal (VP)
@@ -140,18 +163,22 @@ lookupCol k = D.mkDecode (lookup k)
 
 -- * Decoders
 
+-- | Lookup and decode a real number
 real :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k, Alternative m) =>
         k -> D.Decode m (Row k VP) Double
 real k = lookupColM k %> decodeRealM
 
+-- | Lookup and decode a real 'Scientific' value
 scientific :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k, Alternative m) =>
               k -> D.Decode m (Row k VP) Scientific
 scientific k = lookupColM k %> decodeScientificM
 
+-- | Lookup and decode a text string
 text :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k, Alternative m) =>
         k -> D.Decode m (Row k VP) Text
 text k = lookupColM k %> decodeTextM
 
+-- | Lookup and decode a one-hot encoded enum
 oneHot :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k) =>
           k -> D.Decode m (Row k VP) (OneHot Int)
 oneHot k = lookupColM k %> decOneHotM
