@@ -105,7 +105,6 @@ gToFrame ds
 gToRow :: HasGE a => a -> Row [TC] VP
 gToRow = mkRow . gflatten
 
-
 -- | Exceptions related to the input data
 data DataException =
     -- AnonRecordE -- ^ Anonymous records not implemented yet

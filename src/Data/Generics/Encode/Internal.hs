@@ -10,8 +10,8 @@
   , LambdaCase
 #-}
 {-# OPTIONS_GHC -Wall #-}
-{-# OPTIONS_GHC -Wno-missing-methods #-}
 {-# OPTIONS_GHC -Wno-type-defaults #-}
+-- {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Generics.Encode.Internal
@@ -294,24 +294,24 @@ instance (HasGE a, HasGE b, HasGE c) => HasGE (a, b, c) where
 
 
 
--- examples
+-- -- examples
 
-data A0 = A0 deriving (Eq, Show, G.Generic)
-instance HasGE A0
-newtype A = A Int deriving (Eq, Show, G.Generic)
-instance HasGE A
-newtype A2 = A2 { a2 :: Int } deriving (Eq, Show, G.Generic)
-instance HasGE A2
-data B = B Int Char deriving (Eq, Show, G.Generic)
-instance HasGE B
-data B2 = B2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, G.Generic)
-instance HasGE B2
-data C = C1 | C2 | C3 deriving (Eq, Show, G.Generic)
-instance HasGE C
-data D = D (Maybe Int) (Either Int String) deriving (Eq, Show, G.Generic)
-instance HasGE D
-data E = E (Maybe Int) (Maybe Char) deriving (Eq, Show, G.Generic)
-instance HasGE E
-newtype F = F (Int, Char) deriving (Eq, Show, G.Generic)
-instance HasGE F
+-- data A0 = A0 deriving (Eq, Show, G.Generic)
+-- instance HasGE A0
+-- newtype A = A Int deriving (Eq, Show, G.Generic)
+-- instance HasGE A
+-- newtype A2 = A2 { a2 :: Int } deriving (Eq, Show, G.Generic)
+-- instance HasGE A2
+-- data B = B Int Char deriving (Eq, Show, G.Generic)
+-- instance HasGE B
+-- data B2 = B2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, G.Generic)
+-- instance HasGE B2
+-- data C = C1 | C2 | C3 deriving (Eq, Show, G.Generic)
+-- instance HasGE C
+-- data D = D (Maybe Int) (Either Int String) deriving (Eq, Show, G.Generic)
+-- instance HasGE D
+-- data E = E (Maybe Int) (Maybe Char) deriving (Eq, Show, G.Generic)
+-- instance HasGE E
+-- newtype F = F (Int, Char) deriving (Eq, Show, G.Generic)
+-- instance HasGE F
 
