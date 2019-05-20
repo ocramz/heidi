@@ -19,7 +19,7 @@
 module Core.Data.Row.Internal where
 
 import Data.Typeable (Typeable)
-import Data.Hashable (Hashable(..))
+-- import Data.Hashable (Hashable(..))
 import Control.Monad.Catch(Exception(..))
 
 

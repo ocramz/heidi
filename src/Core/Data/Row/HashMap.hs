@@ -43,7 +43,7 @@ import Data.Typeable (Typeable)
 import Control.Applicative (Alternative(..))
 
 import Data.Hashable (Hashable(..))
-import Control.Monad.Catch(Exception(..), MonadThrow(..))
+import Control.Monad.Catch(MonadThrow(..))
 import qualified Data.HashMap.Strict as HM
 import Data.Scientific (Scientific, toRealFloat, fromFloatDigits)
 import qualified Data.Text as T (pack)

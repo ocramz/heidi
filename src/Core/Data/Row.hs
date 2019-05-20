@@ -17,7 +17,7 @@
 -----------------------------------------------------------------------------
 module Core.Data.Row
   (
-  Row, RowKey
+  Row, RowKey(..)
   -- ,
   -- -- * Construction
   -- fromKVs,
