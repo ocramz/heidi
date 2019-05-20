@@ -21,7 +21,10 @@
 --
 -----------------------------------------------------------------------------
 module Core.Data.Frame.Generic (
+    -- * HashMap-based rows 
     gToRow, gToFrame,
+    -- * Trie-based rows
+    gToRowGT, gToFrameGT, 
     -- * Exceptions
     DataException(..)
   ) where
@@ -52,8 +55,10 @@ import Control.Monad.Catch (MonadThrow(..))
 -- import qualified Data.HashMap.Strict as HM
 -- import Data.Hashable (Hashable(..))
 
-import Core.Data.Frame (Row, Frame, fromList, mkRow)
-import Data.Generics.Encode.Internal (gflatten, HasGE, TC, VP)
+import Core.Data.Frame (Frame, fromList)
+import qualified Core.Data.Row.HashMap as HMR (Row, mkRow)
+import qualified Core.Data.Row.GenericTrie as GTR (Row, mkRow)
+import Data.Generics.Encode.Internal (gflatten, gflattenGT, HasGE, TC, VP)
 
 
 -- $setup
@@ -96,14 +101,25 @@ import Data.Generics.Encode.Internal (gflatten, HasGE, TC, VP)
 -- NB: as the last example above demonstrates, 'Nothing' values are not inserted in the rows, which can be used to encode missing data features.
 gToFrame :: (MonadThrow m, HasGE a) =>
             [a]
-         -> m (Frame (Row [TC] VP))
+         -> m (Frame (HMR.Row [TC] VP))
 gToFrame ds
   | null ds = throwM NoDataE 
   | otherwise = pure $ fromList $ map gToRow ds
 
+gToFrameGT :: (MonadThrow m, HasGE a) =>
+              [a]
+           -> m (Frame (GTR.Row [TC] VP))
+gToFrameGT ds
+  | null ds = throwM NoDataE 
+  | otherwise = pure $ fromList $ map gToRowGT ds  
+
 -- | Populate a 'Row' with a generic encoding of the input value
-gToRow :: HasGE a => a -> Row [TC] VP
-gToRow = mkRow . gflatten
+gToRow :: HasGE a => a -> HMR.Row [TC] VP
+gToRow = HMR.mkRow . gflatten
+
+-- | Populate a 'Row' with a generic encoding of the input value (generic-trie backend)
+gToRowGT :: HasGE a => a -> GTR.Row [TC] VP
+gToRowGT = GTR.mkRow . gflattenGT
 
 -- | Exceptions related to the input data
 data DataException =

@@ -11,7 +11,7 @@ copyright:      (c) 2019, Marco Zocca
 category:       Generics, Data, Data Science
 build-type:     Simple
 cabal-version:  1.12
-tested-with:    GHC == 8.0.2, GHC == 8.6.3, GHC == 8.6.5             
+tested-with:    GHC == 8.0.2, GHC == 8.6.3, GHC == 8.6.4, GHC == 8.6.5             
 extra-source-files:
     CHANGELOG.md
     LICENSE.md
@@ -29,8 +29,12 @@ library
                   Data.Generics.Encode.Internal                  
                   Data.Generics.Decode
                   Core.Data.Frame
+                  Core.Data.Frame.Generic                  
                   Core.Data.Row
-                  Core.Data.Frame.Generic
+                  Core.Data.Row.Decode
+                  Core.Data.Row.GenericTrie
+                  Core.Data.Row.HashMap
+                  Core.Data.Row.Internal
   -- other-modules:
   --               Data.Generics.Encode.ValFix          
                       
@@ -79,9 +83,10 @@ test-suite doctest
         test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-       base , 
-       doctest ,
-       generics-sop  
+                adt-codec-generic  
+              , base 
+              , doctest 
+              , generics-sop  
 
 benchmark bench
   type: exitcode-stdio-1.0

@@ -9,6 +9,8 @@ import GHC.Generics (Generic)
 
 import Core.Data.Frame
 import Core.Data.Frame.Generic
+import qualified Core.Data.Row.HashMap as HMR
+import qualified Core.Data.Row.GenericTrie as GTR
 import Data.Generics.Encode.Internal (HasGE, TC, VP)
 
 import Prelude hiding (filter, lookup)
@@ -44,9 +46,9 @@ purchases = [p1, p2, p3, p4, p5] where
   p4 = Pur 3 "alice" "computer" 2
   p5 = Pur 1 "bob" "computer" 1
 
-gItems, gPurchases :: Maybe (Frame (Row [TC] VP))
-gItems = gToFrame items
-gPurchases = gToFrame purchases
+gItems, gPurchases :: Maybe (Frame (GTR.Row [TC] VP))
+gItems = gToFrameGT items
+gPurchases = gToFrameGT purchases
 
   
 -- itemKey :: [TC]

@@ -2,7 +2,9 @@ module Unit where
 
 import Test.Tasty.Hspec (Spec, it, shouldBe)
 
-import Core.Data.Frame (Frame, Row, fromList, fromKVs, groupBy, innerJoin, leftOuterJoin)
+-- import Core.Data.Frame (Frame, Row, fromList, fromKVs, groupBy, innerJoin, leftOuterJoin)
+import Core.Data.Frame (Frame, fromList, groupBy, innerJoin, leftOuterJoin)
+import Core.Data.Row.HashMap (Row, fromKVs)
 
 
 test_innerJoin :: Spec

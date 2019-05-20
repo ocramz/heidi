@@ -7,6 +7,7 @@ main = doctest [
   "src/Data/Generics/Encode/OneHot.hs",
   "src/Data/Generics/Encode/Internal.hs",  
   "src/Core/Data/Frame/Generic.hs",
-  "src/Core/Data/Frame.hs",
-  "src/Core/Data/Row.hs"
+  "src/Core/Data/Frame.hs"
+  -- "src/Core/Data/Row/HashMap.hs",
+  -- "src/Core/Data/Row/GenericTrie.hs"
   ]

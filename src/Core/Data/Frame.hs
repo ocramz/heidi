@@ -34,16 +34,16 @@ module Core.Data.Frame (
   scanl, scanr,
   -- ** Relational operations
   groupBy, innerJoin, leftOuterJoin,   
-  -- * Row
-  Row,
-  -- ** Construction
-  fromKVs,
-  -- *** (unsafe)
-  mkRow, 
-  -- ** Update
-  insert, insertRowFun, insertRowFunM, 
-  -- ** Access
-  toList, keys, elems,
+  -- -- * Row
+  -- Row,
+  -- -- ** Construction
+  -- fromKVs,
+  -- -- *** (unsafe)
+  -- mkRow, 
+  -- -- ** Update
+  -- insert, insertRowFun, insertRowFunM, 
+  -- -- ** Access
+  -- toList, keys, elems,
   -- *** Decoders
   D.Decode, D.mkDecode, D.runDecode, 
   real, scientific, text, oneHot, 
@@ -74,7 +74,8 @@ import Data.Hashable (Hashable(..))
 
 import qualified Data.Generics.Decode as D (Decode, runDecode, mkDecode)
 -- import Data.Generics.Decode ((>>>))
-import Core.Data.Row
+import Core.Data.Row.HashMap
+-- import Core.Data.Row.Internal
 -- import Data.Generics.Encode.Val (VP, getIntM, getFloatM, getDoubleM, getScientificM, getStringM, getTextM, getOneHotM)
 import Data.Generics.Encode.OneHot (OneHot)
 
