@@ -15,7 +15,7 @@
 --
 -- Composable decoding of terms
 -----------------------------------------------------------------------------
-module Data.Generics.Decode (Decode, mkDecode, runDecode, (%>)) where
+module Data.Generics.Decode (Decode, mkDecode, runDecode, (>>>)) where
 
 import Control.Applicative      (Alternative(..))
 import Control.Category (Category(..)) 
@@ -59,9 +59,9 @@ instance Monad m => Category (Decode m) where
 -- | Left-to-right composition
 --
 -- @(>>>) :: Monad m => Decode m a b -> Decode m b c -> Decode m a c@
-(%>) :: Category cat => cat a b -> cat b c -> cat a c
-(%>) = flip (.)
-{-# inline (%>) #-}
+(>>>) :: Category cat => cat a b -> cat b c -> cat a c
+(>>>) = flip (.)
+{-# inline (>>>) #-}
 
 
 

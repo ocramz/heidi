@@ -50,7 +50,7 @@ import Data.Scientific (Scientific)
 import Data.Text (Text)
 
 import qualified Data.Generics.Decode as D (Decode, mkDecode)
-import Data.Generics.Decode ((%>))
+import Data.Generics.Decode ((>>>))
 import Data.Generics.Encode.Internal (VP)
 import Data.Generics.Encode.OneHot (OneHot)
 import Core.Data.Row.Decode
@@ -215,20 +215,20 @@ lookupCol k = D.mkDecode (lookup k)
 
 -- | Lookup and decode a real number
 real :: (Key k, MonadThrow m, Alternative m) => k -> D.Decode m (Row k VP) Double
-real k = lookupColM k %> decodeRealM
+real k = lookupColM k >>> decodeRealM
 
 -- | Lookup and decode a real 'Scientific' value
 scientific :: (Key k, MonadThrow m, Alternative m) => k -> D.Decode m (Row k VP) Scientific
-scientific k = lookupColM k %> decodeScientificM
+scientific k = lookupColM k >>> decodeScientificM
 
 -- | Lookup and decode a text string
 text :: (Key k, MonadThrow m, Alternative m) => k -> D.Decode m (Row k VP) Text
-text k = lookupColM k %> decodeTextM
+text k = lookupColM k >>> decodeTextM
 
 -- | Lookup and decode a one-hot encoded enum
 oneHot :: (Key k, MonadThrow m) =>
           k -> D.Decode m (Row k VP) (OneHot Int)
-oneHot k = lookupColM k %> decOneHotM
+oneHot k = lookupColM k >>> decOneHotM
 
 -- -- example
 -- sumCols :: (Key k, MonadThrow m, Alternative m) =>
