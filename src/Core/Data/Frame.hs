@@ -236,6 +236,17 @@ groupL k tbl = F.foldl insf HM.empty tbl where
 
 
 
+joinWith :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
+            (HMR.Row k v -> [HMR.Row k v] -> [HMR.Row k v])
+         -> k
+         -> k
+         -> t (HMR.Row k v)
+         -> t (HMR.Row k v)
+         -> Frame (HMR.Row k v)
+joinWith f k1 k2 table1 table2 = fromList $ F.foldl insf [] table1 where
+  insf acc row1 = maybe (f row1 acc) appendMatchRows (HMR.lookup k1 row1) where
+    appendMatchRows v = map (HMR.union row1) mr2 ++ acc where
+      mr2 = matchingRows k2 v table2   
 
 -- | LEFT (OUTER) JOIN : given two dataframes and one key from each, compute the left outer join using the keys as relations.
 leftOuterJoin :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
@@ -244,12 +255,7 @@ leftOuterJoin :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
               -> t (HMR.Row k v)
               -> t (HMR.Row k v)
               -> Frame (HMR.Row k v)
-leftOuterJoin k1 k2 table1 table2 = fromList $ F.foldl insf [] table1 where
-  insf acc row1 = maybe (row1 : acc) appendMatchRows (HMR.lookup k1 row1) where
-    appendMatchRows v = map (HMR.union row1) mr2 ++ acc where
-      mr2 = matchingRows k2 v table2   
-
-
+leftOuterJoin = joinWith (:)
 
 
 -- | INNER JOIN : given two dataframes and one key from each, compute the inner join using the keys as relations.
@@ -268,10 +274,8 @@ innerJoin :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
           -> t (HMR.Row k v)  -- ^ First dataframe
           -> t (HMR.Row k v)  -- ^ Second dataframe
           -> Frame (HMR.Row k v)
-innerJoin k1 k2 table1 table2 = fromList $ F.foldl insf [] table1 where
-  insf acc row1 = maybe acc appendMatchRows (HMR.lookup k1 row1) where
-    appendMatchRows v = map (HMR.union row1) mr2 ++ acc where
-      mr2 = matchingRows k2 v table2
+innerJoin = joinWith seq
+
 
    
 matchingRows :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
