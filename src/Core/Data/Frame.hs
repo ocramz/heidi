@@ -212,7 +212,15 @@ numRows = length
 
 -- gather = foldlM insf [] where
 --   insf acc fr = do
-    
+
+lookupInsert :: (Eq k, Hashable k) =>
+                k -> k -> k -> HMR.Row k k -> Maybe (HMR.Row k k)
+lookupInsert k sKey sValue row = do
+  x <- HMR.lookup k row
+  let r'  = HMR.insert sKey k row
+      r'' = HMR.insert sValue x r'
+  pure r''
+          
 
 
 -- * Relational operations
