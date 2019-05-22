@@ -57,10 +57,10 @@ module Core.Data.Frame (
   -- union, unionWith,
   -- -- ** Traversals
   -- traverseWithKey,
-  -- * One-Hot
-  OneHot, 
-  -- * Key constraint
-  HMR.Key
+  -- -- * One-Hot
+  -- OneHot, 
+  -- -- * Key constraint
+  -- HMR.Key
   ) where
 
 import Data.Maybe (fromMaybe)
@@ -217,14 +217,24 @@ numRows = length
 -- * Data tidying
 
 -- | 'gather' moves column names into a "key" column, gathering the column values into a single "value" column
-gather :: (Ord k, Hashable k) =>
+gather :: (Foldable t, Ord k, Hashable k) =>
           (k -> v)
        -> S.Set k     -- ^ set of keys to gather
-       -> HMR.Row k v -- ^ row to lookup into
-       -> k           -- ^ "key" key
+       -> k           -- ^ "key" key           
        -> k           -- ^ "value" key
-       -> [HMR.Row k v]
-gather fk ks row kKey kValue = fromMaybe [] $ F.foldlM insf [] ks where
+       -> t (HMR.Row k v) -- ^ starting frame
+       -> Frame (HMR.Row k v)
+gather fk ks kKey kValue = fromList . F.foldMap f where
+  f row = gather1 fk ks row kKey kValue
+  
+gather1 :: (Ord k, Hashable k) =>
+           (k -> v)
+        -> S.Set k     
+        -> HMR.Row k v -- ^ row to look into
+        -> k           -- ^ "key" key
+        -> k           -- ^ "value" key
+        -> [HMR.Row k v]
+gather1 fk ks row kKey kValue = fromMaybe [] $ F.foldlM insf [] ks where
   rowBase = HMR.removeKnownKeys ks row
   insf acc k = do
     r' <- lookupInsert fk row rowBase kKey kValue k
