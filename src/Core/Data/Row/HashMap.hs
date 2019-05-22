@@ -27,6 +27,8 @@ module Core.Data.Row.HashMap (
   insert, insertRowFun, insertRowFunM, 
   -- * Access
   toList, keys, elems,
+  -- * Filtering
+  filterWithKey, removeKnownKeys,
   -- ** Decoders
   real, scientific, text, oneHot, 
   -- * Lookup
@@ -48,6 +50,7 @@ import qualified Data.HashMap.Strict as HM
 import Data.Scientific (Scientific)
 -- import qualified Data.Text as T (pack)
 import Data.Text (Text)
+import qualified Data.Set as S (Set, fromList, member)
 
 import qualified Data.Generics.Decode as D (Decode, mkDecode)
 import Data.Generics.Decode ((>>>))
@@ -150,6 +153,17 @@ keys = HM.keys . unRow
 -- "ab"
 elems :: Row k v -> [v]
 elems = HM.elems . unRow
+
+-- | Filter a row by applying a predicate to its keys and corresponding elements.
+--
+-- NB : filtering _retains_ the elements that satisfy the predicate.
+filterWithKey :: (k -> v -> Bool) -> Row k v -> Row k v
+filterWithKey ff (Row hm) = Row $ HM.filterWithKey ff hm
+
+-- | Produce a new 'Row' such that its keys do _not_ belong to a certain set.
+removeKnownKeys :: (Ord k) => S.Set k -> Row k v -> Row k v
+removeKnownKeys ks = filterWithKey f where
+  f k _ = not $ S.member k ks
 
 -- | Traverse a 'Row' using a function of both the key and the element.
 traverseWithKey :: Applicative f => (k -> a -> f b) -> Row k a -> f (Row k b)

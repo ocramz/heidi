@@ -72,6 +72,8 @@ class RowKey k v where
 
   rSingleton :: k -> v -> Row k v
 
+  rFilterWithKey :: (k -> v -> Bool) -> Row k v -> Row k v
+
   -- rMap :: (a -> b) -> Row k a -> Row k b
 
 

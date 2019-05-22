@@ -25,6 +25,8 @@ module Core.Data.Row.GenericTrie (
   , insert
   -- * Access  
   , toList, keys
+  -- * Filtering
+  , filterWithKey, removeKnownKeys
   -- ** Decoders  
   , real, scientific, text, oneHot
   -- * Lookup  
@@ -41,6 +43,8 @@ import Control.Applicative (Alternative(..))
 import Control.Monad.Catch(MonadThrow(..))
 import Data.Scientific (Scientific)
 import Data.Text (Text)
+
+import qualified Data.Set as S (Set, fromList, member)
 
 import qualified Data.GenericTrie as GT
 
@@ -109,7 +113,19 @@ lookupThrowM k r = maybe (throwM $ MissingKeyError k) pure (lookup k r)
 -- >>> keys row0
 -- [0,3]
 keys :: GT.TrieKey k => Row k v -> [k]
-keys = map fst . toList 
+keys = map fst . toList
+
+
+-- | Filter a row by applying a predicate to its keys and corresponding elements.
+--
+-- NB : filtering _retains_ the elements that satisfy the predicate.
+filterWithKey :: GT.TrieKey k => (k -> v -> Bool) -> Row k v -> Row k v
+filterWithKey ff (Row gt) = Row $ GT.filterWithKey ff gt
+
+-- | Produce a new 'Row' such that its keys do _not_ belong to a certain set.
+removeKnownKeys :: (GT.TrieKey k, Ord k) => S.Set k -> Row k v -> Row k v
+removeKnownKeys ks = filterWithKey f where
+  f k _ = not $ S.member k ks
 
 
 -- | Insert a key-value pair into a row and return the updated one

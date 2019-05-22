@@ -70,6 +70,7 @@ import qualified Data.Foldable as F
 import qualified Data.HashMap.Strict as HM
 import qualified Data.List.NonEmpty as NE
 import Data.Hashable (Hashable(..))
+import qualified Data.Set as S (Set, fromList, member)
 -- import Control.Monad.Catch(Exception(..), MonadThrow(..))
 -- import Data.Scientific (Scientific, toRealFloat)
 -- import Data.Typeable (Typeable)
@@ -213,12 +214,14 @@ numRows = length
 -- gather = foldlM insf [] where
 --   insf acc fr = do
 
-lookupInsert :: (Eq k, Hashable k) =>
-                k -> k -> k -> HMR.Row k k -> Maybe (HMR.Row k k)
-lookupInsert k sKey sValue row = do
+-- lookupInsert :: (Eq k, Hashable k) =>
+--                 k -> k -> k -> HMR.Row k k -> Maybe (HMR.Row k k)
+lookupInsert s k sKey sValue row = do
   x <- HMR.lookup k row
-  let r'  = HMR.insert sKey k row
-      r'' = HMR.insert sValue x r'
+  let
+    row' = HMR.removeKnownKeys s row
+    r'  = HMR.insert sKey k row'
+    r'' = HMR.insert sValue x r'
   pure r''
           
 
