@@ -161,9 +161,11 @@ filterWithKey :: (k -> v -> Bool) -> Row k v -> Row k v
 filterWithKey ff (Row hm) = Row $ HM.filterWithKey ff hm
 
 -- | Produce a new 'Row' such that its keys do _not_ belong to a certain set.
-removeKnownKeys :: (Ord k) => S.Set k -> Row k v -> Row k v
+removeKnownKeys :: Ord k => S.Set k -> Row k v -> Row k v
 removeKnownKeys ks = filterWithKey f where
   f k _ = not $ S.member k ks
+
+
 
 -- | Traverse a 'Row' using a function of both the key and the element.
 traverseWithKey :: Applicative f => (k -> a -> f b) -> Row k a -> f (Row k b)

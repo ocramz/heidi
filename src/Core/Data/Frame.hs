@@ -34,6 +34,8 @@ module Core.Data.Frame (
   foldl, foldr, foldlM, foldrM,
   -- ** Scans (row-wise cumulative operations)
   scanl, scanr,
+  -- ** Data tidying
+  gather, 
   -- ** Relational operations
   groupBy, innerJoin, leftOuterJoin,   
   -- -- * Row
@@ -70,7 +72,7 @@ import qualified Data.Foldable as F
 import qualified Data.HashMap.Strict as HM
 import qualified Data.List.NonEmpty as NE
 import Data.Hashable (Hashable(..))
-import qualified Data.Set as S (Set, fromList, member)
+import qualified Data.Set as S (Set, fromList, member, foldr)
 -- import Control.Monad.Catch(Exception(..), MonadThrow(..))
 -- import Data.Scientific (Scientific, toRealFloat)
 -- import Data.Typeable (Typeable)
@@ -211,19 +213,40 @@ numRows = length
 
 
 
--- gather = foldlM insf [] where
---   insf acc fr = do
 
--- lookupInsert :: (Eq k, Hashable k) =>
---                 k -> k -> k -> HMR.Row k k -> Maybe (HMR.Row k k)
-lookupInsert s k sKey sValue row = do
-  x <- HMR.lookup k row
-  let
-    row' = HMR.removeKnownKeys s row
-    r'  = HMR.insert sKey k row'
-    r'' = HMR.insert sValue x r'
-  pure r''
+-- * Data tidying
+
+-- | 'gather' moves column names into a "key" column, gathering the column values into a single "value" column
+gather :: (Ord k, Hashable k) =>
+          (k -> v)
+       -> S.Set k     -- ^ set of keys to gather
+       -> HMR.Row k v -- ^ row to lookup into
+       -> k           -- ^ "key" key
+       -> k           -- ^ "value" key
+       -> [HMR.Row k v]
+gather fk ks row kKey kValue = fromMaybe [] $ F.foldlM insf [] ks where
+  rowBase = HMR.removeKnownKeys ks row
+  insf acc k = do
+    r' <- lookupInsert fk row rowBase kKey kValue k
+    pure $ r' : acc
           
+lookupInsert :: (Eq k1, Eq k2, Hashable k1, Hashable k2) =>
+                (k1 -> a)
+             -> HMR.Row k1 a
+             -> HMR.Row k2 a
+             -> k2
+             -> k2
+             -> k1
+             -> Maybe (HMR.Row k2 a)
+lookupInsert fk row rowBase kKey kValue k = do
+  x <- HMR.lookup k row
+  let 
+      r'  = HMR.insert kKey   (fk k) rowBase
+      r'' = HMR.insert kValue x r'
+  pure r''
+  
+
+
 
 
 -- * Relational operations
