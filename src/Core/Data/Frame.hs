@@ -72,7 +72,7 @@ import qualified Data.Foldable as F
 import qualified Data.HashMap.Strict as HM
 import qualified Data.List.NonEmpty as NE
 import Data.Hashable (Hashable(..))
-import qualified Data.Set as S (Set, fromList, member, foldr)
+import qualified Data.Set as S (Set)
 -- import Control.Monad.Catch(Exception(..), MonadThrow(..))
 -- import Data.Scientific (Scientific, toRealFloat)
 -- import Data.Typeable (Typeable)
@@ -80,7 +80,7 @@ import qualified Data.Set as S (Set, fromList, member, foldr)
 -- import qualified Data.Generics.Decode as D (Decode, runDecode, mkDecode)
 -- import Data.Generics.Decode ((>>>))
 import qualified Core.Data.Row.HashMap as HMR
-import qualified Data.GenericTrie as GT
+-- import qualified Data.GenericTrie as GT
 -- import Core.Data.Row.Internal
 -- import Data.Generics.Encode.Val (VP, getIntM, getFloatM, getDoubleM, getScientificM, getStringM, getTextM, getOneHotM)
 -- import Data.Generics.Encode.OneHot (OneHot)
