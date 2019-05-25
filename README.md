@@ -8,4 +8,4 @@
 
 ![alt text](https://github.com/ocramz/adt-codec-generic/raw/master/img/heidi.jpg "Heidi")
 
-'heidi' : tidy data in Haskell
+`heidi` : tidy data in Haskell
