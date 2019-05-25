@@ -5,3 +5,6 @@
 Generic encoding and decoding of algebraic datatypes
 
 [adt-codec-generic]: https://github.com/ocramz/adt-codec-generic
+
+
+![alt text](https://github.com/ocramz/adt-codec-generic/raw/master/img/heidi.jpg "Heidi")

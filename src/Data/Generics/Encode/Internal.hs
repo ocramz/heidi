@@ -51,6 +51,7 @@ import Control.Monad.Catch(Exception(..), MonadThrow(..))
 import Data.Hashable (Hashable(..))
 -- import qualified Data.Text as T ()
 import Data.Text (Text)
+-- import Data.Time (Day, LocalTime, TimeOfDay)
 -- import qualified Data.Vector as V
 -- import qualified Data.Map as M
 import qualified Data.HashMap.Strict as HM
@@ -130,7 +131,7 @@ data VP =
   | VPScientific Scientific
   | VPChar   Char
   | VPString String
-  | VPText   Text 
+  | VPText   Text
   | VPOH     (OneHot Int)  -- ^ A 1-hot encoding of an enum value
   deriving (Eq, Show, G.Generic)
 instance Hashable VP

@@ -226,7 +226,8 @@ gather :: (Foldable t, Ord k, Hashable k) =>
        -> Frame (HMR.Row k v)
 gather fk ks kKey kValue = fromList . F.foldMap f where
   f row = gather1 fk ks row kKey kValue
-  
+
+-- | gather one row into a list of rows
 gather1 :: (Ord k, Hashable k) =>
            (k -> v)
         -> S.Set k     
@@ -239,7 +240,8 @@ gather1 fk ks row kKey kValue = fromMaybe [] $ F.foldlM insf [] ks where
   insf acc k = do
     r' <- lookupInsert fk row rowBase kKey kValue k
     pure $ r' : acc
-          
+
+
 lookupInsert :: (Eq k1, Eq k2, Hashable k1, Hashable k2) =>
                 (k1 -> a)
              -> HMR.Row k1 a

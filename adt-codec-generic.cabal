@@ -52,7 +52,8 @@ library
               , hashable >= 1.2.6.1
               -- , logging-effect
               , scientific >= 0.3.5.1
-              , text > 1.2.2 
+              , text > 1.2.2
+              -- , time >= 1.6.0.1
               -- , transformers
               , unordered-containers > 0.2.8
               , vector >= 0.12.0.1
