@@ -72,7 +72,7 @@ import qualified Data.Foldable as F
 import qualified Data.HashMap.Strict as HM
 import qualified Data.List.NonEmpty as NE
 import Data.Hashable (Hashable(..))
-import qualified Data.Set as S (Set, fromList, member, foldr)
+import qualified Data.Set as S (Set)
 -- import Control.Monad.Catch(Exception(..), MonadThrow(..))
 -- import Data.Scientific (Scientific, toRealFloat)
 -- import Data.Typeable (Typeable)
@@ -80,9 +80,10 @@ import qualified Data.Set as S (Set, fromList, member, foldr)
 -- import qualified Data.Generics.Decode as D (Decode, runDecode, mkDecode)
 -- import Data.Generics.Decode ((>>>))
 import qualified Core.Data.Row.HashMap as HMR
+-- import qualified Data.GenericTrie as GT
 -- import Core.Data.Row.Internal
 -- import Data.Generics.Encode.Val (VP, getIntM, getFloatM, getDoubleM, getScientificM, getStringM, getTextM, getOneHotM)
-import Data.Generics.Encode.OneHot (OneHot)
+-- import Data.Generics.Encode.OneHot (OneHot)
 
 
 import Prelude hiding (filter, zipWith, lookup, foldl, foldr, scanl, scanr, head, take, drop)
@@ -237,25 +238,16 @@ gather1 :: (Ord k, Hashable k) =>
         -> [HMR.Row k v]
 gather1 fk ks row kKey kValue = fromMaybe [] $ F.foldlM insf [] ks where
   rowBase = HMR.removeKnownKeys ks row
-  insf acc k = do
-    r' <- lookupInsert fk row rowBase kKey kValue k
-    pure $ r' : acc
-
-
-lookupInsert :: (Eq k1, Eq k2, Hashable k1, Hashable k2) =>
-                (k1 -> a)
-             -> HMR.Row k1 a
-             -> HMR.Row k2 a
-             -> k2
-             -> k2
-             -> k1
-             -> Maybe (HMR.Row k2 a)
-lookupInsert fk row rowBase kKey kValue k = do
-  x <- HMR.lookup k row
-  let 
+  lookupInsert k = do
+    x <- HMR.lookup k row
+    let 
       r'  = HMR.insert kKey   (fk k) rowBase
       r'' = HMR.insert kValue x r'
-  pure r''
+    pure r''
+  insf acc k = do
+    r' <- lookupInsert k
+    pure $ r' : acc
+
   
 
 
