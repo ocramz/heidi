@@ -30,6 +30,8 @@ module Core.Data.Frame (
   head, take, drop, zipWith, unionColsWith, numRows, 
   -- ** Filtering 
   filter, filterByKey,
+  -- **
+  groupWith, 
   -- ** Folds
   foldl, foldr, foldlM, foldrM,
   -- ** Scans (row-wise cumulative operations)
@@ -204,6 +206,15 @@ scanl f z tt = Frame $ NE.scanl f z (tableRows tt)
 scanr :: (a -> b -> b) -> b -> Frame a -> Frame b
 scanr f z tt = Frame $ NE.scanr f z (tableRows tt)
 
+-- | 'groupWith' takes row comparison function and a list and returns a list of lists such that the concatenation of the result is equal to the argument. Moreover, each sublist in the result contains only elements that satisfy the comparison. 
+groupWith :: (row -> row -> Bool) -> Frame row -> [Frame row]
+groupWith f t = Frame <$> NE.groupBy f (tableRows t)
+
+-- | 'groupWithM' uses a comparison function that Maybe returns a Bool. This is useful when used in conjuction with lookup-based logic.
+groupWithM :: (row -> row -> Maybe Bool) -> Frame row -> [Frame row]
+groupWithM fm = groupWith f' where
+  f' r1 r2 = fromMaybe False (fm r1 r2)
+
 -- | /O(n)/ Count the number of rows in the table
 --
 -- >>> numRows t0
@@ -249,6 +260,10 @@ gather1 fk ks row kKey kValue = fromMaybe [] $ F.foldlM insf [] ks where
     pure $ r' : acc
 
   
+
+-- | spread1 creates a single row from multiple ones that share a subset of key-value pairs. 
+spread1 ks row = undefined where
+  rowBase = HMR.removeKnownKeys ks row
 
 
 

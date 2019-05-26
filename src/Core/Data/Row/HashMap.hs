@@ -1,6 +1,6 @@
-{-# language DeriveFunctor, GeneralizedNewtypeDeriving, DeriveTraversable, DeriveDataTypeable #-}
+{-# language DeriveFunctor, GeneralizedNewtypeDeriving, DeriveTraversable #-}
 -- {-# language ConstraintKinds #-}
-{-# OPTIONS_GHC -Wno-unused-top-binds #-}
+-- {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 {-# OPTIONS_GHC -Wno-type-defaults #-}
 -----------------------------------------------------------------------------
 -- |
@@ -43,7 +43,7 @@ module Core.Data.Row.HashMap (
 
 import Data.Typeable (Typeable)
 import Control.Applicative (Alternative(..))
-
+import qualified Data.Foldable as F
 import Data.Hashable (Hashable(..))
 import Control.Monad.Catch(MonadThrow(..))
 import qualified Data.HashMap.Strict as HM
@@ -103,6 +103,28 @@ toList = HM.toList . unRow
 -- Nothing
 lookup :: (Eq k, Hashable k) => k -> Row k v -> Maybe v
 lookup k = HM.lookup k . unRow
+
+
+liftLookup :: (Eq k, Hashable k) =>
+              (a -> b -> c) -> k -> Row k a -> Row k b -> Maybe c
+liftLookup f k r1 r2 = f <$> lookup k r1 <*> lookup k r2
+
+-- | Compares two rows by the values indexed at a specific key.
+--
+-- Returns Nothing if the key is not present in either row.
+eqByLookup :: (Hashable k, Eq k, Eq a) =>
+              k -> Row k a -> Row k a -> Maybe Bool
+eqByLookup = liftLookup (==)
+
+-- | Compares two rows by the values indexed at a set of keys.
+--
+-- Returns Nothing if a key in either row is not present.
+eqByLookups :: (Foldable t, Hashable k, Eq k, Eq a) =>
+               t k -> Row k a -> Row k a -> Maybe Bool
+eqByLookups ks r1 r2 = F.foldlM insf True ks where
+  insf b k = (&&) <$> pure b <*> eqByLookup k r1 r2
+
+
 
 -- lookupWith :: (Eq k, Hashable k) => (x -> k) -> x -> Row k v -> Maybe v
 -- lookupWith f k = lookup (f k)

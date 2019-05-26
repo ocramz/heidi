@@ -39,6 +39,7 @@ module Core.Data.Row.GenericTrie (
 
 import Data.Typeable (Typeable)
 import Control.Applicative (Alternative(..))
+import qualified Data.Foldable as F
 -- import Control.Monad (filterM)
 import Control.Monad.Catch(MonadThrow(..))
 import Data.Scientific (Scientific)
@@ -55,10 +56,6 @@ import Core.Data.Row.Decode
 import Core.Data.Row.Internal (KeyError(..))
 
 import Prelude hiding (lookup)
-
-
-
-
 
 
 -- $setup
@@ -101,6 +98,25 @@ toList = GT.toList . unRow
 -- Nothing
 lookup :: (GT.TrieKey k) => k -> Row k v -> Maybe v
 lookup k = GT.lookup k . unRow
+
+liftLookup :: GT.TrieKey k =>
+              (a -> b -> c) -> k -> Row k a -> Row k b -> Maybe c
+liftLookup f k r1 r2 = f <$> lookup k r1 <*> lookup k r2
+
+-- | Compares two rows by the values indexed at a specific key.
+--
+-- Returns Nothing if the key is not present in either row.
+eqByLookup :: (GT.TrieKey k, Eq k, Eq a) =>
+              k -> Row k a -> Row k a -> Maybe Bool
+eqByLookup = liftLookup (==)
+
+-- | Compares two rows by the values indexed at a set of keys.
+--
+-- Returns Nothing if a key in either row is not present.
+eqByLookups :: (Foldable t, GT.TrieKey k, Eq k, Eq a) =>
+               t k -> Row k a -> Row k a -> Maybe Bool
+eqByLookups ks r1 r2 = F.foldlM insf True ks where
+  insf b k = (&&) <$> pure b <*> eqByLookup k r1 r2
 
 -- | Like 'lookup', but throws a 'MissingKeyError' if the lookup is unsuccessful
 lookupThrowM :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k) =>
