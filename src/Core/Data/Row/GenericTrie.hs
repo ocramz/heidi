@@ -31,6 +31,9 @@ module Core.Data.Row.GenericTrie (
   , real, scientific, text, oneHot
   -- * Lookup  
   , lookup, lookupThrowM, elemSatisfies
+  -- ** Comparison by lookup
+  , eqByLookup, eqByLookups
+  , compareByLookup
   -- * Set operations  
   , union, unionWith
   -- * Traversals  
@@ -102,6 +105,14 @@ lookup k = GT.lookup k . unRow
 liftLookup :: GT.TrieKey k =>
               (a -> b -> c) -> k -> Row k a -> Row k b -> Maybe c
 liftLookup f k r1 r2 = f <$> lookup k r1 <*> lookup k r2
+
+
+-- | Compares for ordering two rows by the values indexed at a specific key.
+--
+-- Returns Nothing if the key is not present in either row.
+compareByLookup :: (GT.TrieKey k, Eq k, Ord a) =>
+                   k -> Row k a -> Row k a -> Maybe Ordering
+compareByLookup = liftLookup compare
 
 -- | Compares two rows by the values indexed at a specific key.
 --

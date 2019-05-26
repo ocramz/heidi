@@ -18,27 +18,30 @@
 --
 -----------------------------------------------------------------------------
 module Core.Data.Row.HashMap (
-  Row,
+  Row
   -- * Construction
-  fromKVs,
+  , fromKVs
   -- ** (unsafe)
-  mkRow, 
+  , mkRow
   -- * Update
-  insert, insertRowFun, insertRowFunM, 
+  , insert, insertRowFun, insertRowFunM
   -- * Access
-  toList, keys, elems,
+  , toList, keys, elems
   -- * Filtering
-  filterWithKey, removeKnownKeys,
+  , filterWithKey, removeKnownKeys
   -- ** Decoders
-  real, scientific, text, oneHot, 
+  , real, scientific, text, oneHot
   -- * Lookup
-  lookup, lookupThrowM, lookupDefault, (!:), elemSatisfies, 
+  , lookup, lookupThrowM, lookupDefault, (!:), elemSatisfies
+  -- ** Comparison by lookup
+  , eqByLookup, eqByLookups
+  , compareByLookup
   -- * Set operations
-  union, unionWith,
+  , union, unionWith
   -- * Traversals
-  traverseWithKey,
+  , traverseWithKey
   -- * Key constraint
-  Key
+  , Key
     ) where
 
 import Data.Typeable (Typeable)
@@ -109,7 +112,14 @@ liftLookup :: (Eq k, Hashable k) =>
               (a -> b -> c) -> k -> Row k a -> Row k b -> Maybe c
 liftLookup f k r1 r2 = f <$> lookup k r1 <*> lookup k r2
 
--- | Compares two rows by the values indexed at a specific key.
+-- | Compares for ordering two rows by the values indexed at a specific key.
+--
+-- Returns Nothing if the key is not present in either row.
+compareByLookup :: (Hashable k, Eq k, Ord a) =>
+                   k -> Row k a -> Row k a -> Maybe Ordering
+compareByLookup = liftLookup compare
+
+-- | Compares for equality two rows by the values indexed at a specific key.
 --
 -- Returns Nothing if the key is not present in either row.
 eqByLookup :: (Hashable k, Eq k, Eq a) =>

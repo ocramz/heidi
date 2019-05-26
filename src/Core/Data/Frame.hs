@@ -63,18 +63,24 @@ module Core.Data.Frame (
   -- OneHot, 
   -- -- * Key constraint
   -- HMR.Key
+  -- ** Vector-related
+  toVector, fromVector,
+  -- *** Sorting
   ) where
 
 import Data.Maybe (fromMaybe)
 -- import Control.Applicative (Alternative(..))
 import qualified Data.Foldable as F
--- import qualified Data.Vector as V
+import qualified Data.Vector as V
+import qualified Data.Vector.Generic.Mutable as VGM
+import qualified Data.Vector.Algorithms.Merge as V (sort, sortBy, Comparison)
 -- import qualified Data.Text as T (pack)
 -- import Data.Text (Text)
 import qualified Data.HashMap.Strict as HM
 import qualified Data.List.NonEmpty as NE
 import Data.Hashable (Hashable(..))
 import qualified Data.Set as S (Set)
+import Control.Monad.Primitive (PrimMonad(..), PrimState(..))
 -- import Control.Monad.Catch(Exception(..), MonadThrow(..))
 -- import Data.Scientific (Scientific, toRealFloat)
 -- import Data.Typeable (Typeable)
@@ -224,6 +230,15 @@ numRows = length
 
 
 
+-- sortBy t = do
+--   vm <- V.thaw v
+--   V.sortBy f' vm
+--   V.freeze vm
+--   where
+--     v = toVector t
+--     f' = 
+
+
 
 
 -- * Data tidying
@@ -350,6 +365,13 @@ hjBuild k = F.foldl insf HM.empty where
 {-# INLINE hjBuild #-}
 
 
+-- | Produce a 'Vector' of rows
+toVector :: Frame row -> V.Vector row
+toVector = V.fromList . NE.toList . tableRows
+
+-- | Produce a Frame from a 'Vector' of rows
+fromVector :: V.Vector row -> Maybe (Frame row)
+fromVector = fromNEList . V.toList
 
 
 
