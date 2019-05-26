@@ -1,11 +1,11 @@
 # [heidi][]
 
-[![Build Status](https://travis-ci.com/ocramz/adt-codec-generic.png?branch=master)](https://travis-ci.com/ocramz/adt-codec-generic?branch=master)
+[![Build Status](https://travis-ci.com/ocramz/heidi.png?branch=master)](https://travis-ci.com/ocramz/heidi?branch=master)
 
 
-[heidi]: https://github.com/ocramz/adt-codec-generic
+[heidi]: https://github.com/ocramz/heidi
 
 
-![alt text](https://github.com/ocramz/adt-codec-generic/raw/master/img/heidi.jpg "Heidi")
+![alt text](https://github.com/ocramz/heidi/raw/master/img/heidi.jpg "Heidi")
 
 `heidi` : tidy data in Haskell
