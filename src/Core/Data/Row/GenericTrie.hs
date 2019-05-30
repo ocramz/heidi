@@ -18,7 +18,7 @@
 module Core.Data.Row.GenericTrie (
     Row
     -- * Construction
-  , fromKVs
+  , fromKVs, emptyRow
   -- ** (unsafe)  
   , mkRow
   -- * Update  
@@ -31,6 +31,8 @@ module Core.Data.Row.GenericTrie (
   , real, scientific, text, oneHot
   -- * Lookup  
   , lookup, lookupThrowM, elemSatisfies
+  -- ** Lookup utilities
+  , maybeEmpty
   -- ** Comparison by lookup
   , eqByLookup, eqByLookups
   , compareByLookup
@@ -77,6 +79,12 @@ newtype Row k v = Row { unRow :: GT.Trie k v } deriving (Functor, Foldable, Trav
 instance (GT.TrieKey k, Show k, Show v) => Show (Row k v) where
   show = show . GT.toList . unRow
 
+instance (GT.TrieKey k, Eq k, Eq v) => Eq (Row k v) where
+  r1 == r2 = toList r1 == toList r2
+
+instance (GT.TrieKey k, Eq k, Eq v, Ord k, Ord v) => Ord (Row k v) where
+  r1 <= r2 = toList r1 <= toList r2
+
 -- | Construct a 'Row' from a list of key-element pairs.
 --
 -- >>> lookup 3 (fromKVs [(3,'a'),(4,'b')])
@@ -89,6 +97,10 @@ fromKVs = Row . GT.fromList
 -- | Construct a 'Row' from a trie (unsafe).
 mkRow :: GT.Trie k v -> Row k v
 mkRow = Row
+
+-- | An empty row
+emptyRow :: GT.TrieKey k => Row k v
+emptyRow = Row GT.empty
 
 -- | Access the key-value pairs contained in the 'Row'
 toList :: GT.TrieKey k => Row k v -> [(k ,v)]
@@ -134,6 +146,9 @@ eqByLookups ks r1 r2 = F.foldlM insf True ks where
 lookupThrowM :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k) =>
                 k -> Row k v -> m v
 lookupThrowM k r = maybe (throwM $ MissingKeyError k) pure (lookup k r)
+
+maybeEmpty :: GT.TrieKey k => Maybe (Row k v) -> Row k v
+maybeEmpty = fromMaybe emptyRow
 
 -- | List the keys of a given row
 --

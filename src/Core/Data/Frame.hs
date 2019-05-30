@@ -35,7 +35,7 @@ module Core.Data.Frame (
   -- ** Scans (row-wise cumulative operations)
   scanl, scanr,
   -- ** Data tidying
-  gather, 
+  spread, gather, 
   -- ** Relational operations
   groupBy, innerJoin, leftOuterJoin,   
   -- -- * Row
@@ -230,13 +230,7 @@ numRows = length
 
 
 
--- sortBy t = do
---   vm <- V.thaw v
---   V.sortBy f' vm
---   V.freeze vm
---   where
---     v = toVector t
---     f' = 
+
 
 
 
@@ -278,73 +272,52 @@ gather1 fk ks row kKey kValue = fromMaybe [] $ F.foldlM insf [] ks where
 
 
 
-
-
-{-
-country | year | type | count
---------+------+------+------
-A       | 1999 | cases| 0.7
-A       | 1999 | pop  | 19
-A       | 2000 | cases| 2
-A       | 2000 | pop  | 20
-
-spread("type", "count")
-
-country | year | cases | pop
---------+------+-------+-----
-A       | 1999 | 0.7   | 19
-A       | 2000 | 2     | 20
-
--}
-
-removeKnownKeys :: Ord a => S.Set a -> HM.HashMap a p -> HM.HashMap a p
-removeKnownKeys ks = HM.filterWithKey f where
-  f k _ = not $ S.member k ks
-
-spread :: (Foldable t, Ord k, Hashable k, Hashable v, Eq v) =>
+-- | 'spread' moves the unique values of a key column into the column names, spreading the values of a value column across the new columns.
+spread :: (Hashable k, Foldable t, Ord k, Ord v) =>
           (v -> k)
        -> k
        -> k
-       -> t (HM.HashMap k v)
-       -> [HM.HashMap k v]
-spread fk k1 k2 = map funion . HM.toList . foldl (spread1 fk k1 k2) HM.empty  where
-  funion (km, vm) = HM.union km vm
+       -> t (HMR.Row k v)
+       -> Frame (HMR.Row k v)
+spread fk k1 k2 = fromList . map funion . M.toList . foldl (spread1 fk k1 k2) M.empty
+  where
+    funion (km, vm) = HMR.union km vm
   
 -- | spread1 creates a single row from multiple ones that share a subset of key-value pairs.
-spread1 :: (Ord k, Hashable k, Hashable v, Eq v, Eq k) =>
+spread1 :: (Ord k, Ord v, Hashable k, Hashable k, Eq k) =>
            (v -> k)
         -> k
         -> k
-        -> HM.HashMap (HM.HashMap k v) (HM.HashMap k v)
-        -> HM.HashMap k v
-        -> HM.HashMap (HM.HashMap k v) (HM.HashMap k v)
-spread1 fk k1 k2 hmacc row = HM.insert rowBase kvNew hmacc where
+        -> M.Map (HMR.Row k v) (HMR.Row k v)
+        -> HMR.Row k v
+        -> M.Map (HMR.Row k v) (HMR.Row k v)
+spread1 fk k1 k2 hmacc row = M.insert rowBase kvNew hmacc where
   ks = S.fromList [k1, k2]
-  rowBase = removeKnownKeys ks row
-  kvNew = fromMaybe HM.empty $ do
-    hmv <- HM.lookup rowBase hmacc
-    k <- HM.lookup k1 row
-    v <- HM.lookup k2 row
-    pure $ HM.insert (fk k) v hmv
+  rowBase = HMR.removeKnownKeys ks row
+  hmv = HMR.maybeEmpty $ M.lookup rowBase hmacc
+  kvNew = HMR.maybeEmpty $ do
+    k <- HMR.lookup k1 row
+    v <- HMR.lookup k2 row
+    pure $ HMR.insert (fk k) v hmv
 
 
-r0, r1 :: HM.HashMap String String
-r0 = HM.fromList [
+
+
+r0, r1, r2, r3 :: HMR.Row String String
+r0 = HMR.fromKVs [
     ("country", "A"), ("type", "cases"), ("count", "0.7")]
-r1 = HM.fromList [
-    ("country", "A"), ("type", "pop"), ("count", "19")]    
+r1 = HMR.fromKVs [
+    ("country", "A"), ("type", "pop"), ("count", "19")]
+r2 = HMR.fromKVs [
+    ("country", "B"), ("type", "cases"), ("count", "37")] 
+r3 = HMR.fromKVs [
+    ("country", "B"), ("type", "pop"), ("count", "172")]    
 
-frame0 :: [HM.HashMap String String]
-frame0 = [r0, r1] 
+frame0 :: [HMR.Row String String]
+frame0 = [r0, r1, r2, r3] 
 
 
--- -- lookupInsert :: (Hashable k, Ord k2, Eq k) =>
--- --                 (v -> k2)
--- --              -> k -> k -> HMR.Row k v -> HMR.Row k2 v -> Maybe (HMR.Row k2 v)
--- lookupInsert fk k1 k2 row m = fromMaybe HM.empty $ do
---   k <- HM.lookup k1 row
---   v <- HM.lookup k2 row
---   pure $ HM.insert (fk k) v m
+
 
 
 

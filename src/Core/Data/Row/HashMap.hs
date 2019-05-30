@@ -20,7 +20,7 @@
 module Core.Data.Row.HashMap (
   Row
   -- * Construction
-  , fromKVs
+  , fromKVs, emptyRow
   -- ** (unsafe)
   , mkRow
   -- * Update
@@ -33,6 +33,8 @@ module Core.Data.Row.HashMap (
   , real, scientific, text, oneHot
   -- * Lookup
   , lookup, lookupThrowM, lookupDefault, (!:), elemSatisfies
+  -- ** Lookup utilities
+  , maybeEmpty  
   -- ** Comparison by lookup
   , eqByLookup, eqByLookups
   , compareByLookup
@@ -44,6 +46,7 @@ module Core.Data.Row.HashMap (
   , Key
     ) where
 
+import Data.Maybe (fromMaybe)
 import Data.Typeable (Typeable)
 import Control.Applicative (Alternative(..))
 import qualified Data.Foldable as F
@@ -62,7 +65,7 @@ import Data.Generics.Encode.OneHot (OneHot)
 import Core.Data.Row.Decode
 import Core.Data.Row.Internal (KeyError(..))
 
-import Prelude hiding (lookup)
+import Prelude hiding (lookup, empty)
 
 
 
@@ -75,7 +78,7 @@ import Prelude hiding (lookup)
 -- * Fast random access (logarithmic on average)
 -- * Fast set operations 
 -- * Supports missing elements 
-newtype Row k v = Row { unRow :: HM.HashMap k v } deriving (Eq, Functor, Foldable, Traversable)
+newtype Row k v = Row { unRow :: HM.HashMap k v } deriving (Eq, Functor, Foldable, Traversable, Ord)
 instance (Show k, Show v) => Show (Row k v) where
   show = show . HM.toList . unRow
 
@@ -93,6 +96,10 @@ fromKVs = Row . HM.fromList
 -- NB : This function is for internal use only. Do not use this function in application code, since it may break invariants such as key uniqueness.
 mkRow :: HM.HashMap k v -> Row k v
 mkRow = Row
+
+-- | An empty row
+emptyRow :: Row k v
+emptyRow = Row HM.empty
 
 -- | Access the key-value pairs contained in the 'Row'
 toList :: Row k v -> [(k, v)]
@@ -143,6 +150,9 @@ eqByLookups ks r1 r2 = F.foldlM insf True ks where
 lookupThrowM :: (MonadThrow m, Key k) =>
                 k -> Row k v -> m v
 lookupThrowM k r = maybe (throwM $ MissingKeyError k) pure (lookup k r)
+
+maybeEmpty :: Maybe (Row k v) -> Row k v
+maybeEmpty = fromMaybe emptyRow
 
 
 -- | A 'Key' must be 'Eq', 'Hashable', 'Show', 'Typeable'
