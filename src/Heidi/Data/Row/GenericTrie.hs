@@ -3,7 +3,7 @@
 {-# language DeriveTraversable #-}
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Core.Data.Row.GenericTrie
+-- Module      :  Heidi.Data.Row.GenericTrie
 -- Description :  A sparse dataframe row, based on GenericTrie
 -- Copyright   :  (c) Marco Zocca (2018-2019)
 -- License     :  BSD-style
@@ -15,7 +15,7 @@
 -- @generic-trie@ library; in addition to supporting the possibility of missing features in the dataset, tries provide fast insertion and lookup functionality when keyed with structured datatypes (such as lists or trees).
 --
 -----------------------------------------------------------------------------
-module Core.Data.Row.GenericTrie (
+module Heidi.Data.Row.GenericTrie (
     Row
     -- * Construction
   , fromKVs, emptyRow
@@ -72,7 +72,7 @@ import Prelude hiding (lookup)
 
 -- | A 'Row' type is internally a Trie:
 --
--- * Fast random access (logarithmic on average)
+-- * Fast random access 
 -- * Fast set operations 
 -- * Supports missing elements 
 newtype Row k v = Row { unRow :: GT.Trie k v } deriving (Functor, Foldable, Traversable)

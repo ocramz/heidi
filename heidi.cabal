@@ -24,6 +24,10 @@ source-repository head
 
 library
   exposed-modules:
+                  Heidi
+                  Heidi.Data.Row.GenericTrie
+                  Heidi.Data.Row.HashMap                  
+  other-modules:
                   Data.Generics.Encode
                   Data.Generics.Encode.OneHot
                   Data.Generics.Encode.Internal                  
@@ -32,20 +36,13 @@ library
                   Core.Data.Frame.Generic                  
                   Core.Data.Row
                   Core.Data.Row.Decode
-                  Core.Data.Row.GenericTrie
-                  Core.Data.Row.HashMap
                   Core.Data.Row.Internal
-  -- other-modules:
-  --               Data.Generics.Encode.ValFix          
-                      
-  --     Paths_adt_codec_generic
   hs-source-dirs:
       src
   ghc-options: -Wall
   build-depends:
                 base > 4.9 && < 4.13
               , containers >= 0.5.7.1
-              -- , data-fix >= 0.0.4
               , exceptions >= 0.8.3
               , generics-sop > 0.3.0
               , generic-trie >= 0.3.1

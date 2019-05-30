@@ -19,6 +19,7 @@ env:
 - ARGS="--resolver lts-13.0"
 - ARGS="--resolver lts-13.17"
 - ARGS="--resolver lts-13.21"
+- ARGS="--resolver nightly-2019-05-30"
 
 
 before_install:

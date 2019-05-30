@@ -4,7 +4,7 @@
 {-# OPTIONS_GHC -Wno-type-defaults #-}
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Core.Data.Row.HashMap
+-- Module      :  Heidi.Data.Row.HashMap
 -- Description :  A sparse dataframe row, based on HashMap
 -- Copyright   :  (c) Marco Zocca (2018-2019)
 -- License     :  BSD-style
@@ -17,7 +17,7 @@
 -- in the dataset.
 --
 -----------------------------------------------------------------------------
-module Core.Data.Row.HashMap (
+module Heidi.Data.Row.HashMap (
   Row
   -- * Construction
   , fromKVs, emptyRow
@@ -75,7 +75,7 @@ import Prelude hiding (lookup)
 
 -- | A 'Row' type is internally a hashmap:
 --
--- * Fast random access (logarithmic on average)
+-- * Fast random access 
 -- * Fast set operations 
 -- * Supports missing elements 
 newtype Row k v = Row { unRow :: HM.HashMap k v } deriving (Eq, Functor, Foldable, Traversable)

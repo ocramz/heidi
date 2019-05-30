@@ -56,8 +56,8 @@ import Control.Monad.Catch (MonadThrow(..))
 -- import Data.Hashable (Hashable(..))
 
 import Core.Data.Frame (Frame, fromList)
-import qualified Core.Data.Row.HashMap as HMR (Row, mkRow)
-import qualified Core.Data.Row.GenericTrie as GTR (Row, mkRow)
+import qualified Heidi.Data.Row.HashMap as HMR (Row, mkRow)
+import qualified Heidi.Data.Row.GenericTrie as GTR (Row, mkRow)
 import Data.Generics.Encode.Internal (gflatten, gflattenGT, HasGE, TC, VP)
 
 
