@@ -8,6 +8,7 @@
 -- Stability   :  experimental
 -- Portability :  GHC
 --
+-- lorem ipsum
 -- 
 -----------------------------------------------------------------------------
 module Heidi (
