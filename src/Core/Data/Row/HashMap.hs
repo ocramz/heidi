@@ -56,7 +56,7 @@ import qualified Data.HashMap.Strict as HM
 import Data.Scientific (Scientific)
 -- import qualified Data.Text as T (pack)
 import Data.Text (Text)
-import qualified Data.Set as S (Set, fromList, member)
+import qualified Data.Set as S (Set, member)
 
 import qualified Data.Generics.Decode as D (Decode, mkDecode)
 import Data.Generics.Decode ((>>>))
@@ -65,7 +65,7 @@ import Data.Generics.Encode.OneHot (OneHot)
 import Core.Data.Row.Decode
 import Core.Data.Row.Internal (KeyError(..))
 
-import Prelude hiding (lookup, empty)
+import Prelude hiding (lookup)
 
 
 
@@ -259,9 +259,9 @@ lookupColM :: (MonadThrow m, Key k) =>
               k -> D.Decode m (Row k o) o
 lookupColM k = D.mkDecode (lookupThrowM k)
 
--- | Lookup a value from a Row indexed at the given key (returns in the Maybe monad)
-lookupCol :: (Eq k, Hashable k) => k -> D.Decode Maybe (Row k o) o
-lookupCol k = D.mkDecode (lookup k)
+-- -- | Lookup a value from a Row indexed at the given key (returns in the Maybe monad)
+-- lookupCol :: (Eq k, Hashable k) => k -> D.Decode Maybe (Row k o) o
+-- lookupCol k = D.mkDecode (lookup k)
 
 
 

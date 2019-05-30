@@ -50,7 +50,7 @@ import qualified Data.Foldable as F
 import Control.Monad.Catch(MonadThrow(..))
 import Data.Scientific (Scientific)
 import Data.Text (Text)
-import qualified Data.Set as S (Set, fromList, member)
+import qualified Data.Set as S (Set, member)
 
 import qualified Data.GenericTrie as GT
 

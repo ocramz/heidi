@@ -69,18 +69,18 @@ module Core.Data.Frame (
 import Data.Maybe (fromMaybe)
 -- import Control.Applicative (Alternative(..))
 import qualified Data.Foldable as F
-import Data.Foldable (foldl, foldr, foldlM, foldrM)
+-- import Data.Foldable (foldl, foldr, foldlM, foldrM)
 import qualified Data.Vector as V
-import qualified Data.Vector.Generic.Mutable as VGM
-import qualified Data.Vector.Algorithms.Merge as V (sort, sortBy, Comparison)
+-- import qualified Data.Vector.Generic.Mutable as VGM
+-- import qualified Data.Vector.Algorithms.Merge as V (sort, sortBy, Comparison)
 -- import qualified Data.Text as T (pack)
 -- import Data.Text (Text)
 import qualified Data.Map as M
 import qualified Data.HashMap.Strict as HM
 import qualified Data.List.NonEmpty as NE
 import Data.Hashable (Hashable(..))
-import qualified Data.Set as S (Set, member, fromList)
-import Control.Monad.Primitive (PrimMonad(..), PrimState(..))
+import qualified Data.Set as S (Set, fromList)
+-- import Control.Monad.Primitive (PrimMonad(..), PrimState(..))
 -- import Control.Monad.Catch(Exception(..), MonadThrow(..))
 -- import Data.Scientific (Scientific, toRealFloat)
 -- import Data.Typeable (Typeable)
@@ -279,7 +279,7 @@ spread :: (Hashable k, Foldable t, Ord k, Ord v) =>
        -> k
        -> t (HMR.Row k v)
        -> Frame (HMR.Row k v)
-spread fk k1 k2 = fromList . map funion . M.toList . foldl (spread1 fk k1 k2) M.empty
+spread fk k1 k2 = fromList . map funion . M.toList . F.foldl (spread1 fk k1 k2) M.empty
   where
     funion (km, vm) = HMR.union km vm
   
@@ -303,18 +303,18 @@ spread1 fk k1 k2 hmacc row = M.insert rowBase kvNew hmacc where
 
 
 
-r0, r1, r2, r3 :: HMR.Row String String
-r0 = HMR.fromKVs [
-    ("country", "A"), ("type", "cases"), ("count", "0.7")]
-r1 = HMR.fromKVs [
-    ("country", "A"), ("type", "pop"), ("count", "19")]
-r2 = HMR.fromKVs [
-    ("country", "B"), ("type", "cases"), ("count", "37")] 
-r3 = HMR.fromKVs [
-    ("country", "B"), ("type", "pop"), ("count", "172")]    
+-- r0, r1, r2, r3 :: HMR.Row String String
+-- r0 = HMR.fromKVs [
+--     ("country", "A"), ("type", "cases"), ("count", "0.7")]
+-- r1 = HMR.fromKVs [
+--     ("country", "A"), ("type", "pop"), ("count", "19")]
+-- r2 = HMR.fromKVs [
+--     ("country", "B"), ("type", "cases"), ("count", "37")] 
+-- r3 = HMR.fromKVs [
+--     ("country", "B"), ("type", "pop"), ("count", "172")]    
 
-frame0 :: [HMR.Row String String]
-frame0 = [r0, r1, r2, r3] 
+-- frame0 :: [HMR.Row String String]
+-- frame0 = [r0, r1, r2, r3] 
 
 
 
