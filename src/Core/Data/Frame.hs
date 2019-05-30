@@ -32,8 +32,6 @@ module Core.Data.Frame (
   filter, filterByKey,
   -- **
   groupWith, 
-  -- ** Folds
-  foldl, foldr, foldlM, foldrM,
   -- ** Scans (row-wise cumulative operations)
   scanl, scanr,
   -- ** Data tidying
@@ -71,15 +69,17 @@ module Core.Data.Frame (
 import Data.Maybe (fromMaybe)
 -- import Control.Applicative (Alternative(..))
 import qualified Data.Foldable as F
+import Data.Foldable (foldl, foldr, foldlM, foldrM)
 import qualified Data.Vector as V
 import qualified Data.Vector.Generic.Mutable as VGM
 import qualified Data.Vector.Algorithms.Merge as V (sort, sortBy, Comparison)
 -- import qualified Data.Text as T (pack)
 -- import Data.Text (Text)
+import qualified Data.Map as M
 import qualified Data.HashMap.Strict as HM
 import qualified Data.List.NonEmpty as NE
 import Data.Hashable (Hashable(..))
-import qualified Data.Set as S (Set)
+import qualified Data.Set as S (Set, member, fromList)
 import Control.Monad.Primitive (PrimMonad(..), PrimState(..))
 -- import Control.Monad.Catch(Exception(..), MonadThrow(..))
 -- import Data.Scientific (Scientific, toRealFloat)
@@ -187,21 +187,21 @@ filterByKey :: (Eq k, Hashable k) =>
             -> Maybe (Frame (HMR.Row k v))
 filterByKey k ff = filter (k HMR.!: ff)
 
--- | Left-associative fold
-foldl :: (b -> a -> b) -> b -> Frame a -> b
-foldl = F.foldl
+-- -- | Left-associative fold
+-- foldl :: (b -> a -> b) -> b -> Frame a -> b
+-- foldl = F.foldl
 
--- | Right-associative fold
-foldr :: (a -> b -> b) -> b -> Frame a -> b
-foldr = F.foldr
+-- -- | Right-associative fold
+-- foldr :: (a -> b -> b) -> b -> Frame a -> b
+-- foldr = F.foldr
 
--- | Left-associative monadic fold
-foldlM :: (Monad m) => (b -> a -> m b) -> b -> Frame a -> m b
-foldlM = F.foldlM
+-- -- | Left-associative monadic fold
+-- foldlM :: (Monad m) => (b -> a -> m b) -> b -> Frame a -> m b
+-- foldlM = F.foldlM
 
--- | Right-associative monadic fold
-foldrM :: (Monad m) => (a -> b -> m b) -> b -> Frame a -> m b
-foldrM = F.foldrM
+-- -- | Right-associative monadic fold
+-- foldrM :: (Monad m) => (a -> b -> m b) -> b -> Frame a -> m b
+-- foldrM = F.foldrM
 
 
 -- | Left-associative scan
@@ -274,12 +274,77 @@ gather1 fk ks row kKey kValue = fromMaybe [] $ F.foldlM insf [] ks where
     r' <- lookupInsert k
     pure $ r' : acc
 
+
+
+
+
+
+
+{-
+country | year | type | count
+--------+------+------+------
+A       | 1999 | cases| 0.7
+A       | 1999 | pop  | 19
+A       | 2000 | cases| 2
+A       | 2000 | pop  | 20
+
+spread("type", "count")
+
+country | year | cases | pop
+--------+------+-------+-----
+A       | 1999 | 0.7   | 19
+A       | 2000 | 2     | 20
+
+-}
+
+removeKnownKeys :: Ord a => S.Set a -> HM.HashMap a p -> HM.HashMap a p
+removeKnownKeys ks = HM.filterWithKey f where
+  f k _ = not $ S.member k ks
+
+spread :: (Foldable t, Ord k, Hashable k, Hashable v, Eq v) =>
+          (v -> k)
+       -> k
+       -> k
+       -> t (HM.HashMap k v)
+       -> [HM.HashMap k v]
+spread fk k1 k2 = map funion . HM.toList . foldl (spread1 fk k1 k2) HM.empty  where
+  funion (km, vm) = HM.union km vm
   
+-- | spread1 creates a single row from multiple ones that share a subset of key-value pairs.
+spread1 :: (Ord k, Hashable k, Hashable v, Eq v, Eq k) =>
+           (v -> k)
+        -> k
+        -> k
+        -> HM.HashMap (HM.HashMap k v) (HM.HashMap k v)
+        -> HM.HashMap k v
+        -> HM.HashMap (HM.HashMap k v) (HM.HashMap k v)
+spread1 fk k1 k2 hmacc row = HM.insert rowBase kvNew hmacc where
+  ks = S.fromList [k1, k2]
+  rowBase = removeKnownKeys ks row
+  kvNew = fromMaybe HM.empty $ do
+    hmv <- HM.lookup rowBase hmacc
+    k <- HM.lookup k1 row
+    v <- HM.lookup k2 row
+    pure $ HM.insert (fk k) v hmv
 
--- | spread1 creates a single row from multiple ones that share a subset of key-value pairs. 
-spread1 ks row = undefined where
-  rowBase = HMR.removeKnownKeys ks row
 
+r0, r1 :: HM.HashMap String String
+r0 = HM.fromList [
+    ("country", "A"), ("type", "cases"), ("count", "0.7")]
+r1 = HM.fromList [
+    ("country", "A"), ("type", "pop"), ("count", "19")]    
+
+frame0 :: [HM.HashMap String String]
+frame0 = [r0, r1] 
+
+
+-- -- lookupInsert :: (Hashable k, Ord k2, Eq k) =>
+-- --                 (v -> k2)
+-- --              -> k -> k -> HMR.Row k v -> HMR.Row k2 v -> Maybe (HMR.Row k2 v)
+-- lookupInsert fk k1 k2 row m = fromMaybe HM.empty $ do
+--   k <- HM.lookup k1 row
+--   v <- HM.lookup k2 row
+--   pure $ HM.insert (fk k) v m
 
 
 

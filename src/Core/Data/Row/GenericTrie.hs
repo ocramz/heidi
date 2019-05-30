@@ -26,7 +26,7 @@ module Core.Data.Row.GenericTrie (
   -- * Access  
   , toList, keys
   -- * Filtering
-  , filterWithKey, removeKnownKeys
+  , delete, filterWithKey, removeKnownKeys
   -- ** Decoders  
   , real, scientific, text, oneHot
   -- * Lookup  
@@ -40,6 +40,7 @@ module Core.Data.Row.GenericTrie (
   , traverseWithKey
   ) where
 
+import Data.Maybe (fromMaybe)
 import Data.Typeable (Typeable)
 import Control.Applicative (Alternative(..))
 import qualified Data.Foldable as F
@@ -141,6 +142,13 @@ lookupThrowM k r = maybe (throwM $ MissingKeyError k) pure (lookup k r)
 keys :: GT.TrieKey k => Row k v -> [k]
 keys = map fst . toList
 
+-- | Returns a new 'Row' that doesn't have a given key-value pair
+delete :: GT.TrieKey k =>
+          k       -- ^ Key to remove
+       -> Row k v
+       -> Row k v
+delete k (Row gt) = Row $ GT.delete k gt
+
 
 -- | Filter a row by applying a predicate to its keys and corresponding elements.
 --
@@ -152,6 +160,16 @@ filterWithKey ff (Row gt) = Row $ GT.filterWithKey ff gt
 removeKnownKeys :: (GT.TrieKey k, Ord k) => S.Set k -> Row k v -> Row k v
 removeKnownKeys ks = filterWithKey f where
   f k _ = not $ S.member k ks
+
+
+-- alter k m = fromMaybe m $ do
+--   v <- lookup k m 
+--   delete k m
+
+-- alter k f t =
+--   case f (lookup k t) of
+--     Just v' -> insert k v' t
+--     Nothing -> delete k t
 
 
 -- | Insert a key-value pair into a row and return the updated one
