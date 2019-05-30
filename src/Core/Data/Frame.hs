@@ -243,7 +243,7 @@ gather :: (Foldable t, Ord k, Hashable k) =>
        -> S.Set k     -- ^ set of keys to gather
        -> k           -- ^ "key" key           
        -> k           -- ^ "value" key
-       -> t (HMR.Row k v) -- ^ starting frame
+       -> t (HMR.Row k v) -- ^ input dataframe
        -> Frame (HMR.Row k v)
 gather fk ks kKey kValue = fromList . F.foldMap f where
   f row = gather1 fk ks row kKey kValue
@@ -275,9 +275,9 @@ gather1 fk ks row kKey kValue = fromMaybe [] $ F.foldlM insf [] ks where
 -- | 'spread' moves the unique values of a key column into the column names, spreading the values of a value column across the new columns.
 spread :: (Hashable k, Foldable t, Ord k, Ord v) =>
           (v -> k)
-       -> k
-       -> k
-       -> t (HMR.Row k v)
+       -> k   -- ^ "key" key
+       -> k   -- ^ "value" key
+       -> t (HMR.Row k v)  -- ^ input dataframe
        -> Frame (HMR.Row k v)
 spread fk k1 k2 = fromList . map funion . M.toList . F.foldl (spread1 fk k1 k2) M.empty
   where
