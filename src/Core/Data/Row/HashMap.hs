@@ -78,9 +78,13 @@ import Prelude hiding (lookup)
 -- * Fast random access (logarithmic on average)
 -- * Fast set operations 
 -- * Supports missing elements 
-newtype Row k v = Row { unRow :: HM.HashMap k v } deriving (Eq, Functor, Foldable, Traversable, Ord)
+newtype Row k v = Row { unRow :: HM.HashMap k v } deriving (Eq, Functor, Foldable, Traversable)
+
 instance (Show k, Show v) => Show (Row k v) where
   show = show . HM.toList . unRow
+  
+instance (Ord k, Ord v) => Ord (Row k v) where
+  r1 <= r2 = toList r1 <= toList r2  
 
 -- | Construct a 'Row' from a list of key-element pairs.
 --

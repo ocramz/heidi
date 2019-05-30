@@ -313,9 +313,12 @@ spread1 fk k1 k2 hmacc row = M.insert rowBase kvNew hmacc where
 -- r3 = HMR.fromKVs [
 --     ("country", "B"), ("type", "pop"), ("count", "172")]    
 
--- frame0 :: [HMR.Row String String]
--- frame0 = [r0, r1, r2, r3] 
+-- -- frame0 :: [HMR.Row String String]
+-- frame0 = fromList [r0, r1, r2, r3] 
 
+-- fr1 = spread id "type" "count" frame0
+
+-- fr2 = gather id (S.fromList ["cases", "pop"]) "type" "count" fr1
 
 
 
