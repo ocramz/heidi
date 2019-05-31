@@ -26,12 +26,12 @@ library
   exposed-modules:
                   Heidi
                   Heidi.Data.Row.GenericTrie
-                  Heidi.Data.Row.HashMap                  
+                  Heidi.Data.Row.HashMap
+                  Data.Generics.Decode                
   other-modules:
                   Data.Generics.Encode
                   Data.Generics.Encode.OneHot
                   Data.Generics.Encode.Internal                  
-                  Data.Generics.Decode
                   Core.Data.Frame
                   Core.Data.Frame.Generic                  
                   Core.Data.Row
