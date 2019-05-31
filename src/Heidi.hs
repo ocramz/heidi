@@ -38,4 +38,5 @@ import Core.Data.Frame (Frame, fromNEList, fromList, head, take, drop, zipWith, 
 import Core.Data.Frame.Generic (gToFrame, gToFrameGT)
 import Data.Generics.Encode.Internal (HasGE, TC, VP)
 
+-- import Control.Monad.Catch (MonadThrow(..))
 import Prelude hiding (filter, zipWith, lookup, foldl, foldr, scanl, scanr, head, take, drop)
