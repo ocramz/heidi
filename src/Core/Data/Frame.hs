@@ -66,6 +66,7 @@ module Core.Data.Frame (
   -- *** Sorting
   ) where
 
+import qualified Control.Monad as CM (filterM)
 import Data.Maybe (fromMaybe)
 -- import Control.Applicative (Alternative(..))
 import qualified Data.Foldable as F
@@ -156,7 +157,10 @@ fromNEList l = Frame <$> NE.nonEmpty l
 
 -- | Construct a table given a list of rows. Crashes if the input list is empty
 fromList :: [row] -> Frame row
-fromList = Frame . NE.fromList 
+fromList = Frame . NE.fromList
+
+toList :: Frame a -> [a]
+toList = NE.toList . tableRows
 
 -- | Zip two frames with a row combining function
 zipWith :: (a -> b -> row)
@@ -175,6 +179,11 @@ unionColsWith f = zipWith (HMR.unionWith f)
 --
 filter :: (row -> Bool) -> Frame row -> Maybe (Frame row)
 filter ff = fromNEList . NE.filter ff . tableRows
+
+-- | This generalizes the list-based 'filter' function.
+filterA :: Applicative f =>
+           (row -> f Bool) -> Frame row -> f (Maybe (Frame row))
+filterA fm t = fromNEList <$> CM.filterM fm (toList t)
 
 -- | Filter a 'Frame' according to predicate applied to an element pointed to by a given key.
 --

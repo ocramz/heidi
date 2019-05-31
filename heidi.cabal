@@ -57,6 +57,7 @@ library
               , vector >= 0.12.0.1
               -- , vector-algorithms
   default-language: Haskell2010
+  default-extensions: OverloadedStrings
 
 -- unit tests
 test-suite unit
