@@ -34,7 +34,7 @@ module Data.Generics.Encode.Internal (gflattenHM, gflattenGT,
                                       -- * VP (Primitive types)
                                       VP(..),
                                       -- ** 'MonadThrow' getters
-                                     getIntM, getBoolM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM, TypeError(..),
+                                     getIntM, getInt8M, getInt16M, getInt32M, getInt64M, getWordM, getWord8M, getWord16M, getWord32M, getWord64M, getBoolM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM, TypeError(..),
                                      -- * TC (Type and Constructor annotation)
                                      TC(..), tcTyN, tcTyCon, 
                                      -- * HasGE (generic ADT encoding)
