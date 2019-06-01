@@ -65,15 +65,15 @@ import Data.Generics.Encode.Internal (gflattenHM, gflattenGT, HasGE, TC, VP)
 -- instance HasGE Q
 -- @
 --
--- >>> gToFrame [P1 42 'z']
+-- >>> gToFrameHM [P1 42 'z']
 -- Frame {tableRows = [([TC "P1" "_1"],VPChar 'z'),([TC "P1" "_0"],VPInt 42)] :| []}
 -- 
--- >>> gToFrame [P2 42 'z']
+-- >>> gToFrameHM [P2 42 'z']
 -- Frame {tableRows = [([TC "P2" "p2c"],VPChar 'z'),([TC "P2" "p2i"],VPInt 42)] :| []}
 --
 -- Test using 'Maybe' and 'Either' record fields :
 --
--- >>> gToFrame [Q (Just 42) (Left 1.2), Q Nothing (Right 'b')]
+-- >>> gToFrameHM [Q (Just 42) (Left 1.2), Q Nothing (Right 'b')]
 -- Frame {tableRows = [([TC "Q" "_1",TC "Either" "Left"],VPDouble 1.2),([TC "Q" "_0",TC "Maybe" "Just"],VPInt 42)] :| [[([TC "Q" "_1",TC "Either" "Right"],VPChar 'b')]]}
 --
 -- NB: as the last example above demonstrates, 'Nothing' values are not inserted in the rows, which can be used to encode missing data features.
