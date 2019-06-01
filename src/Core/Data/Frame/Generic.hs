@@ -22,43 +22,21 @@
 -----------------------------------------------------------------------------
 module Core.Data.Frame.Generic (
     -- * HashMap-based rows 
-    gToRow, gToFrame,
-    -- * Trie-based rows
+    gToRowHM, gToFrameHM,
+    -- * GenericTrie-based rows
     gToRowGT, gToFrameGT, 
     -- * Exceptions
     DataException(..)
   ) where
 
--- import Data.Char (toLower)
--- import Data.Maybe (fromMaybe)
--- import Data.Fix (Fix(..), cata, ana)
--- import Control.Arrow (second)
-
--- import Generics.SOP hiding (fromList) -- (Generic(..), All, Code)
--- import Generics.SOP.NP (cpure_NP)
--- import Generics.SOP.Constraint (SListIN)
--- import Generics.SOP.GGP   -- (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
--- import Generics.SOP.NP
--- import qualified GHC.Generics as G
-
 import Data.Typeable (Typeable)
--- import Data.Dynamic
-
 import Control.Exception (Exception(..))
 import Control.Monad.Catch (MonadThrow(..))
--- import Control.Monad.State (State(..), runState, get, put, modify)
-
--- import qualified Data.Foldable as F (Foldable(..)) 
--- import qualified Data.Text as T
--- -- import qualified Data.Vector as V
--- -- import qualified Data.Map as M
--- import qualified Data.HashMap.Strict as HM
--- import Data.Hashable (Hashable(..))
 
 import Core.Data.Frame (Frame, fromList)
 import qualified Heidi.Data.Row.HashMap as HMR (Row, mkRow)
 import qualified Heidi.Data.Row.GenericTrie as GTR (Row, mkRow)
-import Data.Generics.Encode.Internal (gflatten, gflattenGT, HasGE, TC, VP)
+import Data.Generics.Encode.Internal (gflattenHM, gflattenGT, HasGE, TC, VP)
 
 
 -- $setup
@@ -99,12 +77,12 @@ import Data.Generics.Encode.Internal (gflatten, gflattenGT, HasGE, TC, VP)
 -- Frame {tableRows = [([TC "Q" "_1",TC "Either" "Left"],VPDouble 1.2),([TC "Q" "_0",TC "Maybe" "Just"],VPInt 42)] :| [[([TC "Q" "_1",TC "Either" "Right"],VPChar 'b')]]}
 --
 -- NB: as the last example above demonstrates, 'Nothing' values are not inserted in the rows, which can be used to encode missing data features.
-gToFrame :: (MonadThrow m, HasGE a) =>
-            [a]
-         -> m (Frame (HMR.Row [TC] VP))
-gToFrame ds
+gToFrameHM :: (MonadThrow m, HasGE a) =>
+              [a]
+           -> m (Frame (HMR.Row [TC] VP))
+gToFrameHM ds
   | null ds = throwM NoDataE 
-  | otherwise = pure $ fromList $ map gToRow ds
+  | otherwise = pure $ fromList $ map gToRowHM ds
 
 gToFrameGT :: (MonadThrow m, HasGE a) =>
               [a]
@@ -113,9 +91,9 @@ gToFrameGT ds
   | null ds = throwM NoDataE 
   | otherwise = pure $ fromList $ map gToRowGT ds  
 
--- | Populate a 'Row' with a generic encoding of the input value
-gToRow :: HasGE a => a -> HMR.Row [TC] VP
-gToRow = HMR.mkRow . gflatten
+-- | Populate a 'Row' with a generic encoding of the input value (hashmap backend)
+gToRowHM :: HasGE a => a -> HMR.Row [TC] VP
+gToRowHM = HMR.mkRow . gflattenHM
 
 -- | Populate a 'Row' with a generic encoding of the input value (generic-trie backend)
 gToRowGT :: HasGE a => a -> GTR.Row [TC] VP

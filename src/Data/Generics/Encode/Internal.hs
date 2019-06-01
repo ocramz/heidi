@@ -30,7 +30,7 @@
 -- 
 -- * @tree-diff@ - single-typed ADT reconstruction : http://hackage.haskell.org/package/tree-diff-0.0.2/docs/src/Data.TreeDiff.Class.html#sopToExpr
 -----------------------------------------------------------------------------
-module Data.Generics.Encode.Internal (gflatten, gflattenGT,
+module Data.Generics.Encode.Internal (gflattenHM, gflattenGT,
                                       -- * VP (Primitive types)
                                       VP(..),
                                       -- ** 'MonadThrow' getters
@@ -74,8 +74,8 @@ import Prelude hiding (getChar)
 
 
 -- | Flatten a value into a 1-layer hashmap, via the value's generic encoding
-gflatten :: HasGE a => a -> HM.HashMap [TC] VP
-gflatten = flattenHM . toVal
+gflattenHM :: HasGE a => a -> HM.HashMap [TC] VP
+gflattenHM = flattenHM . toVal
 
 -- | Flatten a value into a 'GT.Trie', via the value's generic encoding
 gflattenGT :: HasGE a => a -> GT.Trie [TC] VP
