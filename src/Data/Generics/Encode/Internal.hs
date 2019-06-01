@@ -75,7 +75,7 @@ import Prelude hiding (getChar)
 
 -- | Flatten a value into a 1-layer hashmap, via the value's generic encoding
 gflatten :: HasGE a => a -> HM.HashMap [TC] VP
-gflatten = flatten . toVal
+gflatten = flattenHM . toVal
 
 -- | Flatten a value into a 'GT.Trie', via the value's generic encoding
 gflattenGT :: HasGE a => a -> GT.Trie [TC] VP
@@ -94,32 +94,21 @@ tcTyN (TC n _) = n
 tcTyCon :: TC -> String
 tcTyCon (TC _ c) = c
 
+-- | Fold a 'Val' into a 1-layer hashmap indexed by the input value's (type, constructor) metadata
+flattenHM :: Val -> HM.HashMap [TC] VP
+flattenHM = flatten HM.empty HM.insert
+
 -- | Fold a 'Val' into a 1-layer 'GT.Trie' indexed by the input value's (type, constructor) metadata
 flattenGT :: Val -> GT.Trie [TC] VP
-flattenGT = go ([], GT.empty) where
+flattenGT = flatten GT.empty GT.insert
+
+flatten :: t -> ([TC] -> VP -> t -> t) -> Val -> t
+flatten z insf = go ([], z) where
+  insRev ks = insf (reverse ks)  
   go (ks, hmacc) = \case
     VRec ty hm     -> HM.foldlWithKey' (\hm' k t -> go (TC ty k : ks, hm') t) hmacc hm
-    VOH   ty cn oh -> insRevGT (TC ty cn : ks) (VPOH oh) hmacc
-    VPrim vp       -> insRevGT ks vp hmacc
-
-insRevGT :: GT.TrieKey k =>
-            [k] -> a -> GT.Trie [k] a -> GT.Trie [k] a
-insRevGT ks = GT.insert (reverse ks)
-
-
--- | Fold a 'Val' into a 1-layer hashmap indexed by the input value's (type, constructor) metadata
-flatten :: Val -> HM.HashMap [TC] VP
-flatten = go ([], HM.empty) where
-  go (ks, hmacc) = \case
-    VRec ty hm     -> HM.foldlWithKey' (\hm' k t -> go (TC ty k : ks, hm') t) hmacc hm
-    VOH   ty cn oh -> insRev (TC ty cn : ks) (VPOH oh) hmacc
+    VEnum ty cn oh -> insRev (TC ty cn : ks) (VPOH oh) hmacc
     VPrim vp       -> insRev ks vp hmacc
-
--- | Reverse keys list and use that to insert item
---
--- NB: this is a hack because we are using lists; the problem is that Data.Seq (finger tree-based sequences) which would have an efficient right-append don't have a Hashable instance so cannot be used as keys.
-insRev :: (Eq a, Hashable a) => [a] -> v -> HM.HashMap [a] v -> HM.HashMap [a] v
-insRev ks = HM.insert (reverse ks)
 
 
 -- | Primitive types
@@ -209,7 +198,7 @@ instance Exception TypeError
 -- The first String parameter contains the type name at the given level, the second contains the type constructor name
 data Val =
     VRec   String        (HM.HashMap String Val) -- ^ recursion
-  | VOH    String String (OneHot Int)            -- ^ 1-hot
+  | VEnum  String String (OneHot Int)            -- ^ 1-hot encoding of an enum
   | VPrim  VP                                    -- ^ primitive types
   deriving (Eq, Show)
 
@@ -246,7 +235,7 @@ mkVal :: All HasGE xs =>
 mkVal cinfo xs tyn oh = case cinfo of
     Infix cn _ _  -> VRec cn $ mkAnonProd xs
     Constructor cn
-      | null cns  -> VOH tyn cn oh
+      | null cns  -> VEnum tyn cn oh
       | otherwise -> VRec cn  $ mkAnonProd xs
     Record _ fi   -> VRec tyn $ mkProd fi xs
   where

@@ -31,8 +31,6 @@ module Heidi.Data.Row.GenericTrie (
   , real, scientific, text, string, oneHot
   -- * Lookup  
   , lookup, lookupThrowM, elemSatisfies
-  -- ** 'D.Decode'-based lookup
-  , withDecoder  
   -- ** Lookup utilities
   , maybeEmpty
   -- ** Comparison by lookup
@@ -56,7 +54,7 @@ import qualified Data.Set as S (Set, member)
 
 import qualified Data.GenericTrie as GT
 
-import qualified Data.Generics.Decode as D (Decode, mkDecode, runDecode)
+import qualified Data.Generics.Decode as D (Decode, mkDecode)
 import Data.Generics.Decode ((>>>))
 import Data.Generics.Encode.Internal (VP)
 import Data.Generics.Encode.OneHot (OneHot)
@@ -225,21 +223,6 @@ unionWith f r1 r2 = Row $ GT.unionWith f (unRow r1) (unRow r2)
 -- False
 elemSatisfies :: (GT.TrieKey k) => (a -> Bool) -> k -> Row k a -> Bool
 elemSatisfies f k row = maybe False f (lookup k row)
-
--- | Adapter for using 'D.Decode' within a 'filterM'
-withDecoder :: Monad m => (k -> D.Decode m i t) -> (t -> b) -> k -> i -> m b
-withDecoder dec f k row = do
-  x <- fdec row
-  pure $ f x 
-  where
-    fdec = D.runDecode (dec k)
-
--- withDecoder2 :: Monad m => (k -> k -> D.Decode m i t) -> (t -> b) -> k -> k -> i -> m b
--- withDecoder2 dec f k1 k2 row = do
---   x <- fdec row
---   pure $ f x 
---   where
---     fdec = D.runDecode (dec k1 k2)
 
 
 -- | Lookup a value from a Row indexed at the given key (returns in a MonadThrow type)

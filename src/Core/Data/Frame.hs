@@ -88,7 +88,7 @@ import qualified Data.Set as S (Set, fromList)
 -- import Data.Scientific (Scientific, toRealFloat)
 -- import Data.Typeable (Typeable)
 
-import qualified Data.Generics.Decode as D (Decode)
+import qualified Data.Generics.Decode as D (Decode, withDecoder)
 -- import Data.Generics.Decode ((>>>))
 import qualified Heidi.Data.Row.HashMap as HMR
 -- import qualified Data.GenericTrie as GT
@@ -200,12 +200,12 @@ filterByKey k ff = filter (k HMR.!: ff)
 
 -- | Filter a 'Frame' according to predicate applied to a decoded element pointed to by a given key.
 filterByKeyD :: Monad m => 
-                (k -> D.Decode m i t) -- ^ Decoder for a column element
+                (k -> D.Decode m row v) -- ^ Decoder for a column element
              -> k           -- ^ Key
-             -> (t -> Bool) -- ^ Predicate
-             -> Frame i
-             -> m (Maybe (Frame i))
-filterByKeyD dec k ff = filterA (HMR.withDecoder dec ff k)
+             -> (v -> Bool) -- ^ Predicate
+             -> Frame row
+             -> m (Maybe (Frame row))
+filterByKeyD dec k ff = filterA (D.withDecoder dec ff k)
 
 -- -- | Left-associative fold
 -- foldl :: (b -> a -> b) -> b -> Frame a -> b
