@@ -151,7 +151,7 @@ eqByLookups ks r1 r2 = F.foldlM insf True ks where
 -- lookupWith :: (Eq k, Hashable k) => (x -> k) -> x -> Row k v -> Maybe v
 -- lookupWith f k = lookup (f k)
 
--- | Like 'lookup', but throws a 'MissingKeyError' if the lookup is unsuccessful
+-- | Like 'lookup', but throws a 'KeyError' if the lookup is unsuccessful
 lookupThrowM :: (MonadThrow m, Key k) =>
                 k -> Row k v -> m v
 lookupThrowM k r = maybe (throwM $ MissingKeyError k) pure (lookup k r)

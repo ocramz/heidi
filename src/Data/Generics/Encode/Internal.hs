@@ -40,6 +40,8 @@ module Data.Generics.Encode.Internal (gflattenHM, gflattenGT,
                                      -- * HasGE (generic ADT encoding)
                                      HasGE) where
 
+import Data.Int (Int8, Int16, Int32, Int64)
+import Data.Word (Word, Word8, Word16, Word32, Word64)
 import Data.Typeable (Typeable)
 import qualified GHC.Generics as G
 import Generics.SOP (All, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), FieldName, ConstructorInfo(..), constructorInfo, All, All2, hcliftA2, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse)
@@ -114,6 +116,15 @@ flatten z insf = go ([], z) where
 -- | Primitive types
 data VP =
     VPInt    Int
+  | VPInt8   Int8
+  | VPInt16   Int16
+  | VPInt32   Int32
+  | VPInt64   Int64
+  | VPWord   Word  
+  | VPWord8   Word8
+  | VPWord16   Word16
+  | VPWord32   Word32
+  | VPWord64   Word64  
   | VPBool    Bool
   | VPFloat  Float
   | VPDouble Double
@@ -128,7 +139,34 @@ instance Hashable VP
 -- | Extract an Int
 getInt :: VP -> Maybe Int
 getInt = \case {VPInt i -> Just i; _ -> Nothing}
--- | Extract an Bool
+-- | Extract an Int8
+getInt8 :: VP -> Maybe Int8
+getInt8 = \case {VPInt8 i -> Just i; _ -> Nothing}
+-- | Extract an Int16
+getInt16 :: VP -> Maybe Int16
+getInt16 = \case {VPInt16 i -> Just i; _ -> Nothing}
+-- | Extract an Int32
+getInt32 :: VP -> Maybe Int32
+getInt32 = \case {VPInt32 i -> Just i; _ -> Nothing}
+-- | Extract an Int64
+getInt64 :: VP -> Maybe Int64
+getInt64 = \case {VPInt64 i -> Just i; _ -> Nothing}
+-- | Extract a Word
+getWord :: VP -> Maybe Word
+getWord = \case {VPWord i -> Just i; _ -> Nothing}
+-- | Extract a Word8
+getWord8 :: VP -> Maybe Word8
+getWord8 = \case {VPWord8 i -> Just i; _ -> Nothing}
+-- | Extract a Word16
+getWord16 :: VP -> Maybe Word16
+getWord16 = \case {VPWord16 i -> Just i; _ -> Nothing}
+-- | Extract a Word32
+getWord32 :: VP -> Maybe Word32
+getWord32 = \case {VPWord32 i -> Just i; _ -> Nothing}
+-- | Extract a Word64
+getWord64 :: VP -> Maybe Word64
+getWord64 = \case {VPWord64 i -> Just i; _ -> Nothing}
+-- | Extract a Bool
 getBool :: VP -> Maybe Bool
 getBool = \case {VPBool i -> Just i; _ -> Nothing}
 -- | Extract a Float
@@ -161,6 +199,24 @@ decodeM e = maybe (throwM e)
 
 getIntM :: MonadThrow m => VP -> m Int
 getIntM x = decodeM IntCastE pure (getInt x)
+getInt8M :: MonadThrow m => VP -> m Int8
+getInt8M x = decodeM Int8CastE pure (getInt8 x)
+getInt16M :: MonadThrow m => VP -> m Int16
+getInt16M x = decodeM Int16CastE pure (getInt16 x)
+getInt32M :: MonadThrow m => VP -> m Int32
+getInt32M x = decodeM Int32CastE pure (getInt32 x)
+getInt64M :: MonadThrow m => VP -> m Int64
+getInt64M x = decodeM Int64CastE pure (getInt64 x)
+getWordM :: MonadThrow m => VP -> m Word
+getWordM x = decodeM WordCastE pure (getWord x)
+getWord8M :: MonadThrow m => VP -> m Word8
+getWord8M x = decodeM Word8CastE pure (getWord8 x)
+getWord16M :: MonadThrow m => VP -> m Word16
+getWord16M x = decodeM Word16CastE pure (getWord16 x)
+getWord32M :: MonadThrow m => VP -> m Word32
+getWord32M x = decodeM Word32CastE pure (getWord32 x)
+getWord64M :: MonadThrow m => VP -> m Word64
+getWord64M x = decodeM Word64CastE pure (getWord64 x)
 getBoolM :: MonadThrow m => VP -> m Bool
 getBoolM x = decodeM BoolCastE pure (getBool x)
 getFloatM :: MonadThrow m => VP -> m Float
@@ -184,6 +240,15 @@ data TypeError =
   | DoubleCastE
   | ScientificCastE
   | IntCastE
+  | Int8CastE
+  | Int16CastE
+  | Int32CastE
+  | Int64CastE
+  | WordCastE
+  | Word8CastE
+  | Word16CastE
+  | Word32CastE
+  | Word64CastE     
   | BoolCastE
   | CharCastE
   | StringCastE
@@ -201,8 +266,6 @@ data Val =
   | VEnum  String String (OneHot Int)            -- ^ 1-hot encoding of an enum
   | VPrim  VP                                    -- ^ primitive types
   deriving (Eq, Show)
-
-
 
 
 -- | NOTE: if your type has a 'G.Generic' instance you just need to declare an empty instance of 'HasGE' for it (a default implementation of 'toVal' is provided).
@@ -260,7 +323,16 @@ labels :: [String]
 labels = map (('_' :) . show) [0 ..]
 
 
+instance HasGE Bool where toVal = VPrim . VPBool
 instance HasGE Int where toVal = VPrim . VPInt
+instance HasGE Int8 where toVal = VPrim . VPInt8
+instance HasGE Int16 where toVal = VPrim . VPInt16
+instance HasGE Int32 where toVal = VPrim . VPInt32
+instance HasGE Int64 where toVal = VPrim . VPInt64
+instance HasGE Word8 where toVal = VPrim . VPWord8
+instance HasGE Word16 where toVal = VPrim . VPWord16
+instance HasGE Word32 where toVal = VPrim . VPWord32
+instance HasGE Word64 where toVal = VPrim . VPWord64
 instance HasGE Float where toVal = VPrim . VPFloat
 instance HasGE Double where toVal = VPrim . VPDouble
 instance HasGE Scientific where toVal = VPrim . VPScientific

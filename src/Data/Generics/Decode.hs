@@ -66,10 +66,11 @@ instance Monad m => Category (Decode m) where
 {-# inline (>>>) #-}
 
 
--- | Adapter for using 'Decode' within a 'filterM'
+-- | Adapter for using 'Decode' within @filterM@
 withDecoder :: Functor f => (k -> Decode f i a) -> (a -> b) -> k -> i -> f b
 withDecoder dec f k row = f <$> runDecode (dec k) row
 
+-- | Adapter for using 'Decode' within @filterM@
 withDecoder2 :: Functor f =>
        (k -> k -> Decode f i a) -> (a -> b) -> k -> k -> i -> f b
 withDecoder2 dec f k1 k2 row = f <$> runDecode (dec k1 k2) row

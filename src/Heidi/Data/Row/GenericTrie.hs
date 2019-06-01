@@ -142,7 +142,7 @@ eqByLookups :: (Foldable t, GT.TrieKey k, Eq k, Eq a) =>
 eqByLookups ks r1 r2 = F.foldlM insf True ks where
   insf b k = (&&) <$> pure b <*> eqByLookup k r1 r2
 
--- | Like 'lookup', but throws a 'MissingKeyError' if the lookup is unsuccessful
+-- | Like 'lookup', but throws a 'KeyError' if the lookup is unsuccessful
 lookupThrowM :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k) =>
                 k -> Row k v -> m v
 lookupThrowM k r = maybe (throwM $ MissingKeyError k) pure (lookup k r)
