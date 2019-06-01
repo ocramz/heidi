@@ -84,6 +84,34 @@ gToFrameHM ds
   | null ds = throwM NoDataE 
   | otherwise = pure $ fromList $ map gToRowHM ds
 
+
+-- | Populate a 'Frame' with the generic encoding of the row data and throws a 'DataException' if the input data is malformed.
+--
+-- For example, a list of records having two fields each will produce a dataframe with two columns, having the record field names as column labels.
+--
+-- @
+-- data P1 = P1 Int Char deriving (Eq, Show, 'G.Generic')
+-- instance 'GE.HasGE' P1
+-- 
+-- data P2 = P2 { p2i :: Int, p2c :: Char } deriving (Eq, Show, Generic)
+-- instance HasGE P2
+--
+-- data Q = Q (Maybe Int) (Either Double Char) deriving (Eq, Show, Generic)
+-- instance HasGE Q
+-- @
+--
+-- >>> gToFrameGT [P1 42 'z']
+-- Frame {tableRows = [([TC "P1" "_0"],VPInt 42),([TC "P1" "_1"],VPChar 'z')] :| []}
+-- 
+-- >>> gToFrameGT [P2 42 'z']
+-- Frame {tableRows = [([TC "P2" "p2c"],VPChar 'z'),([TC "P2" "p2i"],VPInt 42)] :| []}
+--
+-- Test using 'Maybe' and 'Either' record fields :
+--
+-- >>> gToFrameGT [Q (Just 42) (Left 1.2), Q Nothing (Right 'b')]
+-- Frame {tableRows = [([TC "Q" "_1",TC "Either" "Left"],VPDouble 1.2),([TC "Q" "_0",TC "Maybe" "Just"],VPInt 42)] :| [[([TC "Q" "_1",TC "Either" "Right"],VPChar 'b')]]}
+--
+-- NB: as the last example above demonstrates, 'Nothing' values are not inserted in the rows, which can be used to encode missing data features.
 gToFrameGT :: (MonadThrow m, HasGE a) =>
               [a]
            -> m (Frame (GTR.Row [TC] VP))

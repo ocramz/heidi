@@ -147,6 +147,7 @@ lookupThrowM :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k) =>
                 k -> Row k v -> m v
 lookupThrowM k r = maybe (throwM $ MissingKeyError k) pure (lookup k r)
 
+-- | Returns an empty row if the argument is Nothing.
 maybeEmpty :: GT.TrieKey k => Maybe (Row k v) -> Row k v
 maybeEmpty = fromMaybe emptyRow
 

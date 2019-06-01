@@ -156,6 +156,7 @@ lookupThrowM :: (MonadThrow m, Key k) =>
                 k -> Row k v -> m v
 lookupThrowM k r = maybe (throwM $ MissingKeyError k) pure (lookup k r)
 
+-- | Returns an empty row if the argument is Nothing.
 maybeEmpty :: Maybe (Row k v) -> Row k v
 maybeEmpty = fromMaybe emptyRow
 
