@@ -115,24 +115,24 @@ flatten z insf = go ([], z) where
 
 -- | Primitive types
 data VP =
-    VPInt    Int
-  | VPInt8   Int8
-  | VPInt16   Int16
-  | VPInt32   Int32
-  | VPInt64   Int64
-  | VPWord   Word  
-  | VPWord8   Word8
-  | VPWord16   Word16
-  | VPWord32   Word32
-  | VPWord64   Word64  
-  | VPBool    Bool
-  | VPFloat  Float
-  | VPDouble Double
-  | VPScientific Scientific
-  | VPChar   Char
-  | VPString String
-  | VPText   Text
-  | VPOH     (OneHot Int)  -- ^ A 1-hot encoding of an enum value
+    VPInt    Int    -- ^ 'Int'
+  | VPInt8   Int8  -- ^ 'Int8'
+  | VPInt16   Int16  -- ^ 'Int16'
+  | VPInt32   Int32 -- ^ 'Int32'
+  | VPInt64   Int64 -- ^ 'Int64'
+  | VPWord   Word   -- ^ 'Word'
+  | VPWord8   Word8  -- ^ 'Word8'
+  | VPWord16   Word16 -- ^ 'Word16'
+  | VPWord32   Word32 -- ^ 'Word32'
+  | VPWord64   Word64   -- ^ 'Word64'
+  | VPBool    Bool -- ^ 'Bool'
+  | VPFloat  Float -- ^ 'Float'
+  | VPDouble Double -- ^ 'Double'
+  | VPScientific Scientific -- ^ 'Scientific'
+  | VPChar   Char -- ^ 'Char'
+  | VPString String -- ^ 'String'
+  | VPText   Text -- ^ 'Text'
+  | VPOH     (OneHot Int)  -- ^ 1-hot encoding of an enum value
   deriving (Eq, Show, G.Generic)
 instance Hashable VP
 
@@ -268,7 +268,9 @@ data Val =
   deriving (Eq, Show)
 
 
--- | NOTE: if your type has a 'G.Generic' instance you just need to declare an empty instance of 'HasGE' for it (a default implementation of 'toVal' is provided).
+-- | Typeclass for types which have a generic encoding.
+--
+-- NOTE: if your type has a 'G.Generic' instance you just need to declare an empty instance of 'HasGE' for it (a default implementation of 'toVal' is provided).
 --
 -- example:
 --
@@ -323,6 +325,7 @@ labels :: [String]
 labels = map (('_' :) . show) [0 ..]
 
 
+-- instance HasGE () where toVal = VPrim VUnit
 instance HasGE Bool where toVal = VPrim . VPBool
 instance HasGE Int where toVal = VPrim . VPInt
 instance HasGE Int8 where toVal = VPrim . VPInt8

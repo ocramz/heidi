@@ -15,9 +15,7 @@
 --
 -- Composable decoding of terms
 -----------------------------------------------------------------------------
-module Data.Generics.Decode (Decode, mkDecode, runDecode, (>>>)
-                            -- ** Helpers
-                            , withDecoder, withDecoder2) where
+module Data.Generics.Decode (Decode, mkDecode, runDecode, (>>>)) where
 
 import Control.Applicative      (Alternative(..))
 import Control.Category (Category(..)) 
@@ -66,14 +64,14 @@ instance Monad m => Category (Decode m) where
 {-# inline (>>>) #-}
 
 
--- | Adapter for using 'Decode' within @filterM@
-withDecoder :: Functor f => (k -> Decode f i a) -> (a -> b) -> k -> i -> f b
-withDecoder dec f k row = f <$> runDecode (dec k) row
+-- -- | Adapter for using 'Decode' within @filterM@
+-- withDecoder :: Functor f => (k -> Decode f i a) -> (a -> b) -> k -> i -> f b
+-- withDecoder dec f k row = f <$> runDecode (dec k) row
 
--- | Adapter for using 'Decode' within @filterM@
-withDecoder2 :: Functor f =>
-       (k -> k -> Decode f i a) -> (a -> b) -> k -> k -> i -> f b
-withDecoder2 dec f k1 k2 row = f <$> runDecode (dec k1 k2) row
+-- -- | Adapter for using 'Decode' within @filterM@
+-- withDecoder2 :: Functor f =>
+--        (k -> k -> Decode f i a) -> (a -> b) -> k -> k -> i -> f b
+-- withDecoder2 dec f k1 k2 row = f <$> runDecode (dec k1 k2) row
 
 
 

@@ -21,7 +21,7 @@ module Heidi (
   -- ** Filtering 
   , filter, filterByKey
   -- *** 'D.Decode'-based filtering
-  , filterByKeyD  
+  , filterDecode
   -- ** Grouping
   , groupWith
   -- ** Scans 
@@ -38,7 +38,7 @@ module Heidi (
   , D.Decode
              ) where
 
-import Core.Data.Frame (Frame, fromNEList, fromList, head, take, drop, zipWith, unionColsWith, numRows, filter, filterByKey, filterByKeyD, groupWith, scanl, scanr, spread, gather, groupBy, innerJoin, leftOuterJoin, toVector, fromVector)
+import Core.Data.Frame (Frame, fromNEList, fromList, head, take, drop, zipWith, unionColsWith, numRows, filter, filterByKey, filterDecode, groupWith, scanl, scanr, spread, gather, groupBy, innerJoin, leftOuterJoin, toVector, fromVector)
 import Core.Data.Frame.Generic (gToFrameHM, gToFrameGT)
 import Data.Generics.Encode.Internal (HasGE, TC, VP)
 import qualified Data.Generics.Decode as D (Decode)

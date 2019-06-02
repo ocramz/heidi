@@ -31,7 +31,7 @@ module Core.Data.Frame (
   -- ** Filtering 
   filter, filterByKey,
   -- *** 'D.Decode'-based filtering
-  filterByKeyD, 
+  filterDecode, 
   -- **
   groupWith, 
   -- ** Scans (row-wise cumulative operations)
@@ -88,7 +88,7 @@ import qualified Data.Set as S (Set, fromList)
 -- import Data.Scientific (Scientific, toRealFloat)
 -- import Data.Typeable (Typeable)
 
-import qualified Data.Generics.Decode as D (Decode, withDecoder)
+import qualified Data.Generics.Decode as D (Decode, runDecode)
 -- import Data.Generics.Decode ((>>>))
 import qualified Heidi.Data.Row.HashMap as HMR
 -- import qualified Data.GenericTrie as GT
@@ -100,17 +100,17 @@ import qualified Heidi.Data.Row.HashMap as HMR
 import Prelude hiding (filter, zipWith, lookup, foldl, foldr, scanl, scanr, head, take, drop)
 
 -- $setup
--- >>> let row0 = HMR.fromKVs [(0, 'a'), (3, 'b')] :: HMR.Row Int Char
--- >>> let row1 = HMR.fromKVs [(0, 'x'), (1, 'b'), (666, 'z')] :: HMR.Row Int Char
--- >>> let book1 = HMR.fromKVs [("item", "book"), ("id.0", "129"), ("qty", "1")]
--- >>> let book2 = HMR.fromKVs [("item", "book"), ("id.0", "129"), ("qty", "5")]
--- >>> let ball = HMR.fromKVs [("item", "ball"), ("id.0", "234"), ("qty", "1")]
--- >>> let bike = HMR.fromKVs [("item", "bike"), ("id.0", "410"), ("qty", "1")]
+-- >>> let row0 = HMR.fromList [(0, 'a'), (3, 'b')] :: HMR.Row Int Char
+-- >>> let row1 = HMR.fromList [(0, 'x'), (1, 'b'), (666, 'z')] :: HMR.Row Int Char
+-- >>> let book1 = HMR.fromList [("item", "book"), ("id.0", "129"), ("qty", "1")]
+-- >>> let book2 = HMR.fromList [("item", "book"), ("id.0", "129"), ("qty", "5")]
+-- >>> let ball = HMR.fromList [("item", "ball"), ("id.0", "234"), ("qty", "1")]
+-- >>> let bike = HMR.fromList [("item", "bike"), ("id.0", "410"), ("qty", "1")]
 -- >>> let t0 = fromList [ book1, ball, bike, book2 ] :: Frame (HMR.Row String String)
--- >>> let r1 = HMR.fromKVs [("id.1", "129"), ("price", "100")]
--- >>> let r2 = HMR.fromKVs [("id.1", "234"), ("price", "50")]
--- >>> let r3 = HMR.fromKVs [("id.1", "3"), ("price", "150")]
--- >>> let r4 = HMR.fromKVs [("id.1", "99"), ("price", "30")]
+-- >>> let r1 = HMR.fromList [("id.1", "129"), ("price", "100")]
+-- >>> let r2 = HMR.fromList [("id.1", "234"), ("price", "50")]
+-- >>> let r3 = HMR.fromList [("id.1", "3"), ("price", "150")]
+-- >>> let r4 = HMR.fromList [("id.1", "99"), ("price", "30")]
 -- >>> let t1 = fromList [ r1, r2, r3, r4 ] :: Frame (HMR.Row String String)
 
 
@@ -198,30 +198,21 @@ filterByKey :: (Eq k, Hashable k) =>
             -> Maybe (Frame (HMR.Row k v))
 filterByKey k ff = filter (k HMR.!: ff)
 
--- | Filter a 'Frame' according to predicate applied to a decoded element pointed to by a given key.
-filterByKeyD :: Monad m => 
-                (k -> D.Decode m row v) -- ^ Decoder for a column element
-             -> k           -- ^ Key
-             -> (v -> Bool) -- ^ Predicate
+-- | Filter a 'Frame' by decoding row values.
+--
+-- This is an intermediate function that doesn't require fixing the row type within the 'Frame'.
+--
+-- NB: a 'D.Decode' returning 'Bool' can be declared via its Functor, Applicative and Alternative instances.
+filterDecode :: Applicative f =>
+                D.Decode f row Bool   -- ^ Row decoder
              -> Frame row
-             -> m (Maybe (Frame row))
-filterByKeyD dec k ff = filterA (D.withDecoder dec ff k)
+             -> f (Maybe (Frame row))
+filterDecode dec = filterA (D.runDecode dec)
 
--- -- | Left-associative fold
--- foldl :: (b -> a -> b) -> b -> Frame a -> b
--- foldl = F.foldl
 
--- -- | Right-associative fold
--- foldr :: (a -> b -> b) -> b -> Frame a -> b
--- foldr = F.foldr
+-- filterInt2 k1 k2 =
+--   filterDecode ((>=) <$> HMR.scientific k1 <*> HMR.scientific k2)
 
--- -- | Left-associative monadic fold
--- foldlM :: (Monad m) => (b -> a -> m b) -> b -> Frame a -> m b
--- foldlM = F.foldlM
-
--- -- | Right-associative monadic fold
--- foldrM :: (Monad m) => (a -> b -> m b) -> b -> Frame a -> m b
--- foldrM = F.foldrM
 
 
 -- | Left-associative scan
@@ -462,16 +453,16 @@ fromVector = fromNEList . V.toList
 
 employee :: Frame (HMR.Row String String)
 employee = fromList [e1, e2, e3, e4, e5, e6] where
-  e1 = HMR.fromKVs [("name", "Rafferty"), ("id.dep", "31")]
-  e2 = HMR.fromKVs [("name", "Jones"), ("id.dep", "33")]
-  e3 = HMR.fromKVs [("name", "Heisenberg"), ("id.dep", "33")]
-  e4 = HMR.fromKVs [("name", "Robinson"), ("id.dep", "34")]
-  e5 = HMR.fromKVs [("name", "Smith"), ("id.dep", "34")]
-  e6 = HMR.fromKVs [("name", "Williams")]   
+  e1 = HMR.fromList [("name", "Rafferty"), ("id.dep", "31")]
+  e2 = HMR.fromList [("name", "Jones"), ("id.dep", "33")]
+  e3 = HMR.fromList [("name", "Heisenberg"), ("id.dep", "33")]
+  e4 = HMR.fromList [("name", "Robinson"), ("id.dep", "34")]
+  e5 = HMR.fromList [("name", "Smith"), ("id.dep", "34")]
+  e6 = HMR.fromList [("name", "Williams")]   
 
 department :: Frame (HMR.Row String String)
 department = fromList [d1, d2, d3, d4] where
-  d1 = HMR.fromKVs [("id.dep", "31"), ("dept", "Sales")]
-  d2 = HMR.fromKVs [("id.dep", "33"), ("dept", "Engineering")]
-  d3 = HMR.fromKVs [("id.dep", "34"), ("dept", "Clerical")]
-  d4 = HMR.fromKVs [("id.dep", "35"), ("dept", "Marketing")]  
+  d1 = HMR.fromList [("id.dep", "31"), ("dept", "Sales")]
+  d2 = HMR.fromList [("id.dep", "33"), ("dept", "Engineering")]
+  d3 = HMR.fromList [("id.dep", "34"), ("dept", "Clerical")]
+  d4 = HMR.fromList [("id.dep", "35"), ("dept", "Marketing")]  

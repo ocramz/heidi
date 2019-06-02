@@ -20,7 +20,7 @@
 module Heidi.Data.Row.HashMap (
   Row
   -- * Construction
-  , fromKVs, emptyRow
+  , fromList, emptyRow
   -- ** (unsafe)
   , mkRow
   -- * Update
@@ -40,6 +40,9 @@ module Heidi.Data.Row.HashMap (
   , compareByLookup
   -- * Set operations
   , union, unionWith
+  , intersection, intersectionWith
+  -- * Folds
+  , foldlWithKey', foldrWithKey
   -- * Traversals
   , traverseWithKey
   -- * Key constraint
@@ -71,8 +74,8 @@ import Prelude hiding (lookup)
 
 
 -- $setup
--- >>> let row0 = fromKVs [(0, 'a'), (3, 'b')] :: Row Int Char
--- >>> let row1 = fromKVs [(0, 'x'), (1, 'b'), (666, 'z')] :: Row Int Char
+-- >>> let row0 = fromList [(0, 'a'), (3, 'b')] :: Row Int Char
+-- >>> let row1 = fromList [(0, 'x'), (1, 'b'), (666, 'z')] :: Row Int Char
 
 -- | A 'Row' type is internally a hashmap:
 --
@@ -89,12 +92,12 @@ instance (Ord k, Ord v) => Ord (Row k v) where
 
 -- | Construct a 'Row' from a list of key-element pairs.
 --
--- >>> lookup 3 (fromKVs [(3,'a'),(4,'b')])
+-- >>> lookup 3 (fromList [(3,'a'),(4,'b')])
 -- Just 'a'
--- >>> lookup 6 (fromKVs [(3,'a'),(4,'b')])
+-- >>> lookup 6 (fromList [(3,'a'),(4,'b')])
 -- Nothing
-fromKVs :: (Eq k, Hashable k) => [(k, v)] -> Row k v
-fromKVs = Row . HM.fromList
+fromList :: (Eq k, Hashable k) => [(k, v)] -> Row k v
+fromList = Row . HM.fromList
 
 -- | Wrap a HashMap into a Row constructor.
 --
@@ -213,7 +216,13 @@ removeKnownKeys :: Ord k => S.Set k -> Row k v -> Row k v
 removeKnownKeys ks = filterWithKey f where
   f k _ = not $ S.member k ks
 
+-- | Left-associative fold over a row with a function of both key and value
+foldlWithKey' :: (a -> k -> v -> a) -> a -> Row k v -> a
+foldlWithKey' fk z (Row gt) = HM.foldlWithKey' fk z gt
 
+-- | Right-associative fold over a row with a function of both key and value
+foldrWithKey :: (k -> v -> a -> a) -> a -> Row k v -> a
+foldrWithKey fk z (Row gt) = HM.foldrWithKey fk z gt
 
 -- | Traverse a 'Row' using a function of both the key and the element.
 traverseWithKey :: Applicative f => (k -> a -> f b) -> Row k a -> f (Row k b)
@@ -230,6 +239,15 @@ union r1 r2 = Row $ HM.union (unRow r1) (unRow r2)
 unionWith :: (Eq k, Hashable k) =>
              (v -> v -> v) -> Row k v -> Row k v -> Row k v
 unionWith f r1 r2 = Row $ HM.unionWith f (unRow r1) (unRow r2)
+
+-- | Set intersection of two rows
+intersection :: (Eq k, Hashable k) => Row k v -> Row k b -> Row k v
+intersection r1 r2 = Row $ HM.intersection (unRow r1) (unRow r2)
+
+-- | Set intersections of two rows, using a combining function for equal keys
+intersectionWith :: (Eq k, Hashable k) => (a -> b -> v) -> Row k a -> Row k b -> Row k v
+intersectionWith f r1 r2 = Row $ HM.intersectionWith f (unRow r1) (unRow r2)
+
 
 -- | Looks up a key from a row and applies a predicate to its value (if this is found). If no value is found at that key the function returns False.
 --

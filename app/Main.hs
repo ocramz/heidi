@@ -51,6 +51,9 @@ gItems, gPurchases :: Maybe (Frame (GTR.Row [TC] VP))
 gItems = gToFrameGT items
 gPurchases = gToFrameGT purchases
 
+-- blap = do
+--   x <- gItems
+--   pure $ sequenceA x
   
 -- itemKey :: [TC]
 -- itemKey = [TC "Purchase" "item"]

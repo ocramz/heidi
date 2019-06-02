@@ -29,6 +29,7 @@ module Core.Data.Frame.Generic (
     DataException(..)
   ) where
 
+import Data.Foldable (toList)
 import Data.Typeable (Typeable)
 import Control.Exception (Exception(..))
 import Control.Monad.Catch (MonadThrow(..))
@@ -77,12 +78,12 @@ import Data.Generics.Encode.Internal (gflattenHM, gflattenGT, HasGE, TC, VP)
 -- Frame {tableRows = [([TC "Q" "_1",TC "Either" "Left"],VPDouble 1.2),([TC "Q" "_0",TC "Maybe" "Just"],VPInt 42)] :| [[([TC "Q" "_1",TC "Either" "Right"],VPChar 'b')]]}
 --
 -- NB: as the last example above demonstrates, 'Nothing' values are not inserted in the rows, which can be used to encode missing data features.
-gToFrameHM :: (MonadThrow m, HasGE a) =>
-              [a]
+gToFrameHM :: (MonadThrow m, Foldable t, HasGE a) =>
+              t a
            -> m (Frame (HMR.Row [TC] VP))
 gToFrameHM ds
   | null ds = throwM NoDataE 
-  | otherwise = pure $ fromList $ map gToRowHM ds
+  | otherwise = pure $ fromList $ map gToRowHM $ toList ds
 
 
 -- | Populate a 'Frame' with the generic encoding of the row data and throws a 'DataException' if the input data is malformed.
@@ -112,12 +113,12 @@ gToFrameHM ds
 -- Frame {tableRows = [([TC "Q" "_0",TC "Maybe" "Just"],VPInt 42),([TC "Q" "_1",TC "Either" "Left"],VPDouble 1.2)] :| [[([TC "Q" "_1",TC "Either" "Right"],VPChar 'b')]]}
 --
 -- NB: as the last example above demonstrates, 'Nothing' values are not inserted in the rows, which can be used to encode missing data features.
-gToFrameGT :: (MonadThrow m, HasGE a) =>
-              [a]
+gToFrameGT :: (MonadThrow m, Foldable t, HasGE a) =>
+              t a
            -> m (Frame (GTR.Row [TC] VP))
 gToFrameGT ds
   | null ds = throwM NoDataE 
-  | otherwise = pure $ fromList $ map gToRowGT ds  
+  | otherwise = pure $ fromList $ map gToRowGT $ toList ds  
 
 -- | Populate a 'Row' with a generic encoding of the input value (hashmap backend)
 gToRowHM :: HasGE a => a -> HMR.Row [TC] VP
