@@ -36,7 +36,7 @@ data M1 l a =
     M1Leaf a
   | M1Branch (M.Map l (M1 l a))
 
-upsertM1 :: Ord l => (a -> p -> a) -> [l] -> p -> M1 l a -> M1 l a
+upsertM1 :: Ord k => (v -> a -> v) -> [k] -> a -> M1 k v -> M1 k v
 upsertM1 f kss v m0 = go kss m0 where
   go [] acc = case acc of
     M1Leaf u    -> M1Leaf $ f u v
