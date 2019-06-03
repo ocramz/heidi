@@ -30,8 +30,6 @@ import qualified Data.Foldable as F
 -- import qualified Data.Text as T (pack)
 -- import Data.Text (Text)
 import qualified Data.Map as M
-import qualified Data.HashMap.Strict as HM
-import Data.Hashable (Hashable(..))
 import qualified Data.Set as S (Set, fromList)
 -- import Control.Monad.Primitive (PrimMonad(..), PrimState(..))
 -- import Control.Monad.Catch(Exception(..), MonadThrow(..))
@@ -40,7 +38,7 @@ import qualified Data.Set as S (Set, fromList)
 
 import qualified Data.GenericTrie as GT
 
--- import qualified Data.Generics.Decode as D (Decode, runDecode)
+import qualified Data.Generics.Decode as D (Decode, runDecode)
 -- import Data.Generics.Decode ((>>>))
 import Core.Data.Frame (Frame, filter, fromList, zipWith)
 import qualified Heidi.Data.Row.GenericTrie as GTR
@@ -50,6 +48,19 @@ import qualified Heidi.Data.Row.GenericTrie as GTR
 
 import Prelude hiding (filter, zipWith, lookup, foldl, foldr, scanl, scanr, head, take, drop)
 
+
+
+-- -- insertDecode :: (Functor f, GT.TrieKey k) =>
+-- --                 D.Decode f (GTR.Row k v) v  -- !!! this constrains start, end value types to be identical
+-- --              -> k
+-- --              -> GTR.Row k v
+-- --              -> f (GTR.Row k v)
+-- insertDecode dec g k row = f <$> D.runDecode dec row where
+--   f x = GTR.insert k (g x) row
+
+-- -- sumCols k1 k2 = insertDecode fk where
+-- --   fk = (+) <$> GTR.scientific k1 <*> GTR.scientific k2
+  
 
 
 -- | Merge two frames by taking the set union of the columns
@@ -106,7 +117,7 @@ gather1 fk ks row kKey kValue = fromMaybe [] $ F.foldlM insf [] ks where
   insf acc k = do
     r' <- lookupInsert k
     pure $ r' : acc
-
+{-# inline gather1 #-}    
 
 
 
@@ -138,6 +149,7 @@ spread1 fk k1 k2 hmacc row = M.insert rowBase kvNew hmacc where
     k <- GTR.lookup k1 row
     v <- GTR.lookup k2 row
     pure $ GTR.insert (fk k) v hmv
+{-# inline spread1 #-}    
 
 
 
@@ -166,25 +178,26 @@ spread1 fk k1 k2 hmacc row = M.insert rowBase kvNew hmacc where
 -- * Relational operations
 
 -- | GROUP BY : given a key and a table that uses it, split the table in multiple tables, one per value taken by the key.
--- --
--- -- >>> numRows <$> (HM.lookup "129" $ groupBy "id.0" t0)
--- -- Just 2
-groupBy :: (Foldable t, GT.TrieKey k, Hashable v, Eq k, Eq v) =>
+--
+-- >>> numRows <$> (HM.lookup "129" $ groupBy "id.0" t0)
+-- Just 2
+groupBy :: (Foldable t, GT.TrieKey k, Eq k, Ord v) =>
            k  -- ^ Key to group by
-        -> t (GTR.Row k v) -- ^ A @Frame (Row k v)@ can be used here
-        -> HM.HashMap v (Frame (GTR.Row k v))
+        -> t (GTR.Row k v) -- ^ A 'Frame (GTR.Row k v) can be used here
+        -> M.Map v (Frame (GTR.Row k v))
 groupBy k tbl = fromList <$> groupL k tbl
 
-groupL :: (Foldable t, GT.TrieKey k, Hashable v, Eq k, Eq v) =>
-          k -> t (GTR.Row k v) -> HM.HashMap v [GTR.Row k v]
-groupL k tbl = F.foldl insf HM.empty tbl where
-  insf acc row = maybe acc (\v -> HM.insertWith (++) v [row] acc) (GTR.lookup k row)
+groupL :: (Foldable t, Eq k, GT.TrieKey k, Eq v, Ord v) =>
+          k -> t (GTR.Row k v) -> M.Map v [GTR.Row k v]
+groupL k tbl = F.foldl insf M.empty tbl where
+  insf acc row = maybe acc (\v -> M.insertWith (++) v [row] acc) (GTR.lookup k row)
+{-# inline groupL #-}  
 
 
 
 
 
-joinWith :: (Foldable t, Hashable v, GT.TrieKey k, Eq v, Eq k) =>
+joinWith :: (Foldable t, Ord v, GT.TrieKey k, Eq v, Eq k) =>
             (GTR.Row k v -> [GTR.Row k v] -> [GTR.Row k v])
          -> k
          -> k
@@ -194,10 +207,12 @@ joinWith :: (Foldable t, Hashable v, GT.TrieKey k, Eq v, Eq k) =>
 joinWith f k1 k2 table1 table2 = fromList $ F.foldl insf [] table1 where
   insf acc row1 = maybe (f row1 acc) appendMatchRows (GTR.lookup k1 row1) where
     appendMatchRows v = map (GTR.union row1) mr2 ++ acc where
-      mr2 = matchingRows k2 v table2   
+      mr2 = matchingRows k2 v table2
+
+
 
 -- | LEFT (OUTER) JOIN : given two dataframes and one key from each, compute the left outer join using the keys as relations.
-leftOuterJoin :: (Foldable t, Hashable v, GT.TrieKey k, Eq v, Eq k) =>
+leftOuterJoin :: (Foldable t, Ord v, GT.TrieKey k, Eq v, Eq k) =>
                  k
               -> k
               -> t (GTR.Row k v)
@@ -207,16 +222,16 @@ leftOuterJoin = joinWith (:)
 
 
 -- | INNER JOIN : given two dataframes and one key from each, compute the inner join using the keys as relations.
--- --
--- -- >>> head t0
--- -- [("id.0","129"),("qty","1"),("item","book")]
--- --
--- -- >>> head t1
--- -- [("id.1","129"),("price","100")]
--- -- 
--- -- >>> head $ innerJoin "id.0" "id.1" t0 t1
--- -- [("id.1","129"),("id.0","129"),("qty","5"),("item","book"),("price","100")]
-innerJoin :: (Foldable t, Hashable v, GT.TrieKey k, Eq v, Eq k) =>
+--
+-- >>> head t0
+-- [("id.0","129"),("qty","1"),("item","book")]
+--
+-- >>> head t1
+-- [("id.1","129"),("price","100")]
+-- 
+-- >>> head $ innerJoin "id.0" "id.1" t0 t1
+-- [("id.1","129"),("id.0","129"),("qty","5"),("item","book"),("price","100")]
+innerJoin :: (Foldable t, Ord v, GT.TrieKey k, Eq v, Eq k) =>
              k  -- ^ Key into the first table
           -> k  -- ^ Key into the second table
           -> t (GTR.Row k v)  -- ^ First dataframe
@@ -225,22 +240,24 @@ innerJoin :: (Foldable t, Hashable v, GT.TrieKey k, Eq v, Eq k) =>
 innerJoin = joinWith seq
 
 
-   
-matchingRows :: (Foldable t, Hashable v, GT.TrieKey k, Eq v, Eq k) =>
-                k
-             -> v
-             -> t (GTR.Row k v)
-             -> [GTR.Row k v]
-matchingRows k v rows = fromMaybe [] (HM.lookup v rowMap) where
+
+  
+
+
+matchingRows :: (Foldable t, GT.TrieKey k, Eq k, Ord v) =>
+                k -> v -> t (GTR.Row k v) -> [GTR.Row k v]
+matchingRows k v rows = fromMaybe [] (M.lookup v rowMap) where
   rowMap = hjBuild k rows
 {-# INLINE matchingRows #-}
     
 -- | "build" phase of the hash-join algorithm
 --
 -- For a given key 'k' and a set of frame rows, populates a hashmap from the _values_ corresponding to 'k' to the corresponding rows.
-hjBuild :: (Foldable t, Eq v, Eq k, Hashable v, GT.TrieKey k) =>
-           k -> t (GTR.Row k v) -> HM.HashMap v [GTR.Row k v]
-hjBuild k = F.foldl insf HM.empty where
-  insf hmAcc row = maybe hmAcc (\v -> HM.insertWith (++) v [row] hmAcc) $ GTR.lookup k row
+hjBuild :: (Foldable t, Eq k, GT.TrieKey k, Eq v, Ord v) =>
+           k -> t (GTR.Row k v) -> M.Map v [GTR.Row k v]
+hjBuild k = F.foldl insf M.empty where
+  insf hmAcc row = maybe hmAcc (\v -> M.insertWith (++) v [row] hmAcc) $ GTR.lookup k row
 {-# INLINE hjBuild #-}
+   
+
 

@@ -105,6 +105,7 @@ gather1 fk ks row kKey kValue = fromMaybe [] $ F.foldlM insf [] ks where
   insf acc k = do
     r' <- lookupInsert k
     pure $ r' : acc
+{-# inline gather1 #-}    
 
 
 
@@ -137,27 +138,7 @@ spread1 fk k1 k2 hmacc row = M.insert rowBase kvNew hmacc where
     k <- HMR.lookup k1 row
     v <- HMR.lookup k2 row
     pure $ HMR.insert (fk k) v hmv
-
-
-
-
--- r0, r1, r2, r3 :: HMR.Row String String
--- r0 = HMR.fromKVs [
---     ("country", "A"), ("type", "cases"), ("count", "0.7")]
--- r1 = HMR.fromKVs [
---     ("country", "A"), ("type", "pop"), ("count", "19")]
--- r2 = HMR.fromKVs [
---     ("country", "B"), ("type", "cases"), ("count", "37")] 
--- r3 = HMR.fromKVs [
---     ("country", "B"), ("type", "pop"), ("count", "172")]    
-
--- -- frame0 :: [HMR.Row String String]
--- frame0 = fromList [r0, r1, r2, r3] 
-
--- fr1 = spread id "type" "count" frame0
-
--- fr2 = gather id (S.fromList ["cases", "pop"]) "type" "count" fr1
-
+{-# inline spread1 #-}        
 
 
 
@@ -178,6 +159,7 @@ groupL :: (Foldable t, Hashable k, Hashable v, Eq k, Eq v) =>
           k -> t (HMR.Row k v) -> HM.HashMap v [HMR.Row k v]
 groupL k tbl = F.foldl insf HM.empty tbl where
   insf acc row = maybe acc (\v -> HM.insertWith (++) v [row] acc) (HMR.lookup k row)
+{-# inline groupL #-}  
 
 
 

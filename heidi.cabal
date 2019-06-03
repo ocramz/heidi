@@ -96,9 +96,22 @@ test-suite doctest
               , doctest 
               , generics-sop  
 
-benchmark bench
+benchmark bench-space
   type: exitcode-stdio-1.0
-  main-is: Main.hs
+  main-is: Space.hs
+  other-modules:
+  hs-source-dirs:
+      bench
+  ghc-options: -Wall -rtsopts -threaded -with-rtsopts=-N
+  build-depends:
+      heidi
+    , base
+    , weigh
+  default-language: Haskell2010
+              
+benchmark bench-time
+  type: exitcode-stdio-1.0
+  main-is: Time.hs
   other-modules:
   hs-source-dirs:
       bench
