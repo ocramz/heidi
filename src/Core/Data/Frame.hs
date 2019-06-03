@@ -68,18 +68,18 @@ module Core.Data.Frame (
 import qualified Control.Monad as CM (filterM)
 import Data.Maybe (fromMaybe)
 -- import Control.Applicative (Alternative(..))
-import qualified Data.Foldable as F
+-- import qualified Data.Foldable as F
 -- import Data.Foldable (foldl, foldr, foldlM, foldrM)
 import qualified Data.Vector as V
 -- import qualified Data.Vector.Generic.Mutable as VGM
 -- import qualified Data.Vector.Algorithms.Merge as V (sort, sortBy, Comparison)
 -- import qualified Data.Text as T (pack)
 -- import Data.Text (Text)
-import qualified Data.Map as M
-import qualified Data.HashMap.Strict as HM
+-- import qualified Data.Map as M
+-- import qualified Data.HashMap.Strict as HM
 import qualified Data.List.NonEmpty as NE
-import Data.Hashable (Hashable(..))
-import qualified Data.Set as S (Set, fromList)
+-- import Data.Hashable (Hashable(..))
+-- import qualified Data.Set as S (Set, fromList)
 -- import Control.Monad.Primitive (PrimMonad(..), PrimState(..))
 -- import Control.Monad.Catch(Exception(..), MonadThrow(..))
 -- import Data.Scientific (Scientific, toRealFloat)
@@ -87,7 +87,7 @@ import qualified Data.Set as S (Set, fromList)
 
 import qualified Data.Generics.Decode as D (Decode, runDecode)
 -- import Data.Generics.Decode ((>>>))
-import qualified Heidi.Data.Row.HashMap as HMR
+-- import qualified Heidi.Data.Row.HashMap as HMR
 -- import qualified Data.GenericTrie as GT
 -- import Core.Data.Row.Internal
 -- import Data.Generics.Encode.Val (VP, getIntM, getFloatM, getDoubleM, getScientificM, getStringM, getTextM, getOneHotM)
@@ -97,6 +97,7 @@ import qualified Heidi.Data.Row.HashMap as HMR
 import Prelude hiding (filter, zipWith, lookup, foldl, foldr, scanl, scanr, head, take, drop)
 
 -- $setup
+-- >>> import qualified Heidi.Data.Row.HashMap as HMR
 -- >>> let row0 = HMR.fromList [(0, 'a'), (3, 'b')] :: HMR.Row Int Char
 -- >>> let row1 = HMR.fromList [(0, 'x'), (1, 'b'), (666, 'z')] :: HMR.Row Int Char
 -- >>> let book1 = HMR.fromList [("item", "book"), ("id.0", "129"), ("qty", "1")]
@@ -128,7 +129,7 @@ import Prelude hiding (filter, zipWith, lookup, foldl, foldr, scanl, scanr, head
 -- | A 'Frame' is a non-empty list of rows.
 newtype Frame row = Frame {
     -- nFrameRows :: Maybe Int  -- ^ Nothing means unknown
-    tableRows :: NE.NonEmpty row } deriving (Eq, Show, Functor, Foldable, Traversable)
+    tableRows :: NE.NonEmpty row } deriving (Show, Functor, Foldable, Traversable)
 
 -- | Take the first row of a 'Frame'
 --
