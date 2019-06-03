@@ -17,19 +17,19 @@ module Heidi (
   -- ** Construction
   , fromNEList, fromList
   -- ** Access
-  , head, take, drop, zipWith, unionColsWith, numRows
+  , head, take, drop, zipWith, numRows
   -- ** Filtering 
-  , filter, filterByKey
+  , filter
   -- *** 'D.Decode'-based filtering
   , filterDecode
   -- ** Grouping
   , groupWith
   -- ** Scans 
   , scanl, scanr
-  -- ** Data tidying
-  , spread, gather
-  -- ** Relational operations
-  , groupBy, innerJoin, leftOuterJoin
+  -- -- ** Data tidying
+  -- , spread, gather
+  -- -- ** Relational operations
+  -- , groupBy, innerJoin, leftOuterJoin
   -- ** Vector-related
   , toVector, fromVector  
   -- ** Generic encoding
@@ -38,7 +38,7 @@ module Heidi (
   , D.Decode
              ) where
 
-import Core.Data.Frame (Frame, fromNEList, fromList, head, take, drop, zipWith, unionColsWith, numRows, filter, filterByKey, filterDecode, groupWith, scanl, scanr, spread, gather, groupBy, innerJoin, leftOuterJoin, toVector, fromVector)
+import Core.Data.Frame (Frame, fromNEList, fromList, head, take, drop, zipWith, numRows, filter, filterDecode, groupWith, scanl, scanr, toVector, fromVector)
 import Core.Data.Frame.Generic (gToFrameHM, gToFrameGT)
 import Data.Generics.Encode.Internal (HasGE, TC, VP)
 import qualified Data.Generics.Decode as D (Decode)

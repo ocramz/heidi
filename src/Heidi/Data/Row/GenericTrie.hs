@@ -30,7 +30,7 @@ module Heidi.Data.Row.GenericTrie (
   -- ** Decoders  
   , real, scientific, text, string, oneHot
   -- * Lookup  
-  , lookup, lookupThrowM, elemSatisfies
+  , lookup, lookupThrowM, (!:), elemSatisfies
   -- ** Lookup utilities
   , maybeEmpty
   -- ** Comparison by lookup
@@ -239,6 +239,9 @@ intersectionWith f r1 r2 = Row $ GT.intersectionWith f (unRow r1) (unRow r2)
 elemSatisfies :: (GT.TrieKey k) => (a -> Bool) -> k -> Row k a -> Bool
 elemSatisfies f k row = maybe False f (lookup k row)
 
+-- | Inline synonym for 'elemSatisfies'
+(!:) :: (GT.TrieKey k) => k -> (a -> Bool) -> Row k a -> Bool
+k !: f = elemSatisfies f k 
 
 -- | Lookup a value from a Row indexed at the given key (returns in a MonadThrow type)
 lookupColM :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k) =>

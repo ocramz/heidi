@@ -260,12 +260,7 @@ intersectionWith f r1 r2 = Row $ HM.intersectionWith f (unRow r1) (unRow r2)
 elemSatisfies :: (Eq k, Hashable k) => (a -> Bool) -> k -> Row k a -> Bool
 elemSatisfies f k row = maybe False f (lookup k row)
 
-
-
-
-
-
--- | Inline synonim for 'elemSatisfies'
+-- | Inline synonym for 'elemSatisfies'
 (!:) :: (Eq k, Hashable k) => k -> (a -> Bool) -> Row k a -> Bool
 k !: f = elemSatisfies f k 
 
