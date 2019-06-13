@@ -79,6 +79,7 @@ import qualified Data.Vector.Algorithms.Merge as V (sort, sortBy, Comparison)
 import qualified Data.HashMap.Strict as HM
 import qualified Data.List.NonEmpty as NE
 import Data.Hashable (Hashable(..))
+import qualified Data.Map as M (Map, fromList, insert)
 import qualified Data.Set as S (Set)
 import Control.Monad.Primitive (PrimMonad(..), PrimState(..))
 -- import Control.Monad.Catch(Exception(..), MonadThrow(..))
@@ -277,8 +278,11 @@ gather1 fk ks row kKey kValue = fromMaybe [] $ F.foldlM insf [] ks where
   
 
 -- | spread1 creates a single row from multiple ones that share a subset of key-value pairs. 
-spread1 ks row = undefined where
+spread1 ks row v = undefined where
   rowBase = HMR.removeKnownKeys ks row
+
+
+
 
 
 
