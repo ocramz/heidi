@@ -27,19 +27,16 @@ module Core.Data.Frame (
   -- ** Construction
   fromNEList, fromList,
   -- ** Access
-  head, take, drop, zipWith, unionColsWith, numRows, 
+  head, take, drop, zipWith, numRows, 
   -- ** Filtering 
-  filter, filterByKey,
+  filter, 
+  -- *** 'D.Decode'-based filtering
+  filterDecode, 
   -- **
   groupWith, 
-  -- ** Folds
-  foldl, foldr, foldlM, foldrM,
   -- ** Scans (row-wise cumulative operations)
   scanl, scanr,
-  -- ** Data tidying
-  gather, 
-  -- ** Relational operations
-  groupBy, innerJoin, leftOuterJoin,   
+
   -- -- * Row
   -- Row,
   -- -- ** Construction
@@ -68,27 +65,27 @@ module Core.Data.Frame (
   -- *** Sorting
   ) where
 
+import qualified Control.Monad as CM (filterM)
 import Data.Maybe (fromMaybe)
 -- import Control.Applicative (Alternative(..))
-import qualified Data.Foldable as F
+-- import qualified Data.Foldable as F
+-- import Data.Foldable (foldl, foldr, foldlM, foldrM)
 import qualified Data.Vector as V
-import qualified Data.Vector.Generic.Mutable as VGM
-import qualified Data.Vector.Algorithms.Merge as V (sort, sortBy, Comparison)
+-- import qualified Data.Vector.Generic.Mutable as VGM
+-- import qualified Data.Vector.Algorithms.Merge as V (sort, sortBy, Comparison)
 -- import qualified Data.Text as T (pack)
 -- import Data.Text (Text)
-import qualified Data.HashMap.Strict as HM
+-- import qualified Data.Map as M
+-- import qualified Data.HashMap.Strict as HM
 import qualified Data.List.NonEmpty as NE
-import Data.Hashable (Hashable(..))
-import qualified Data.Map as M (Map, fromList, insert)
-import qualified Data.Set as S (Set)
-import Control.Monad.Primitive (PrimMonad(..), PrimState(..))
+
 -- import Control.Monad.Catch(Exception(..), MonadThrow(..))
 -- import Data.Scientific (Scientific, toRealFloat)
 -- import Data.Typeable (Typeable)
 
--- import qualified Data.Generics.Decode as D (Decode, runDecode, mkDecode)
+import qualified Data.Generics.Decode as D (Decode, runDecode)
 -- import Data.Generics.Decode ((>>>))
-import qualified Core.Data.Row.HashMap as HMR
+-- import qualified Heidi.Data.Row.HashMap as HMR
 -- import qualified Data.GenericTrie as GT
 -- import Core.Data.Row.Internal
 -- import Data.Generics.Encode.Val (VP, getIntM, getFloatM, getDoubleM, getScientificM, getStringM, getTextM, getOneHotM)
@@ -98,17 +95,18 @@ import qualified Core.Data.Row.HashMap as HMR
 import Prelude hiding (filter, zipWith, lookup, foldl, foldr, scanl, scanr, head, take, drop)
 
 -- $setup
--- >>> let row0 = HMR.fromKVs [(0, 'a'), (3, 'b')] :: HMR.Row Int Char
--- >>> let row1 = HMR.fromKVs [(0, 'x'), (1, 'b'), (666, 'z')] :: HMR.Row Int Char
--- >>> let book1 = HMR.fromKVs [("item", "book"), ("id.0", "129"), ("qty", "1")]
--- >>> let book2 = HMR.fromKVs [("item", "book"), ("id.0", "129"), ("qty", "5")]
--- >>> let ball = HMR.fromKVs [("item", "ball"), ("id.0", "234"), ("qty", "1")]
--- >>> let bike = HMR.fromKVs [("item", "bike"), ("id.0", "410"), ("qty", "1")]
+-- >>> import qualified Heidi.Data.Row.HashMap as HMR
+-- >>> let row0 = HMR.fromList [(0, 'a'), (3, 'b')] :: HMR.Row Int Char
+-- >>> let row1 = HMR.fromList [(0, 'x'), (1, 'b'), (666, 'z')] :: HMR.Row Int Char
+-- >>> let book1 = HMR.fromList [("item", "book"), ("id.0", "129"), ("qty", "1")]
+-- >>> let book2 = HMR.fromList [("item", "book"), ("id.0", "129"), ("qty", "5")]
+-- >>> let ball = HMR.fromList [("item", "ball"), ("id.0", "234"), ("qty", "1")]
+-- >>> let bike = HMR.fromList [("item", "bike"), ("id.0", "410"), ("qty", "1")]
 -- >>> let t0 = fromList [ book1, ball, bike, book2 ] :: Frame (HMR.Row String String)
--- >>> let r1 = HMR.fromKVs [("id.1", "129"), ("price", "100")]
--- >>> let r2 = HMR.fromKVs [("id.1", "234"), ("price", "50")]
--- >>> let r3 = HMR.fromKVs [("id.1", "3"), ("price", "150")]
--- >>> let r4 = HMR.fromKVs [("id.1", "99"), ("price", "30")]
+-- >>> let r1 = HMR.fromList [("id.1", "129"), ("price", "100")]
+-- >>> let r2 = HMR.fromList [("id.1", "234"), ("price", "50")]
+-- >>> let r3 = HMR.fromList [("id.1", "3"), ("price", "150")]
+-- >>> let r4 = HMR.fromList [("id.1", "99"), ("price", "30")]
 -- >>> let t1 = fromList [ r1, r2, r3, r4 ] :: Frame (HMR.Row String String)
 
 
@@ -129,7 +127,7 @@ import Prelude hiding (filter, zipWith, lookup, foldl, foldr, scanl, scanr, head
 -- | A 'Frame' is a non-empty list of rows.
 newtype Frame row = Frame {
     -- nFrameRows :: Maybe Int  -- ^ Nothing means unknown
-    tableRows :: NE.NonEmpty row } deriving (Eq, Show, Functor, Foldable, Traversable)
+    tableRows :: NE.NonEmpty row } deriving (Show, Functor, Foldable, Traversable)
 
 -- | Take the first row of a 'Frame'
 --
@@ -157,52 +155,45 @@ fromNEList l = Frame <$> NE.nonEmpty l
 
 -- | Construct a table given a list of rows. Crashes if the input list is empty
 fromList :: [row] -> Frame row
-fromList = Frame . NE.fromList 
+fromList = Frame . NE.fromList
+
+toList :: Frame a -> [a]
+toList = NE.toList . tableRows
 
 -- | Zip two frames with a row combining function
 zipWith :: (a -> b -> row)
         -> Frame a -> Frame b -> Frame row
 zipWith f tt1 tt2 = Frame $ NE.zipWith f (tableRows tt1) (tableRows tt2)
 
--- | Merge two frames by taking the set union of the columns
-unionColsWith :: (Eq k, Hashable k) =>
-                 (v -> v -> v)   -- ^ Element combination function
-              -> Frame (HMR.Row k v)
-              -> Frame (HMR.Row k v)
-              -> Frame (HMR.Row k v)
-unionColsWith f = zipWith (HMR.unionWith f)
+
 
 -- | Filters a 'Frame' according to a predicate. Returns Nothing only if the resulting table is empty (i.e. if no rows satisfy the predicate).
 --
 filter :: (row -> Bool) -> Frame row -> Maybe (Frame row)
 filter ff = fromNEList . NE.filter ff . tableRows
 
--- | Filter a 'Frame' according to predicate applied to an element pointed to by a given key.
+-- | This generalizes the list-based 'filter' function.
+filterA :: Applicative f =>
+           (row -> f Bool) -> Frame row -> f (Maybe (Frame row))
+filterA fm t = fromNEList <$> CM.filterM fm (toList t)
+
+
+
+-- | Filter a 'Frame' by decoding row values.
 --
--- >>> numRows <$> filterByKey "item" (/= "book") t0
--- Just 2
-filterByKey :: (Eq k, Hashable k) =>
-               k            -- ^ Key
-            -> (v -> Bool)  -- ^ Predicate to be applied to the element
-            -> Frame (HMR.Row k v)
-            -> Maybe (Frame (HMR.Row k v))
-filterByKey k ff = filter (k HMR.!: ff)
+-- This is an intermediate function that doesn't require fixing the row type within the 'Frame'.
+--
+-- NB: a 'D.Decode' returning 'Bool' can be declared via its Functor, Applicative and Alternative instances.
+filterDecode :: Applicative f =>
+                D.Decode f row Bool   -- ^ Row decoder
+             -> Frame row
+             -> f (Maybe (Frame row))
+filterDecode dec = filterA (D.runDecode dec)
 
--- | Left-associative fold
-foldl :: (b -> a -> b) -> b -> Frame a -> b
-foldl = F.foldl
 
--- | Right-associative fold
-foldr :: (a -> b -> b) -> b -> Frame a -> b
-foldr = F.foldr
+-- filterInt2 k1 k2 =
+--   filterDecode ((>=) <$> HMR.scientific k1 <*> HMR.scientific k2)
 
--- | Left-associative monadic fold
-foldlM :: (Monad m) => (b -> a -> m b) -> b -> Frame a -> m b
-foldlM = F.foldlM
-
--- | Right-associative monadic fold
-foldrM :: (Monad m) => (a -> b -> m b) -> b -> Frame a -> m b
-foldrM = F.foldrM
 
 
 -- | Left-associative scan
@@ -231,144 +222,6 @@ numRows = length
 
 
 
--- sortBy t = do
---   vm <- V.thaw v
---   V.sortBy f' vm
---   V.freeze vm
---   where
---     v = toVector t
---     f' = 
-
-
-
-
--- * Data tidying
-
--- | 'gather' moves column names into a "key" column, gathering the column values into a single "value" column
-gather :: (Foldable t, Ord k, Hashable k) =>
-          (k -> v)
-       -> S.Set k     -- ^ set of keys to gather
-       -> k           -- ^ "key" key           
-       -> k           -- ^ "value" key
-       -> t (HMR.Row k v) -- ^ starting frame
-       -> Frame (HMR.Row k v)
-gather fk ks kKey kValue = fromList . F.foldMap f where
-  f row = gather1 fk ks row kKey kValue
-
--- | gather one row into a list of rows
-gather1 :: (Ord k, Hashable k) =>
-           (k -> v)
-        -> S.Set k     
-        -> HMR.Row k v -- ^ row to look into
-        -> k           -- ^ "key" key
-        -> k           -- ^ "value" key
-        -> [HMR.Row k v]
-gather1 fk ks row kKey kValue = fromMaybe [] $ F.foldlM insf [] ks where
-  rowBase = HMR.removeKnownKeys ks row
-  lookupInsert k = do
-    x <- HMR.lookup k row
-    let 
-      r'  = HMR.insert kKey   (fk k) rowBase
-      r'' = HMR.insert kValue x r'
-    pure r''
-  insf acc k = do
-    r' <- lookupInsert k
-    pure $ r' : acc
-
-  
-
--- | spread1 creates a single row from multiple ones that share a subset of key-value pairs. 
-spread1 ks row v = undefined where
-  rowBase = HMR.removeKnownKeys ks row
-
-
-
-
-
-
-
--- * Relational operations
-
--- | GROUP BY : given a key and a table that uses it, split the table in multiple tables, one per value taken by the key.
---
--- >>> numRows <$> (HM.lookup "129" $ groupBy "id.0" t0)
--- Just 2
-groupBy :: (Foldable t, Hashable k, Hashable v, Eq k, Eq v) =>
-           k  -- ^ Key to group by
-        -> t (HMR.Row k v) -- ^ A @Frame (Row k v)@ can be used here
-        -> HM.HashMap v (Frame (HMR.Row k v))
-groupBy k tbl = fromList <$> groupL k tbl
-
-groupL :: (Foldable t, Hashable k, Hashable v, Eq k, Eq v) =>
-          k -> t (HMR.Row k v) -> HM.HashMap v [HMR.Row k v]
-groupL k tbl = F.foldl insf HM.empty tbl where
-  insf acc row = maybe acc (\v -> HM.insertWith (++) v [row] acc) (HMR.lookup k row)
-
-
-
-
-
-joinWith :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
-            (HMR.Row k v -> [HMR.Row k v] -> [HMR.Row k v])
-         -> k
-         -> k
-         -> t (HMR.Row k v)
-         -> t (HMR.Row k v)
-         -> Frame (HMR.Row k v)
-joinWith f k1 k2 table1 table2 = fromList $ F.foldl insf [] table1 where
-  insf acc row1 = maybe (f row1 acc) appendMatchRows (HMR.lookup k1 row1) where
-    appendMatchRows v = map (HMR.union row1) mr2 ++ acc where
-      mr2 = matchingRows k2 v table2   
-
--- | LEFT (OUTER) JOIN : given two dataframes and one key from each, compute the left outer join using the keys as relations.
-leftOuterJoin :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
-                 k
-              -> k
-              -> t (HMR.Row k v)
-              -> t (HMR.Row k v)
-              -> Frame (HMR.Row k v)
-leftOuterJoin = joinWith (:)
-
-
--- | INNER JOIN : given two dataframes and one key from each, compute the inner join using the keys as relations.
---
--- >>> head t0
--- [("id.0","129"),("qty","1"),("item","book")]
---
--- >>> head t1
--- [("id.1","129"),("price","100")]
--- 
--- >>> head $ innerJoin "id.0" "id.1" t0 t1
--- [("id.1","129"),("id.0","129"),("qty","5"),("item","book"),("price","100")]
-innerJoin :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
-             k  -- ^ Key into the first table
-          -> k  -- ^ Key into the second table
-          -> t (HMR.Row k v)  -- ^ First dataframe
-          -> t (HMR.Row k v)  -- ^ Second dataframe
-          -> Frame (HMR.Row k v)
-innerJoin = joinWith seq
-
-
-   
-matchingRows :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
-                k
-             -> v
-             -> t (HMR.Row k v)
-             -> [HMR.Row k v]
-matchingRows k v rows = fromMaybe [] (HM.lookup v rowMap) where
-  rowMap = hjBuild k rows
-{-# INLINE matchingRows #-}
-    
--- | "build" phase of the hash-join algorithm
---
--- For a given key 'k' and a set of frame rows, populates a hashmap from the _values_ corresponding to 'k' to the corresponding rows.
-hjBuild :: (Foldable t, Eq v, Eq k, Hashable v, Hashable k) =>
-           k -> t (HMR.Row k v) -> HM.HashMap v [HMR.Row k v]
-hjBuild k = F.foldl insf HM.empty where
-  insf hmAcc row = maybe hmAcc (\v -> HM.insertWith (++) v [row] hmAcc) $ HMR.lookup k row
-{-# INLINE hjBuild #-}
-
-
 -- | Produce a 'Vector' of rows
 toVector :: Frame row -> V.Vector row
 toVector = V.fromList . NE.toList . tableRows
@@ -381,40 +234,3 @@ fromVector = fromNEList . V.toList
 
 
 
-
-
-
--- -- test data
-
-
--- e0 :: Frame (Row String String)
--- e0 = fromList [r] where
---   r = fromKVs [("name", "Smith"), ("id.dep", "34")]
- 
--- e0' :: Frame (Row String String)
--- e0' = fromList [r] where
---   r = fromKVs [("name", "Smith")] 
-
--- d0 :: Frame (Row String String)
--- d0 = fromList [r] where
---   r = fromKVs [("id.dep", "34"), ("dept", "Clerical")]
-
-
-  
-
-
-employee :: Frame (HMR.Row String String)
-employee = fromList [e1, e2, e3, e4, e5, e6] where
-  e1 = HMR.fromKVs [("name", "Rafferty"), ("id.dep", "31")]
-  e2 = HMR.fromKVs [("name", "Jones"), ("id.dep", "33")]
-  e3 = HMR.fromKVs [("name", "Heisenberg"), ("id.dep", "33")]
-  e4 = HMR.fromKVs [("name", "Robinson"), ("id.dep", "34")]
-  e5 = HMR.fromKVs [("name", "Smith"), ("id.dep", "34")]
-  e6 = HMR.fromKVs [("name", "Williams")]   
-
-department :: Frame (HMR.Row String String)
-department = fromList [d1, d2, d3, d4] where
-  d1 = HMR.fromKVs [("id.dep", "31"), ("dept", "Sales")]
-  d2 = HMR.fromKVs [("id.dep", "33"), ("dept", "Engineering")]
-  d3 = HMR.fromKVs [("id.dep", "34"), ("dept", "Clerical")]
-  d4 = HMR.fromKVs [("id.dep", "35"), ("dept", "Marketing")]  

@@ -22,43 +22,22 @@
 -----------------------------------------------------------------------------
 module Core.Data.Frame.Generic (
     -- * HashMap-based rows 
-    gToRow, gToFrame,
-    -- * Trie-based rows
+    gToRowHM, gToFrameHM,
+    -- * GenericTrie-based rows
     gToRowGT, gToFrameGT, 
     -- * Exceptions
     DataException(..)
   ) where
 
--- import Data.Char (toLower)
--- import Data.Maybe (fromMaybe)
--- import Data.Fix (Fix(..), cata, ana)
--- import Control.Arrow (second)
-
--- import Generics.SOP hiding (fromList) -- (Generic(..), All, Code)
--- import Generics.SOP.NP (cpure_NP)
--- import Generics.SOP.Constraint (SListIN)
--- import Generics.SOP.GGP   -- (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
--- import Generics.SOP.NP
--- import qualified GHC.Generics as G
-
+import Data.Foldable (toList)
 import Data.Typeable (Typeable)
--- import Data.Dynamic
-
 import Control.Exception (Exception(..))
 import Control.Monad.Catch (MonadThrow(..))
--- import Control.Monad.State (State(..), runState, get, put, modify)
-
--- import qualified Data.Foldable as F (Foldable(..)) 
--- import qualified Data.Text as T
--- -- import qualified Data.Vector as V
--- -- import qualified Data.Map as M
--- import qualified Data.HashMap.Strict as HM
--- import Data.Hashable (Hashable(..))
 
 import Core.Data.Frame (Frame, fromList)
-import qualified Core.Data.Row.HashMap as HMR (Row, mkRow)
-import qualified Core.Data.Row.GenericTrie as GTR (Row, mkRow)
-import Data.Generics.Encode.Internal (gflatten, gflattenGT, HasGE, TC, VP)
+import qualified Heidi.Data.Row.HashMap as HMR (Row, mkRow)
+import qualified Heidi.Data.Row.GenericTrie as GTR (Row, mkRow)
+import Data.Generics.Encode.Internal (gflattenHM, gflattenGT, HasGE, TC, VP)
 
 
 -- $setup
@@ -87,35 +66,63 @@ import Data.Generics.Encode.Internal (gflatten, gflattenGT, HasGE, TC, VP)
 -- instance HasGE Q
 -- @
 --
--- >>> gToFrame [P1 42 'z']
+-- >>> gToFrameHM [P1 42 'z']
 -- Frame {tableRows = [([TC "P1" "_1"],VPChar 'z'),([TC "P1" "_0"],VPInt 42)] :| []}
 -- 
--- >>> gToFrame [P2 42 'z']
+-- >>> gToFrameHM [P2 42 'z']
 -- Frame {tableRows = [([TC "P2" "p2c"],VPChar 'z'),([TC "P2" "p2i"],VPInt 42)] :| []}
 --
 -- Test using 'Maybe' and 'Either' record fields :
 --
--- >>> gToFrame [Q (Just 42) (Left 1.2), Q Nothing (Right 'b')]
+-- >>> gToFrameHM [Q (Just 42) (Left 1.2), Q Nothing (Right 'b')]
 -- Frame {tableRows = [([TC "Q" "_1",TC "Either" "Left"],VPDouble 1.2),([TC "Q" "_0",TC "Maybe" "Just"],VPInt 42)] :| [[([TC "Q" "_1",TC "Either" "Right"],VPChar 'b')]]}
 --
 -- NB: as the last example above demonstrates, 'Nothing' values are not inserted in the rows, which can be used to encode missing data features.
-gToFrame :: (MonadThrow m, HasGE a) =>
-            [a]
-         -> m (Frame (HMR.Row [TC] VP))
-gToFrame ds
+gToFrameHM :: (MonadThrow m, Foldable t, HasGE a) =>
+              t a
+           -> m (Frame (HMR.Row [TC] VP))
+gToFrameHM ds
   | null ds = throwM NoDataE 
-  | otherwise = pure $ fromList $ map gToRow ds
+  | otherwise = pure $ fromList $ map gToRowHM $ toList ds
 
-gToFrameGT :: (MonadThrow m, HasGE a) =>
-              [a]
+
+-- | Populate a 'Frame' with the generic encoding of the row data and throws a 'DataException' if the input data is malformed.
+--
+-- For example, a list of records having two fields each will produce a dataframe with two columns, having the record field names as column labels.
+--
+-- @
+-- data P1 = P1 Int Char deriving (Eq, Show, 'G.Generic')
+-- instance 'GE.HasGE' P1
+-- 
+-- data P2 = P2 { p2i :: Int, p2c :: Char } deriving (Eq, Show, Generic)
+-- instance HasGE P2
+--
+-- data Q = Q (Maybe Int) (Either Double Char) deriving (Eq, Show, Generic)
+-- instance HasGE Q
+-- @
+--
+-- >>> gToFrameGT [P1 42 'z']
+-- Frame {tableRows = [([TC "P1" "_0"],VPInt 42),([TC "P1" "_1"],VPChar 'z')] :| []}
+-- 
+-- >>> gToFrameGT [P2 42 'z']
+-- Frame {tableRows = [([TC "P2" "p2c"],VPChar 'z'),([TC "P2" "p2i"],VPInt 42)] :| []}
+--
+-- Test using 'Maybe' and 'Either' record fields :
+--
+-- >>> gToFrameGT [Q (Just 42) (Left 1.2), Q Nothing (Right 'b')]
+-- Frame {tableRows = [([TC "Q" "_0",TC "Maybe" "Just"],VPInt 42),([TC "Q" "_1",TC "Either" "Left"],VPDouble 1.2)] :| [[([TC "Q" "_1",TC "Either" "Right"],VPChar 'b')]]}
+--
+-- NB: as the last example above demonstrates, 'Nothing' values are not inserted in the rows, which can be used to encode missing data features.
+gToFrameGT :: (MonadThrow m, Foldable t, HasGE a) =>
+              t a
            -> m (Frame (GTR.Row [TC] VP))
 gToFrameGT ds
   | null ds = throwM NoDataE 
-  | otherwise = pure $ fromList $ map gToRowGT ds  
+  | otherwise = pure $ fromList $ map gToRowGT $ toList ds  
 
--- | Populate a 'Row' with a generic encoding of the input value
-gToRow :: HasGE a => a -> HMR.Row [TC] VP
-gToRow = HMR.mkRow . gflatten
+-- | Populate a 'Row' with a generic encoding of the input value (hashmap backend)
+gToRowHM :: HasGE a => a -> HMR.Row [TC] VP
+gToRowHM = HMR.mkRow . gflattenHM
 
 -- | Populate a 'Row' with a generic encoding of the input value (generic-trie backend)
 gToRowGT :: HasGE a => a -> GTR.Row [TC] VP

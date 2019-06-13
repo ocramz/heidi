@@ -7,11 +7,12 @@ import GHC.Generics (Generic)
 -- import qualified Data.HashMap.Strict as HM
 -- import qualified Data.Text as T
 
-import Core.Data.Frame
-import Core.Data.Frame.Generic
-import qualified Core.Data.Row.HashMap as HMR
-import qualified Core.Data.Row.GenericTrie as GTR
-import Data.Generics.Encode.Internal (HasGE, TC, VP)
+-- import Core.Data.Frame
+-- import Core.Data.Frame.Generic
+-- import qualified Core.Data.Row.HashMap as HMR
+import qualified Heidi.Data.Row.GenericTrie as GTR
+-- import Data.Generics.Encode.Internal (HasGE, TC, VP)
+import Heidi
 
 import Prelude hiding (filter, lookup)
 
@@ -50,6 +51,9 @@ gItems, gPurchases :: Maybe (Frame (GTR.Row [TC] VP))
 gItems = gToFrameGT items
 gPurchases = gToFrameGT purchases
 
+-- blap = do
+--   x <- gItems
+--   pure $ sequenceA x
   
 -- itemKey :: [TC]
 -- itemKey = [TC "Purchase" "item"]

@@ -1,9 +1,13 @@
 {-# OPTIONS_GHC -Wno-type-defaults #-}
-module Core.Data.Row.Decode (decodeRealM, decodeScientificM, decodeTextM, decOneHotM) where
+module Core.Data.Row.Decode (decodeRealM
+                            , decodeScientificM
+                            , decodeTextM
+                            , decodeStringM
+                            , decOneHotM) where
 
 import Control.Applicative (Alternative(..))
 import Data.Scientific (Scientific, fromFloatDigits, toRealFloat)
-import qualified Data.Text as T (pack)
+import qualified Data.Text as T (pack, unpack)
 import Data.Text (Text)
 import Control.Monad.Catch(MonadThrow(..))
 
@@ -43,6 +47,12 @@ decodeTextM =
   (T.pack <$> decStringM) <|>
   decTextM
 
+-- | Decode a string ('String' or 'Text') into a String
+decodeStringM :: (Alternative m, MonadThrow m) => D.Decode m VP String
+decodeStringM =
+  decStringM <|>
+  (T.unpack <$> decTextM)
+
 
 -- | Decode into 'MonadThrow'
 decIntM :: MonadThrow m => D.Decode m VP Int
@@ -61,4 +71,11 @@ decTextM = D.mkDecode getTextM
 -- | Decode a one-hot value
 decOneHotM :: MonadThrow m => D.Decode m VP (OneHot Int)
 decOneHotM = D.mkDecode getOneHotM
+
+
+
+
+
+
+
 

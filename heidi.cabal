@@ -24,48 +24,53 @@ source-repository head
 
 library
   exposed-modules:
-                  Data.Generics.Encode
-                  Data.Generics.Encode.OneHot
-                  Data.Generics.Encode.Internal                  
-                  Data.Generics.Decode
-                  Core.Data.Frame
-                  Core.Data.Frame.Generic                  
-                  Core.Data.Row
-                  Core.Data.Row.Decode
-                  Core.Data.Row.GenericTrie
-                  Core.Data.Row.HashMap
-                  Core.Data.Row.Internal
-  -- other-modules:
-  --               Data.Generics.Encode.ValFix          
-                      
-  --     Paths_adt_codec_generic
+                  Heidi
+                  Heidi.Data.Row.GenericTrie
+                  Heidi.Data.Row.HashMap
+                  Heidi.Data.Frame.Algorithms.HashMap
+                  Heidi.Data.Frame.Algorithms.GenericTrie                    
+                  Data.Generics.Decode                
+  other-modules:
+              
+                Data.Generics.Encode
+                Data.Generics.Encode.OneHot
+                Data.Generics.Encode.Internal                  
+                Core.Data.Frame
+                Core.Data.Frame.PrettyPrint
+                Core.Data.Frame.Generic                  
+                Core.Data.Row
+                Core.Data.Row.Decode
+                Core.Data.Row.Internal
   hs-source-dirs:
       src
   ghc-options: -Wall
   build-depends:
                 base > 4.9 && < 4.13
+              , bytestring >= 0.10.8.1
               , containers >= 0.5.7.1
-              -- , data-fix >= 0.0.4
               , exceptions >= 0.8.3
               , generics-sop > 0.3.0
               , generic-trie >= 0.3.1
               , hashable >= 1.2.6.1
               -- , logging-effect
-              , primitive
+              -- , primitive
               , scientific >= 0.3.5.1
-              , text > 1.2.2
+              , text >= 1.2.2.2
               -- , time >= 1.6.0.1
               -- , transformers
               , unordered-containers > 0.2.8
               , vector >= 0.12.0.1
-              , vector-algorithms
+              -- , vector-algorithms
   default-language: Haskell2010
+  default-extensions: OverloadedStrings
 
 -- unit tests
 test-suite unit
   type: exitcode-stdio-1.0
   main-is: Main.hs
-  other-modules: Unit
+  other-modules:
+                Unit.HashMap
+                Unit.GenericTrie
   hs-source-dirs:
       test
   ghc-options: -Wall -rtsopts -threaded -with-rtsopts=-N
@@ -91,9 +96,22 @@ test-suite doctest
               , doctest 
               , generics-sop  
 
-benchmark bench
+benchmark bench-space
   type: exitcode-stdio-1.0
-  main-is: Main.hs
+  main-is: Space.hs
+  other-modules:
+  hs-source-dirs:
+      bench
+  ghc-options: -Wall -rtsopts -threaded -with-rtsopts=-N
+  build-depends:
+      heidi
+    , base
+    , weigh
+  default-language: Haskell2010
+              
+benchmark bench-time
+  type: exitcode-stdio-1.0
+  main-is: Time.hs
   other-modules:
   hs-source-dirs:
       bench

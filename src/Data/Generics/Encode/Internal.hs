@@ -30,16 +30,18 @@
 -- 
 -- * @tree-diff@ - single-typed ADT reconstruction : http://hackage.haskell.org/package/tree-diff-0.0.2/docs/src/Data.TreeDiff.Class.html#sopToExpr
 -----------------------------------------------------------------------------
-module Data.Generics.Encode.Internal (gflatten, gflattenGT,
+module Data.Generics.Encode.Internal (gflattenHM, gflattenGT,
                                       -- * VP (Primitive types)
                                       VP(..),
                                       -- ** 'MonadThrow' getters
-                                     getIntM, getBoolM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM, TypeError(..),
+                                     getIntM, getInt8M, getInt16M, getInt32M, getInt64M, getWordM, getWord8M, getWord16M, getWord32M, getWord64M, getBoolM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM, TypeError(..),
                                      -- * TC (Type and Constructor annotation)
                                      TC(..), tcTyN, tcTyCon, 
                                      -- * HasGE (generic ADT encoding)
                                      HasGE) where
 
+import Data.Int (Int8, Int16, Int32, Int64)
+import Data.Word (Word, Word8, Word16, Word32, Word64)
 import Data.Typeable (Typeable)
 import qualified GHC.Generics as G
 import Generics.SOP (All, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), FieldName, ConstructorInfo(..), constructorInfo, All, All2, hcliftA2, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse)
@@ -74,8 +76,8 @@ import Prelude hiding (getChar)
 
 
 -- | Flatten a value into a 1-layer hashmap, via the value's generic encoding
-gflatten :: HasGE a => a -> HM.HashMap [TC] VP
-gflatten = flatten . toVal
+gflattenHM :: HasGE a => a -> HM.HashMap [TC] VP
+gflattenHM = flattenHM . toVal
 
 -- | Flatten a value into a 'GT.Trie', via the value's generic encoding
 gflattenGT :: HasGE a => a -> GT.Trie [TC] VP
@@ -94,52 +96,77 @@ tcTyN (TC n _) = n
 tcTyCon :: TC -> String
 tcTyCon (TC _ c) = c
 
+-- | Fold a 'Val' into a 1-layer hashmap indexed by the input value's (type, constructor) metadata
+flattenHM :: Val -> HM.HashMap [TC] VP
+flattenHM = flatten HM.empty HM.insert
+
 -- | Fold a 'Val' into a 1-layer 'GT.Trie' indexed by the input value's (type, constructor) metadata
 flattenGT :: Val -> GT.Trie [TC] VP
-flattenGT = go ([], GT.empty) where
+flattenGT = flatten GT.empty GT.insert
+
+flatten :: t -> ([TC] -> VP -> t -> t) -> Val -> t
+flatten z insf = go ([], z) where
+  insRev ks = insf (reverse ks)  
   go (ks, hmacc) = \case
     VRec ty hm     -> HM.foldlWithKey' (\hm' k t -> go (TC ty k : ks, hm') t) hmacc hm
-    VOH   ty cn oh -> insRevGT (TC ty cn : ks) (VPOH oh) hmacc
-    VPrim vp       -> insRevGT ks vp hmacc
-
-insRevGT :: GT.TrieKey k =>
-            [k] -> a -> GT.Trie [k] a -> GT.Trie [k] a
-insRevGT ks = GT.insert (reverse ks)
-
-
--- | Fold a 'Val' into a 1-layer hashmap indexed by the input value's (type, constructor) metadata
-flatten :: Val -> HM.HashMap [TC] VP
-flatten = go ([], HM.empty) where
-  go (ks, hmacc) = \case
-    VRec ty hm     -> HM.foldlWithKey' (\hm' k t -> go (TC ty k : ks, hm') t) hmacc hm
-    VOH   ty cn oh -> insRev (TC ty cn : ks) (VPOH oh) hmacc
+    VEnum ty cn oh -> insRev (TC ty cn : ks) (VPOH oh) hmacc
     VPrim vp       -> insRev ks vp hmacc
-
--- | Reverse keys list and use that to insert item
---
--- NB: this is a hack because we are using lists; the problem is that Data.Seq (finger tree-based sequences) which would have an efficient right-append don't have a Hashable instance so cannot be used as keys.
-insRev :: (Eq a, Hashable a) => [a] -> v -> HM.HashMap [a] v -> HM.HashMap [a] v
-insRev ks = HM.insert (reverse ks)
 
 
 -- | Primitive types
 data VP =
-    VPInt    Int
-  | VPBool    Bool
-  | VPFloat  Float
-  | VPDouble Double
-  | VPScientific Scientific
-  | VPChar   Char
-  | VPString String
-  | VPText   Text
-  | VPOH     (OneHot Int)  -- ^ A 1-hot encoding of an enum value
+    VPInt    Int    -- ^ 'Int'
+  | VPInt8   Int8  -- ^ 'Int8'
+  | VPInt16   Int16  -- ^ 'Int16'
+  | VPInt32   Int32 -- ^ 'Int32'
+  | VPInt64   Int64 -- ^ 'Int64'
+  | VPWord   Word   -- ^ 'Word'
+  | VPWord8   Word8  -- ^ 'Word8'
+  | VPWord16   Word16 -- ^ 'Word16'
+  | VPWord32   Word32 -- ^ 'Word32'
+  | VPWord64   Word64   -- ^ 'Word64'
+  | VPBool    Bool -- ^ 'Bool'
+  | VPFloat  Float -- ^ 'Float'
+  | VPDouble Double -- ^ 'Double'
+  | VPScientific Scientific -- ^ 'Scientific'
+  | VPChar   Char -- ^ 'Char'
+  | VPString String -- ^ 'String'
+  | VPText   Text -- ^ 'Text'
+  | VPOH     (OneHot Int)  -- ^ 1-hot encoding of an enum value
   deriving (Eq, Show, G.Generic)
 instance Hashable VP
 
 -- | Extract an Int
 getInt :: VP -> Maybe Int
 getInt = \case {VPInt i -> Just i; _ -> Nothing}
--- | Extract an Bool
+-- | Extract an Int8
+getInt8 :: VP -> Maybe Int8
+getInt8 = \case {VPInt8 i -> Just i; _ -> Nothing}
+-- | Extract an Int16
+getInt16 :: VP -> Maybe Int16
+getInt16 = \case {VPInt16 i -> Just i; _ -> Nothing}
+-- | Extract an Int32
+getInt32 :: VP -> Maybe Int32
+getInt32 = \case {VPInt32 i -> Just i; _ -> Nothing}
+-- | Extract an Int64
+getInt64 :: VP -> Maybe Int64
+getInt64 = \case {VPInt64 i -> Just i; _ -> Nothing}
+-- | Extract a Word
+getWord :: VP -> Maybe Word
+getWord = \case {VPWord i -> Just i; _ -> Nothing}
+-- | Extract a Word8
+getWord8 :: VP -> Maybe Word8
+getWord8 = \case {VPWord8 i -> Just i; _ -> Nothing}
+-- | Extract a Word16
+getWord16 :: VP -> Maybe Word16
+getWord16 = \case {VPWord16 i -> Just i; _ -> Nothing}
+-- | Extract a Word32
+getWord32 :: VP -> Maybe Word32
+getWord32 = \case {VPWord32 i -> Just i; _ -> Nothing}
+-- | Extract a Word64
+getWord64 :: VP -> Maybe Word64
+getWord64 = \case {VPWord64 i -> Just i; _ -> Nothing}
+-- | Extract a Bool
 getBool :: VP -> Maybe Bool
 getBool = \case {VPBool i -> Just i; _ -> Nothing}
 -- | Extract a Float
@@ -172,6 +199,24 @@ decodeM e = maybe (throwM e)
 
 getIntM :: MonadThrow m => VP -> m Int
 getIntM x = decodeM IntCastE pure (getInt x)
+getInt8M :: MonadThrow m => VP -> m Int8
+getInt8M x = decodeM Int8CastE pure (getInt8 x)
+getInt16M :: MonadThrow m => VP -> m Int16
+getInt16M x = decodeM Int16CastE pure (getInt16 x)
+getInt32M :: MonadThrow m => VP -> m Int32
+getInt32M x = decodeM Int32CastE pure (getInt32 x)
+getInt64M :: MonadThrow m => VP -> m Int64
+getInt64M x = decodeM Int64CastE pure (getInt64 x)
+getWordM :: MonadThrow m => VP -> m Word
+getWordM x = decodeM WordCastE pure (getWord x)
+getWord8M :: MonadThrow m => VP -> m Word8
+getWord8M x = decodeM Word8CastE pure (getWord8 x)
+getWord16M :: MonadThrow m => VP -> m Word16
+getWord16M x = decodeM Word16CastE pure (getWord16 x)
+getWord32M :: MonadThrow m => VP -> m Word32
+getWord32M x = decodeM Word32CastE pure (getWord32 x)
+getWord64M :: MonadThrow m => VP -> m Word64
+getWord64M x = decodeM Word64CastE pure (getWord64 x)
 getBoolM :: MonadThrow m => VP -> m Bool
 getBoolM x = decodeM BoolCastE pure (getBool x)
 getFloatM :: MonadThrow m => VP -> m Float
@@ -195,6 +240,15 @@ data TypeError =
   | DoubleCastE
   | ScientificCastE
   | IntCastE
+  | Int8CastE
+  | Int16CastE
+  | Int32CastE
+  | Int64CastE
+  | WordCastE
+  | Word8CastE
+  | Word16CastE
+  | Word32CastE
+  | Word64CastE     
   | BoolCastE
   | CharCastE
   | StringCastE
@@ -209,14 +263,14 @@ instance Exception TypeError
 -- The first String parameter contains the type name at the given level, the second contains the type constructor name
 data Val =
     VRec   String        (HM.HashMap String Val) -- ^ recursion
-  | VOH    String String (OneHot Int)            -- ^ 1-hot
+  | VEnum  String String (OneHot Int)            -- ^ 1-hot encoding of an enum
   | VPrim  VP                                    -- ^ primitive types
   deriving (Eq, Show)
 
 
-
-
--- | NOTE: if your type has a 'G.Generic' instance you just need to declare an empty instance of 'HasGE' for it (a default implementation of 'toVal' is provided).
+-- | Typeclass for types which have a generic encoding.
+--
+-- NOTE: if your type has a 'G.Generic' instance you just need to declare an empty instance of 'HasGE' for it (a default implementation of 'toVal' is provided).
 --
 -- example:
 --
@@ -246,7 +300,7 @@ mkVal :: All HasGE xs =>
 mkVal cinfo xs tyn oh = case cinfo of
     Infix cn _ _  -> VRec cn $ mkAnonProd xs
     Constructor cn
-      | null cns  -> VOH tyn cn oh
+      | null cns  -> VEnum tyn cn oh
       | otherwise -> VRec cn  $ mkAnonProd xs
     Record _ fi   -> VRec tyn $ mkProd fi xs
   where
@@ -271,7 +325,17 @@ labels :: [String]
 labels = map (('_' :) . show) [0 ..]
 
 
+-- instance HasGE () where toVal = VPrim VUnit
+instance HasGE Bool where toVal = VPrim . VPBool
 instance HasGE Int where toVal = VPrim . VPInt
+instance HasGE Int8 where toVal = VPrim . VPInt8
+instance HasGE Int16 where toVal = VPrim . VPInt16
+instance HasGE Int32 where toVal = VPrim . VPInt32
+instance HasGE Int64 where toVal = VPrim . VPInt64
+instance HasGE Word8 where toVal = VPrim . VPWord8
+instance HasGE Word16 where toVal = VPrim . VPWord16
+instance HasGE Word32 where toVal = VPrim . VPWord32
+instance HasGE Word64 where toVal = VPrim . VPWord64
 instance HasGE Float where toVal = VPrim . VPFloat
 instance HasGE Double where toVal = VPrim . VPDouble
 instance HasGE Scientific where toVal = VPrim . VPScientific

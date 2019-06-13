@@ -4,7 +4,7 @@
 {-# OPTIONS_GHC -Wno-type-defaults #-}
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Core.Data.Row.HashMap
+-- Module      :  Heidi.Data.Row.HashMap
 -- Description :  A sparse dataframe row, based on HashMap
 -- Copyright   :  (c) Marco Zocca (2018-2019)
 -- License     :  BSD-style
@@ -17,10 +17,10 @@
 -- in the dataset.
 --
 -----------------------------------------------------------------------------
-module Core.Data.Row.HashMap (
+module Heidi.Data.Row.HashMap (
   Row
   -- * Construction
-  , fromKVs
+  , fromList, emptyRow
   -- ** (unsafe)
   , mkRow
   -- * Update
@@ -30,20 +30,27 @@ module Core.Data.Row.HashMap (
   -- * Filtering
   , filterWithKey, removeKnownKeys
   -- ** Decoders
-  , real, scientific, text, oneHot
+  , real, scientific, text, string, oneHot
   -- * Lookup
   , lookup, lookupThrowM, lookupDefault, (!:), elemSatisfies
+  -- ** Lookup utilities
+  , maybeEmpty  
   -- ** Comparison by lookup
   , eqByLookup, eqByLookups
   , compareByLookup
   -- * Set operations
   , union, unionWith
+  , intersection, intersectionWith
+  -- * Folds
+  , foldlWithKey', foldrWithKey
   -- * Traversals
   , traverseWithKey
   -- * Key constraint
   , Key
     ) where
 
+-- import Control.Monad (filterM)
+import Data.Maybe (fromMaybe)
 import Data.Typeable (Typeable)
 import Control.Applicative (Alternative(..))
 import qualified Data.Foldable as F
@@ -53,7 +60,7 @@ import qualified Data.HashMap.Strict as HM
 import Data.Scientific (Scientific)
 -- import qualified Data.Text as T (pack)
 import Data.Text (Text)
-import qualified Data.Set as S (Set, fromList, member)
+import qualified Data.Set as S (Set, member)
 
 import qualified Data.Generics.Decode as D (Decode, mkDecode)
 import Data.Generics.Decode ((>>>))
@@ -67,32 +74,40 @@ import Prelude hiding (lookup)
 
 
 -- $setup
--- >>> let row0 = fromKVs [(0, 'a'), (3, 'b')] :: Row Int Char
--- >>> let row1 = fromKVs [(0, 'x'), (1, 'b'), (666, 'z')] :: Row Int Char
+-- >>> let row0 = fromList [(0, 'a'), (3, 'b')] :: Row Int Char
+-- >>> let row1 = fromList [(0, 'x'), (1, 'b'), (666, 'z')] :: Row Int Char
 
 -- | A 'Row' type is internally a hashmap:
 --
--- * Fast random access (logarithmic on average)
+-- * Fast random access 
 -- * Fast set operations 
 -- * Supports missing elements 
 newtype Row k v = Row { unRow :: HM.HashMap k v } deriving (Eq, Functor, Foldable, Traversable)
+
 instance (Show k, Show v) => Show (Row k v) where
   show = show . HM.toList . unRow
+  
+instance (Ord k, Ord v) => Ord (Row k v) where
+  r1 <= r2 = toList r1 <= toList r2  
 
 -- | Construct a 'Row' from a list of key-element pairs.
 --
--- >>> lookup 3 (fromKVs [(3,'a'),(4,'b')])
+-- >>> lookup 3 (fromList [(3,'a'),(4,'b')])
 -- Just 'a'
--- >>> lookup 6 (fromKVs [(3,'a'),(4,'b')])
+-- >>> lookup 6 (fromList [(3,'a'),(4,'b')])
 -- Nothing
-fromKVs :: (Eq k, Hashable k) => [(k, v)] -> Row k v
-fromKVs = Row . HM.fromList
+fromList :: (Eq k, Hashable k) => [(k, v)] -> Row k v
+fromList = Row . HM.fromList
 
 -- | Wrap a HashMap into a Row constructor.
 --
 -- NB : This function is for internal use only. Do not use this function in application code, since it may break invariants such as key uniqueness.
 mkRow :: HM.HashMap k v -> Row k v
 mkRow = Row
+
+-- | An empty row
+emptyRow :: Row k v
+emptyRow = Row HM.empty
 
 -- | Access the key-value pairs contained in the 'Row'
 toList :: Row k v -> [(k, v)]
@@ -139,10 +154,14 @@ eqByLookups ks r1 r2 = F.foldlM insf True ks where
 -- lookupWith :: (Eq k, Hashable k) => (x -> k) -> x -> Row k v -> Maybe v
 -- lookupWith f k = lookup (f k)
 
--- | Like 'lookup', but throws a 'MissingKeyError' if the lookup is unsuccessful
+-- | Like 'lookup', but throws a 'KeyError' if the lookup is unsuccessful
 lookupThrowM :: (MonadThrow m, Key k) =>
                 k -> Row k v -> m v
 lookupThrowM k r = maybe (throwM $ MissingKeyError k) pure (lookup k r)
+
+-- | Returns an empty row if the argument is Nothing.
+maybeEmpty :: Maybe (Row k v) -> Row k v
+maybeEmpty = fromMaybe emptyRow
 
 
 -- | A 'Key' must be 'Eq', 'Hashable', 'Show', 'Typeable'
@@ -197,7 +216,13 @@ removeKnownKeys :: Ord k => S.Set k -> Row k v -> Row k v
 removeKnownKeys ks = filterWithKey f where
   f k _ = not $ S.member k ks
 
+-- | Left-associative fold over a row with a function of both key and value
+foldlWithKey' :: (a -> k -> v -> a) -> a -> Row k v -> a
+foldlWithKey' fk z (Row gt) = HM.foldlWithKey' fk z gt
 
+-- | Right-associative fold over a row with a function of both key and value
+foldrWithKey :: (k -> v -> a -> a) -> a -> Row k v -> a
+foldrWithKey fk z (Row gt) = HM.foldrWithKey fk z gt
 
 -- | Traverse a 'Row' using a function of both the key and the element.
 traverseWithKey :: Applicative f => (k -> a -> f b) -> Row k a -> f (Row k b)
@@ -215,6 +240,15 @@ unionWith :: (Eq k, Hashable k) =>
              (v -> v -> v) -> Row k v -> Row k v -> Row k v
 unionWith f r1 r2 = Row $ HM.unionWith f (unRow r1) (unRow r2)
 
+-- | Set intersection of two rows
+intersection :: (Eq k, Hashable k) => Row k v -> Row k b -> Row k v
+intersection r1 r2 = Row $ HM.intersection (unRow r1) (unRow r2)
+
+-- | Set intersections of two rows, using a combining function for equal keys
+intersectionWith :: (Eq k, Hashable k) => (a -> b -> v) -> Row k a -> Row k b -> Row k v
+intersectionWith f r1 r2 = Row $ HM.intersectionWith f (unRow r1) (unRow r2)
+
+
 -- | Looks up a key from a row and applies a predicate to its value (if this is found). If no value is found at that key the function returns False.
 --
 -- This function is meant to be used as first argument to 'filter'.
@@ -226,7 +260,7 @@ unionWith f r1 r2 = Row $ HM.unionWith f (unRow r1) (unRow r2)
 elemSatisfies :: (Eq k, Hashable k) => (a -> Bool) -> k -> Row k a -> Bool
 elemSatisfies f k row = maybe False f (lookup k row)
 
--- | Inline synonim for 'elemSatisfies'
+-- | Inline synonym for 'elemSatisfies'
 (!:) :: (Eq k, Hashable k) => k -> (a -> Bool) -> Row k a -> Bool
 k !: f = elemSatisfies f k 
 
@@ -249,9 +283,9 @@ lookupColM :: (MonadThrow m, Key k) =>
               k -> D.Decode m (Row k o) o
 lookupColM k = D.mkDecode (lookupThrowM k)
 
--- | Lookup a value from a Row indexed at the given key (returns in the Maybe monad)
-lookupCol :: (Eq k, Hashable k) => k -> D.Decode Maybe (Row k o) o
-lookupCol k = D.mkDecode (lookup k)
+-- -- | Lookup a value from a Row indexed at the given key (returns in the Maybe monad)
+-- lookupCol :: (Eq k, Hashable k) => k -> D.Decode Maybe (Row k o) o
+-- lookupCol k = D.mkDecode (lookup k)
 
 
 
@@ -269,9 +303,14 @@ real k = lookupColM k >>> decodeRealM
 scientific :: (Key k, MonadThrow m, Alternative m) => k -> D.Decode m (Row k VP) Scientific
 scientific k = lookupColM k >>> decodeScientificM
 
--- | Lookup and decode a text string
+-- | Lookup and decode a text string (defaults to 'Text')
 text :: (Key k, MonadThrow m, Alternative m) => k -> D.Decode m (Row k VP) Text
 text k = lookupColM k >>> decodeTextM
+
+-- | Lookup and decode a text string (defaults to 'String')
+string :: (MonadThrow m, Key k, Alternative m) =>
+          k -> D.Decode m (Row k VP) String
+string k = lookupColM k >>> decodeStringM
 
 -- | Lookup and decode a one-hot encoded enum
 oneHot :: (Key k, MonadThrow m) =>
