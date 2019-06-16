@@ -24,7 +24,7 @@ module Heidi.Data.Row.HashMap (
   -- ** (unsafe)
   , mkRow
   -- * Update
-  , insert, insertRowFun, insertRowFunM
+  , insert, insertWith -- , insertRowFun, insertRowFunM
   -- * Access
   , toList, keys, elems
   -- * Filtering
@@ -163,7 +163,6 @@ lookupThrowM k r = maybe (throwM $ MissingKeyError k) pure (lookup k r)
 maybeEmpty :: Maybe (Row k v) -> Row k v
 maybeEmpty = fromMaybe emptyRow
 
-
 -- | A 'Key' must be 'Eq', 'Hashable', 'Show', 'Typeable'
 class (Eq k, Hashable k, Show k, Typeable k) => Key k 
 
@@ -180,16 +179,32 @@ lookupDefault v k = HM.lookupDefault v k . unRow
 
 
 
-
-
-
-
 -- | Insert a key-value pair into a row and return the updated one
 -- 
 -- >>> keys $ insert 2 'y' row0
 -- [0,2,3]
 insert :: (Eq k, Hashable k) => k -> v -> Row k v -> Row k v
 insert k v = Row . HM.insert k v . unRow
+
+-- | Insert a key-value pair into a row and return the updated one, or updates the value by using the combination function.
+insertWith :: (Eq k, Hashable k) => (v -> v -> v) -> k -> v -> Row k v -> Row k v
+insertWith f k v = Row . HM.insertWith f k v . unRow
+
+insertThrowM :: (Eq k, Hashable k, MonadThrow f, Show k, Typeable k) =>
+                k -> v -> Row k v -> f (Row k v)
+insertThrowM k v r = case lookup k r of
+  Nothing -> pure $ insert k v r
+  Just _  -> throwM $ AlreadyPresentKeyError k
+
+
+-- insertWithM ::
+--   (Eq k, Hashable k, Monad f) => (v -> v -> f v) -> k -> v -> Row k v -> f (Row k v)
+-- insertWithM f k v r = case lookup k r of
+--   Nothing -> pure $ insert k v r
+--   Just v0 -> do
+--     w <- f v v0
+--     pure $ insert k w r
+
 
 -- | List the keys of a given row
 --
@@ -264,15 +279,15 @@ elemSatisfies f k row = maybe False f (lookup k row)
 (!:) :: (Eq k, Hashable k) => k -> (a -> Bool) -> Row k a -> Bool
 k !: f = elemSatisfies f k 
 
--- | Updates a column with a function of the whole row
-insertRowFun :: (Eq k, Hashable k) => (Row k v -> v) -> k -> Row k v -> Row k v
-insertRowFun f knew row = insert knew (f row) row
+-- -- | Updates a column with a function of the whole row
+-- insertRowFun :: (Eq k, Hashable k) => (Row k v -> v) -> k -> Row k v -> Row k v
+-- insertRowFun f knew row = insert knew (f row) row
 
--- | Monadic version of 'insertRowFun'
-insertRowFunM :: (Eq k, Hashable k, Monad m) => (Row k v -> m v) -> k -> Row k v -> m (Row k v)
-insertRowFunM fm knew row = do
-  y <- fm row
-  pure $ insert knew y row
+-- -- | Monadic version of 'insertRowFun'
+-- insertRowFunM :: (Eq k, Hashable k, Monad m) => (Row k v -> m v) -> k -> Row k v -> m (Row k v)
+-- insertRowFunM fm knew row = do
+--   y <- fm row
+--   pure $ insert knew y row
 
 
 
@@ -280,7 +295,7 @@ insertRowFunM fm knew row = do
 
 -- | Lookup a value from a Row indexed at the given key (returns in a MonadThrow type)
 lookupColM :: (MonadThrow m, Key k) =>
-              k -> D.Decode m (Row k o) o
+              k -> D.Decode m (Row k v) v
 lookupColM k = D.mkDecode (lookupThrowM k)
 
 -- -- | Lookup a value from a Row indexed at the given key (returns in the Maybe monad)
@@ -288,6 +303,10 @@ lookupColM k = D.mkDecode (lookupThrowM k)
 -- lookupCol k = D.mkDecode (lookup k)
 
 
+-- do we need this ?
+insertColM :: (Eq k, Hashable k, MonadThrow m, Show k, Typeable k) =>
+              k -> v -> D.Decode m (Row k v) (Row k v)
+insertColM k v = D.mkDecode (insertThrowM k v) where
 
 
 

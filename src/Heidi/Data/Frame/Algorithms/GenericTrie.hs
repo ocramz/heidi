@@ -13,7 +13,7 @@ module Heidi.Data.Frame.Algorithms.GenericTrie (
   -- ** Row-wise operations
   unionColsWith  
   -- ** Filtering 
-  , filterByKey
+  -- , filterByKey
   -- ** Data tidying
   , spread, gather
   -- ** Relational operations
@@ -40,7 +40,7 @@ import qualified Data.GenericTrie as GT
 
 import qualified Data.Generics.Decode as D (Decode, runDecode)
 -- import Data.Generics.Decode ((>>>))
-import Core.Data.Frame (Frame, filter, fromList, zipWith)
+import Core.Data.Frame.List (Frame, filter, fromList, zipWith)
 import qualified Heidi.Data.Row.GenericTrie as GTR
 -- import Core.Data.Row.Internal
 -- import Data.Generics.Encode.Val (VP, getIntM, getFloatM, getDoubleM, getScientificM, getStringM, getTextM, getOneHotM)
@@ -76,12 +76,12 @@ unionColsWith f = zipWith (GTR.unionWith f)
 --
 -- >>> numRows <$> filterByKey "item" (/= "book") t0
 -- Just 2
-filterByKey :: (Eq k, GT.TrieKey k) =>
-               k            -- ^ Key
-            -> (v -> Bool)  -- ^ Predicate to be applied to the element
-            -> Frame (GTR.Row k v)
-            -> Maybe (Frame (GTR.Row k v))
-filterByKey k ff = filter (k GTR.!: ff)
+-- filterByKey :: (Eq k, GT.TrieKey k) =>
+--                k            -- ^ Key
+--             -> (v -> Bool)  -- ^ Predicate to be applied to the element
+--             -> Frame (GTR.Row k v)
+--             -> Frame (GTR.Row k v)
+-- filterByKey k ff = filter (k GTR.!: ff)
 
 
 

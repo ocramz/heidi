@@ -15,7 +15,7 @@ module Heidi (
   -- * Frame
   Frame
   -- ** Construction
-  , fromNEList, fromList
+  , fromList
   -- ** Access
   , head, take, drop, zipWith, numRows
   -- ** Filtering 
@@ -33,15 +33,17 @@ module Heidi (
   -- ** Vector-related
   , toVector, fromVector  
   -- ** Generic encoding
-  , gToFrameHM, gToFrameGT, HasGE, TC, VP
+  , gToFrameHM, gToFrameGT, HasGE, TC, tcTyN, tcTyCon, mkTyN, mkTyCon, VP
   -- * Decode
   , D.Decode
              ) where
 
-import Core.Data.Frame (Frame, fromNEList, fromList, head, take, drop, zipWith, numRows, filter, filterDecode, groupWith, scanl, scanr, toVector, fromVector)
+import Core.Data.Frame.List (Frame, fromList, head, take, drop, zipWith, numRows, filter, filterDecode, groupWith, scanl, scanr, toVector, fromVector)
+-- import Core.Data.Frame (Frame, fromNEList, fromList, head, take, drop, zipWith, numRows, filter, filterDecode, groupWith, scanl, scanr, toVector, fromVector)
 import Core.Data.Frame.Generic (gToFrameHM, gToFrameGT)
-import Data.Generics.Encode.Internal (HasGE, TC, VP)
+import Data.Generics.Encode.Internal (HasGE, TC, tcTyN, tcTyCon, mkTyN, mkTyCon, VP)
 import qualified Data.Generics.Decode as D (Decode)
+
 
 -- import Control.Monad.Catch (MonadThrow(..))
 import Prelude hiding (filter, zipWith, lookup, foldl, foldr, scanl, scanr, head, take, drop)

@@ -1,7 +1,11 @@
 {-# language DeriveGeneric #-}
+{-# language OverloadedStrings #-}
 module Main where
 
+import Control.Applicative (Alternative)
 import GHC.Generics (Generic)
+import Data.Typeable
+import Control.Monad.Catch
 
 -- import Data.Hashable (Hashable)
 -- import qualified Data.HashMap.Strict as HM
@@ -13,16 +17,52 @@ import GHC.Generics (Generic)
 import qualified Heidi.Data.Row.GenericTrie as GTR
 -- import Data.Generics.Encode.Internal (HasGE, TC, VP)
 import Heidi
+import Heidi.Data.Frame.Algorithms.GenericTrie (innerJoin)
 
 import Prelude hiding (filter, lookup)
 
-main :: IO ()
-main = pure ()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 -- | Item
 data Item a = Itm String a deriving (Eq, Show, Generic)
 instance HasGE a => HasGE (Item a)
+
+
+
+
 
 -- | Purchase
 data Purchase a = Pur {
@@ -32,6 +72,21 @@ data Purchase a = Pur {
   , qty :: a
   } deriving (Eq, Show, Generic)
 instance HasGE a => HasGE (Purchase a)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 items :: [Item Double]
 items = [i1, i2, i3] where
@@ -47,25 +102,87 @@ purchases = [p1, p2, p3, p4, p5] where
   p4 = Pur 3 "alice" "computer" 2
   p5 = Pur 1 "bob" "computer" 1
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 gItems, gPurchases :: Maybe (Frame (GTR.Row [TC] VP))
 gItems = gToFrameGT items
 gPurchases = gToFrameGT purchases
 
--- blap = do
---   x <- gItems
---   pure $ sequenceA x
-  
--- itemKey :: [TC]
--- itemKey = [TC "Purchase" "item"]
 
--- removeLegalExpenses :: Frame (Row [TC] VP) -> Maybe (Frame (Row [TC] VP))
--- removeLegalExpenses = filterByKey itemKey (/= VPString "legal")
+noLegal :: (MonadThrow f, Alternative f) =>
+           String
+        -> Frame (GTR.Row [TC] VP)
+        -> f (Frame (GTR.Row [TC] VP))
+noLegal k = filterDecode dec where
+  dec = (/= "legal") <$> GTR.text (keyN k)   -- FIXME : how to zoom in on 
+
+keyN, keyTyC :: String -> [TC]
+keyN k = [mkTyN k] 
+
+keyTyC k = [mkTyCon k]
+
+
+-- joinTables = innerJoin k1 k2 where
+--   k1 = keyN ""
+--   k2 = keyN ""
+  
+
+
 
 -- joinTables :: (Foldable t, Hashable v, Eq v) =>
 --               t (Row [TC] v) -> t (Row [TC] v) -> Frame (Row [TC] v)
 -- joinTables = innerJoin k1 k2 where
 --   k1 = [TC "Itm" "_0"]
 --   k2 = itemKey
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 {-
@@ -89,7 +206,13 @@ It would be extra cool if you provided both an in-memory and a streaming solutio
 
 Principles|operations it illustrates
 
-Predicate-based indexing|filtering. Merging (called "joining" in SQL). Within- and across-group operations. Sorting. Accumulation (what Data.List calls "scanning"). Projection (both the "last row" and the "mean" operations). Statistics (the "mean" operation).
+Predicate-based indexing|filtering.
+Merging (called "joining" in SQL).
+Within- and across-group operations.
+Sorting.
+Accumulation (what Data.List calls "scanning").
+Projection (both the "last row" and the "mean" operations).
+Statistics (the "mean" operation).
 
 Solution and proposed algorithm (it's possible you don't want to read this)
 
@@ -107,3 +230,10 @@ One way to compute that would be to:
     Across groups, compute the mean of accumulated spending.
 
 -}
+
+
+
+
+
+main :: IO ()
+main = pure ()

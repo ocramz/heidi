@@ -21,5 +21,8 @@ import Control.Monad.Catch(Exception(..))
 
 
 -- | Key exceptions 
-data KeyError k = MissingKeyError k deriving (Show, Eq, Typeable)
+data KeyError k =
+    MissingKeyError k
+  | AlreadyPresentKeyError k
+  deriving (Show, Eq, Typeable)
 instance (Show k, Typeable k) => Exception (KeyError k)

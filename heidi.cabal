@@ -36,6 +36,7 @@ library
                 Data.Generics.Encode.OneHot
                 Data.Generics.Encode.Internal                  
                 Core.Data.Frame
+                Core.Data.Frame.List                
                 Core.Data.Frame.PrettyPrint
                 Core.Data.Frame.Generic                  
                 Core.Data.Row
@@ -131,6 +132,7 @@ executable app
   build-depends:
                 heidi
               , base
+              , exceptions
               , hashable
               , text
               , unordered-containers

@@ -22,7 +22,7 @@ module Heidi.Data.Row.GenericTrie (
   -- ** (unsafe)  
   , mkRow
   -- * Update  
-  , insert
+  , insert, insertWith
   -- * Access  
   , toList, keys
   -- * Filtering
@@ -181,6 +181,7 @@ removeKnownKeys ks = filterWithKey f where
   f k _ = not $ S.member k ks
 
 
+
 -- alter k m = fromMaybe m $ do
 --   v <- lookup k m 
 --   delete k m
@@ -197,6 +198,10 @@ removeKnownKeys ks = filterWithKey f where
 -- [0,2,3]
 insert :: (GT.TrieKey k) => k -> v -> Row k v -> Row k v
 insert k v = Row . GT.insert k v . unRow
+
+-- | Insert a key-value pair into a row and return the updated one, or updates the value by using the combination function.
+insertWith :: (GT.TrieKey k) => (v -> v -> v) -> k -> v -> Row k v -> Row k v
+insertWith f k v = Row . GT.insertWith f k v . unRow
 
 -- | Fold over a row with a function of both key and value
 foldWithKey :: GT.TrieKey k => (k -> a -> r -> r) -> r -> Row k a -> r

@@ -88,7 +88,7 @@ import qualified Data.Generics.Decode as D (Decode, runDecode)
 -- import qualified Heidi.Data.Row.HashMap as HMR
 -- import qualified Data.GenericTrie as GT
 -- import Core.Data.Row.Internal
--- import Data.Generics.Encode.Val (VP, getIntM, getFloatM, getDoubleM, getScientificM, getStringM, getTextM, getOneHotM)
+-- import Data.Generics.Encode.Internal (VP, getIntM, getFloatM, getDoubleM, getScientificM, getStringM, getTextM, getOneHotM)
 -- import Data.Generics.Encode.OneHot (OneHot)
 
 

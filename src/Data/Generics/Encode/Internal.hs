@@ -36,7 +36,7 @@ module Data.Generics.Encode.Internal (gflattenHM, gflattenGT,
                                       -- ** 'MonadThrow' getters
                                      getIntM, getInt8M, getInt16M, getInt32M, getInt64M, getWordM, getWord8M, getWord16M, getWord32M, getWord64M, getBoolM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM, TypeError(..),
                                      -- * TC (Type and Constructor annotation)
-                                     TC(..), tcTyN, tcTyCon, 
+                                     TC(..), tcTyN, tcTyCon, mkTyN, mkTyCon, 
                                      -- * HasGE (generic ADT encoding)
                                      HasGE) where
 
@@ -95,6 +95,14 @@ tcTyN (TC n _) = n
 -- | Type constructor
 tcTyCon :: TC -> String
 tcTyCon (TC _ c) = c
+
+-- | Create a fake TC with the given string as type constructor
+mkTyCon :: String -> TC
+mkTyCon x = TC "" x
+
+-- | Create a fake TC with the given string as type name
+mkTyN :: String -> TC
+mkTyN x = TC x ""
 
 -- | Fold a 'Val' into a 1-layer hashmap indexed by the input value's (type, constructor) metadata
 flattenHM :: Val -> HM.HashMap [TC] VP
