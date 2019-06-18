@@ -8,9 +8,10 @@ import qualified Unit.GenericTrie as UGTR
 
 main :: IO ()
 main = do
-    test_hmr <- testSpec "Heidi.Data.Frame.Algorithms.HashMap" spec_Frame_HMR
-    test_gtr <- testSpec "Heidi.Data.Frame.Algorithms.GenericTrie" spec_Frame_GTR
-    defaultMain $ testGroup "HMR" [test_hmr, test_gtr]
+    test_hmr <- testSpec "HashMap-based rows" spec_Frame_HMR
+    test_gtr <- testSpec "GenericTrie-based rows" spec_Frame_GTR
+    defaultMain $ do
+      testGroup "Heidi.Data.Frame.Algorithms" [test_hmr, test_gtr]
 
 spec_Frame_HMR :: Spec
 spec_Frame_HMR = parallel $ do

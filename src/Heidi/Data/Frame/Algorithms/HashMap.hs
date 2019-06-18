@@ -22,7 +22,7 @@ module Heidi.Data.Frame.Algorithms.HashMap (
 
 import Data.Maybe (fromMaybe)
 -- import Control.Applicative (Alternative(..))
-import qualified Data.Foldable as F
+import qualified Data.Foldable as F (foldMap, foldl', foldlM)
 -- import Data.Foldable (foldl, foldr, foldlM, foldrM)
 -- import qualified Data.Vector.Generic.Mutable as VGM
 -- import qualified Data.Vector.Algorithms.Merge as V (sort, sortBy, Comparison)
@@ -39,7 +39,7 @@ import qualified Data.Set as S (Set, fromList)
 
 -- import qualified Data.Generics.Decode as D (Decode, runDecode)
 -- import Data.Generics.Decode ((>>>))
-import Core.Data.Frame (Frame, filter, fromList, zipWith)
+import Core.Data.Frame.List (Frame, filter, fromList, zipWith)
 import qualified Heidi.Data.Row.HashMap as HMR
 -- import qualified Data.GenericTrie as GT
 -- import Core.Data.Row.Internal
@@ -68,7 +68,7 @@ filterByKey :: (Eq k, Hashable k) =>
                k            -- ^ Key
             -> (v -> Bool)  -- ^ Predicate to be applied to the element
             -> Frame (HMR.Row k v)
-            -> Maybe (Frame (HMR.Row k v))
+            -> Frame (HMR.Row k v)
 filterByKey k ff = filter (k HMR.!: ff)
 
 
@@ -118,7 +118,7 @@ spread :: (Hashable k, Foldable t, Ord k, Ord v) =>
        -> k   -- ^ "value" key
        -> t (HMR.Row k v)  -- ^ input dataframe
        -> Frame (HMR.Row k v)
-spread fk k1 k2 = fromList . map funion . M.toList . F.foldl (spread1 fk k1 k2) M.empty
+spread fk k1 k2 = fromList . map funion . M.toList . F.foldl' (spread1 fk k1 k2) M.empty
   where
     funion (km, vm) = HMR.union km vm
   
@@ -157,7 +157,7 @@ groupBy k tbl = fromList <$> groupL k tbl
 
 groupL :: (Foldable t, Hashable k, Hashable v, Eq k, Eq v) =>
           k -> t (HMR.Row k v) -> HM.HashMap v [HMR.Row k v]
-groupL k tbl = F.foldl insf HM.empty tbl where
+groupL k tbl = F.foldl' insf HM.empty tbl where
   insf acc row = maybe acc (\v -> HM.insertWith (++) v [row] acc) (HMR.lookup k row)
 {-# inline groupL #-}  
 
@@ -172,7 +172,7 @@ joinWith :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
          -> t (HMR.Row k v)
          -> t (HMR.Row k v)
          -> Frame (HMR.Row k v)
-joinWith f k1 k2 table1 table2 = fromList $ F.foldl insf [] table1 where
+joinWith f k1 k2 table1 table2 = fromList $ F.foldl' insf [] table1 where
   insf acc row1 = maybe (f row1 acc) appendMatchRows (HMR.lookup k1 row1) where
     appendMatchRows v = map (HMR.union row1) mr2 ++ acc where
       mr2 = matchingRows k2 v table2   
@@ -221,6 +221,6 @@ matchingRows k v rows = fromMaybe [] (HM.lookup v rowMap) where
 -- For a given key 'k' and a set of frame rows, populates a hashmap from the _values_ corresponding to 'k' to the corresponding rows.
 hjBuild :: (Foldable t, Eq v, Eq k, Hashable v, Hashable k) =>
            k -> t (HMR.Row k v) -> HM.HashMap v [HMR.Row k v]
-hjBuild k = F.foldl insf HM.empty where
+hjBuild k = F.foldl' insf HM.empty where
   insf hmAcc row = maybe hmAcc (\v -> HM.insertWith (++) v [row] hmAcc) $ HMR.lookup k row
 {-# INLINE hjBuild #-}

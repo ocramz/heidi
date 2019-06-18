@@ -23,11 +23,13 @@ module Core.Data.Frame.List (
   -- ** Construction
   fromList,
   -- ** Access
-  Core.Data.Frame.List.head, take, drop, Core.Data.Frame.List.zipWith, numRows, 
+  Core.Data.Frame.List.head,
+  Core.Data.Frame.List.take,
+  Core.Data.Frame.List.drop, Core.Data.Frame.List.zipWith, numRows, 
   -- ** Filtering 
-  filter, 
-  -- *** 'D.Decode'-based filtering
-  filterDecode, 
+  Core.Data.Frame.List.filter, 
+  -- *** 'D.Decode'-based filtering helpers
+  filterA, 
   -- **
   groupWith, 
   -- ** Scans (row-wise cumulative operations)
@@ -42,16 +44,21 @@ import Data.List (groupBy)
 
 import qualified Data.Vector as V
 
-import qualified Data.Generics.Decode as D (Decode, runDecode)
 
--- import Prelude hiding (zipWith)
-
--- | A 'Frame' is a non-empty list of rows.
+-- | A 'Frame' is a list of rows.
 newtype Frame row = Frame {
     tableRows :: [row] } deriving (Show, Functor, Foldable, Traversable)
 
 head :: Frame row -> row
 head = Prelude.head . tableRows
+
+-- | Retain n rows
+take :: Int -> Frame row -> Frame row
+take n = Frame . Prelude.take n . tableRows
+
+-- | Drop n rows
+drop :: Int -> Frame row -> Frame row
+drop n = Frame . Prelude.drop n . tableRows
 
 zipWith :: (a -> b -> c) -> Frame a -> Frame b -> Frame c
 zipWith f x y = fromList $ Prelude.zipWith f (tableRows x) (tableRows y)
@@ -65,6 +72,9 @@ toList = tableRows
 numRows :: Frame row -> Int
 numRows = length . tableRows
 
+filter :: (row -> Bool) -> Frame row -> Frame row
+filter p = Frame . Prelude.filter p . tableRows
+
 
 -- | This generalizes the list-based 'filter' function.
 filterA :: Applicative f =>
@@ -73,16 +83,7 @@ filterA fm t = fromList <$> CM.filterM fm (toList t)
 
 
 
--- | Filter a 'Frame' by decoding row values.
---
--- This is an intermediate function that doesn't require fixing the row type within the 'Frame'.
---
--- NB: a 'D.Decode' returning 'Bool' can be declared via its Functor, Applicative and Alternative instances.
-filterDecode :: Applicative f =>
-                D.Decode f row Bool   -- ^ Row decoder
-             -> Frame row
-             -> f (Frame row)
-filterDecode dec = filterA (D.runDecode dec)
+
 
 
 -- | Left-associative scan

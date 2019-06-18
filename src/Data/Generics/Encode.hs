@@ -12,7 +12,7 @@
 -- Generic encoding of algebraic datatypes, using 'generics-sop'
 --
 -----------------------------------------------------------------------------
-module Data.Generics.Encode (HasGE, OneHot, onehotDim, onehotIx) where
+module Data.Generics.Encode (Heidi, OneHot, onehotDim, onehotIx) where
 
 -- import qualified GHC.Generics as G
 -- import Generics.SOP (All, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), FieldName, ConstructorInfo(..), constructorInfo, ConstructorName, Top, All, All2, hcliftA2, hindex, hmap, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse)

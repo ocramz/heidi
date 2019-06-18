@@ -37,8 +37,8 @@ module Data.Generics.Encode.Internal (gflattenHM, gflattenGT,
                                      getIntM, getInt8M, getInt16M, getInt32M, getInt64M, getWordM, getWord8M, getWord16M, getWord32M, getWord64M, getBoolM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM, TypeError(..),
                                      -- * TC (Type and Constructor annotation)
                                      TC(..), tcTyN, tcTyCon, mkTyN, mkTyCon, 
-                                     -- * HasGE (generic ADT encoding)
-                                     HasGE) where
+                                     -- * Heidi (generic ADT encoding)
+                                     Heidi) where
 
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Word (Word, Word8, Word16, Word32, Word64)
@@ -68,19 +68,16 @@ import qualified Data.GenericTrie as GT
 import Prelude hiding (getChar)
 
 -- $setup
--- >>> :set -XDeriveDataTypeable
 -- >>> :set -XDeriveGeneric
--- >>> import Generics.SOP (Generic(..), All, Code)
--- >>> import Generics.SOP.NP
 -- >>> import qualified GHC.Generics as G
 
 
 -- | Flatten a value into a 1-layer hashmap, via the value's generic encoding
-gflattenHM :: HasGE a => a -> HM.HashMap [TC] VP
+gflattenHM :: Heidi a => a -> HM.HashMap [TC] VP
 gflattenHM = flattenHM . toVal
 
 -- | Flatten a value into a 'GT.Trie', via the value's generic encoding
-gflattenGT :: HasGE a => a -> GT.Trie [TC] VP
+gflattenGT :: Heidi a => a -> GT.Trie [TC] VP
 gflattenGT = flattenGT . toVal
 
 
@@ -278,24 +275,24 @@ data Val =
 
 -- | Typeclass for types which have a generic encoding.
 --
--- NOTE: if your type has a 'G.Generic' instance you just need to declare an empty instance of 'HasGE' for it (a default implementation of 'toVal' is provided).
+-- NOTE: if your type has a 'G.Generic' instance you just need to declare an empty instance of 'Heidi' for it (a default implementation of 'toVal' is provided).
 --
 -- example:
 --
 -- @
 -- data A = A Int Char deriving ('G.Generic')
--- instance 'HasGE' A
+-- instance 'Heidi' A
 -- @
-class HasGE a where
+class Heidi a where
   toVal :: a -> Val
   default toVal ::
-    (G.Generic a, All2 HasGE (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
-  toVal x = sopHasGE (gdatatypeInfo (Proxy :: Proxy a)) (gfrom x)  
+    (G.Generic a, All2 Heidi (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
+  toVal x = sopHeidi (gdatatypeInfo (Proxy :: Proxy a)) (gfrom x)  
 
 
-sopHasGE :: All2 HasGE xss => DatatypeInfo xss -> SOP I xss -> Val
-sopHasGE di sop@(SOP xss) = hcollapse $ hcliftA2
-    (Proxy :: Proxy (All HasGE))
+sopHeidi :: All2 Heidi xss => DatatypeInfo xss -> SOP I xss -> Val
+sopHeidi di sop@(SOP xss) = hcollapse $ hcliftA2
+    (Proxy :: Proxy (All Heidi))
     (\ci xs -> K (mkVal ci xs tyName oneHot))
     (constructorInfo di)
     xss
@@ -303,7 +300,7 @@ sopHasGE di sop@(SOP xss) = hcollapse $ hcliftA2
      tyName = datatypeName di
      oneHot = mkOH di sop
      
-mkVal :: All HasGE xs =>
+mkVal :: All Heidi xs =>
          ConstructorInfo xs -> NP I xs -> DatatypeName -> OneHot Int -> Val
 mkVal cinfo xs tyn oh = case cinfo of
     Infix cn _ _  -> VRec cn $ mkAnonProd xs
@@ -313,19 +310,19 @@ mkVal cinfo xs tyn oh = case cinfo of
     Record _ fi   -> VRec tyn $ mkProd fi xs
   where
     cns :: [Val]
-    cns = npHasGEs xs
+    cns = npHeidis xs
 
-mkProd :: All HasGE xs => NP FieldInfo xs -> NP I xs -> HM.HashMap String Val
-mkProd fi xs = HM.fromList $ hcollapse $ hcliftA2 (Proxy :: Proxy HasGE) mk fi xs where
-  mk :: HasGE v => FieldInfo v -> I v -> K (FieldName, Val) v
+mkProd :: All Heidi xs => NP FieldInfo xs -> NP I xs -> HM.HashMap String Val
+mkProd fi xs = HM.fromList $ hcollapse $ hcliftA2 (Proxy :: Proxy Heidi) mk fi xs where
+  mk :: Heidi v => FieldInfo v -> I v -> K (FieldName, Val) v
   mk (FieldInfo n) (I x) = K (n, toVal x)
 
-mkAnonProd :: All HasGE xs => NP I xs -> HM.HashMap String Val
+mkAnonProd :: All Heidi xs => NP I xs -> HM.HashMap String Val
 mkAnonProd xs = HM.fromList $ zip labels cns where
-  cns = npHasGEs xs
+  cns = npHeidis xs
 
-npHasGEs :: All HasGE xs => NP I xs -> [Val]
-npHasGEs xs = hcollapse $ hcmap (Proxy :: Proxy HasGE) (mapIK toVal) xs
+npHeidis :: All Heidi xs => NP I xs -> [Val]
+npHeidis xs = hcollapse $ hcmap (Proxy :: Proxy Heidi) (mapIK toVal) xs
 
 -- | >>> take 3 labels
 -- ["_0","_1","_2"]
@@ -333,38 +330,38 @@ labels :: [String]
 labels = map (('_' :) . show) [0 ..]
 
 
--- instance HasGE () where toVal = VPrim VUnit
-instance HasGE Bool where toVal = VPrim . VPBool
-instance HasGE Int where toVal = VPrim . VPInt
-instance HasGE Int8 where toVal = VPrim . VPInt8
-instance HasGE Int16 where toVal = VPrim . VPInt16
-instance HasGE Int32 where toVal = VPrim . VPInt32
-instance HasGE Int64 where toVal = VPrim . VPInt64
-instance HasGE Word8 where toVal = VPrim . VPWord8
-instance HasGE Word16 where toVal = VPrim . VPWord16
-instance HasGE Word32 where toVal = VPrim . VPWord32
-instance HasGE Word64 where toVal = VPrim . VPWord64
-instance HasGE Float where toVal = VPrim . VPFloat
-instance HasGE Double where toVal = VPrim . VPDouble
-instance HasGE Scientific where toVal = VPrim . VPScientific
-instance HasGE Char where toVal = VPrim . VPChar
-instance HasGE String where toVal = VPrim . VPString
-instance HasGE Text where toVal = VPrim . VPText
+-- instance Heidi () where toVal = VPrim VUnit
+instance Heidi Bool where toVal = VPrim . VPBool
+instance Heidi Int where toVal = VPrim . VPInt
+instance Heidi Int8 where toVal = VPrim . VPInt8
+instance Heidi Int16 where toVal = VPrim . VPInt16
+instance Heidi Int32 where toVal = VPrim . VPInt32
+instance Heidi Int64 where toVal = VPrim . VPInt64
+instance Heidi Word8 where toVal = VPrim . VPWord8
+instance Heidi Word16 where toVal = VPrim . VPWord16
+instance Heidi Word32 where toVal = VPrim . VPWord32
+instance Heidi Word64 where toVal = VPrim . VPWord64
+instance Heidi Float where toVal = VPrim . VPFloat
+instance Heidi Double where toVal = VPrim . VPDouble
+instance Heidi Scientific where toVal = VPrim . VPScientific
+instance Heidi Char where toVal = VPrim . VPChar
+instance Heidi String where toVal = VPrim . VPString
+instance Heidi Text where toVal = VPrim . VPText
 
-instance HasGE a => HasGE (Maybe a) where
+instance Heidi a => Heidi (Maybe a) where
   toVal = \case
     Nothing -> VRec "Maybe" HM.empty
     Just x  -> VRec "Maybe" $ HM.singleton "Just" $ toVal x
   
-instance (HasGE a, HasGE b) => HasGE (Either a b) where
+instance (Heidi a, Heidi b) => Heidi (Either a b) where
   toVal = \case
     Left  l -> VRec "Either" $ HM.singleton "Left" $ toVal l
     Right r -> VRec "Either" $ HM.singleton "Right" $ toVal r
 
-instance (HasGE a, HasGE b) => HasGE (a, b) where
+instance (Heidi a, Heidi b) => Heidi (a, b) where
   toVal (x, y) = VRec "(,)" $ HM.fromList $ zip labels [toVal x, toVal y]
 
-instance (HasGE a, HasGE b, HasGE c) => HasGE (a, b, c) where
+instance (Heidi a, Heidi b, Heidi c) => Heidi (a, b, c) where
   toVal (x, y, z) = VRec "(,,)" $ HM.fromList $ zip labels [toVal x, toVal y, toVal z] 
 
 
@@ -377,21 +374,21 @@ instance (HasGE a, HasGE b, HasGE c) => HasGE (a, b, c) where
 -- -- examples
 
 -- data A0 = A0 deriving (Eq, Show, G.Generic)
--- instance HasGE A0
+-- instance Heidi A0
 -- newtype A = A Int deriving (Eq, Show, G.Generic)
--- instance HasGE A
+-- instance Heidi A
 -- newtype A2 = A2 { a2 :: Int } deriving (Eq, Show, G.Generic)
--- instance HasGE A2
+-- instance Heidi A2
 -- data B = B Int Char deriving (Eq, Show, G.Generic)
--- instance HasGE B
+-- instance Heidi B
 -- data B2 = B2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, G.Generic)
--- instance HasGE B2
+-- instance Heidi B2
 -- data C = C1 | C2 | C3 deriving (Eq, Show, G.Generic)
--- instance HasGE C
+-- instance Heidi C
 -- data D = D (Maybe Int) (Either Int String) deriving (Eq, Show, G.Generic)
--- instance HasGE D
+-- instance Heidi D
 -- data E = E (Maybe Int) (Maybe Char) deriving (Eq, Show, G.Generic)
--- instance HasGE E
+-- instance Heidi E
 -- newtype F = F (Int, Char) deriving (Eq, Show, G.Generic)
--- instance HasGE F
+-- instance Heidi F
 

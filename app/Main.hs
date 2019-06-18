@@ -58,11 +58,7 @@ import Prelude hiding (filter, lookup)
 
 -- | Item
 data Item a = Itm String a deriving (Eq, Show, Generic)
-instance HasGE a => HasGE (Item a)
-
-
-
-
+instance Heidi a => Heidi (Item a)
 
 -- | Purchase
 data Purchase a = Pur {
@@ -71,21 +67,7 @@ data Purchase a = Pur {
   , item :: String
   , qty :: a
   } deriving (Eq, Show, Generic)
-instance HasGE a => HasGE (Purchase a)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+instance Heidi a => Heidi (Purchase a)
 
 
 items :: [Item Double]
@@ -101,32 +83,6 @@ purchases = [p1, p2, p3, p4, p5] where
   p3 = Pur 4 "bob" "legal" 20
   p4 = Pur 3 "alice" "computer" 2
   p5 = Pur 1 "bob" "computer" 1
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

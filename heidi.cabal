@@ -29,7 +29,7 @@ library
                   Heidi.Data.Row.HashMap
                   Heidi.Data.Frame.Algorithms.HashMap
                   Heidi.Data.Frame.Algorithms.GenericTrie                    
-                  Data.Generics.Decode                
+                  Data.Generics.Decode                      
   other-modules:
               
                 Data.Generics.Encode
@@ -95,7 +95,6 @@ test-suite doctest
                 heidi
               , base 
               , doctest 
-              , generics-sop  
 
 benchmark bench-space
   type: exitcode-stdio-1.0

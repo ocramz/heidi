@@ -22,7 +22,7 @@ module Heidi.Data.Frame.Algorithms.GenericTrie (
 
 import Data.Maybe (fromMaybe)
 -- import Control.Applicative (Alternative(..))
-import qualified Data.Foldable as F
+import qualified Data.Foldable as F (foldMap, foldl', foldlM)
 -- import Data.Foldable (foldl, foldr, foldlM, foldrM)
 -- import qualified Data.Vector as V
 -- import qualified Data.Vector.Generic.Mutable as VGM
@@ -38,9 +38,9 @@ import qualified Data.Set as S (Set, fromList)
 
 import qualified Data.GenericTrie as GT
 
-import qualified Data.Generics.Decode as D (Decode, runDecode)
+-- import qualified Data.Generics.Decode as D (Decode, runDecode)
 -- import Data.Generics.Decode ((>>>))
-import Core.Data.Frame.List (Frame, filter, fromList, zipWith)
+import Core.Data.Frame.List (Frame, fromList, zipWith)
 import qualified Heidi.Data.Row.GenericTrie as GTR
 -- import Core.Data.Row.Internal
 -- import Data.Generics.Encode.Val (VP, getIntM, getFloatM, getDoubleM, getScientificM, getStringM, getTextM, getOneHotM)
@@ -129,7 +129,7 @@ spread :: (GT.TrieKey k, Foldable t, Ord k, Ord v) =>
        -> k   -- ^ "value" key
        -> t (GTR.Row k v)  -- ^ input dataframe
        -> Frame (GTR.Row k v)
-spread fk k1 k2 = fromList . map funion . M.toList . F.foldl (spread1 fk k1 k2) M.empty
+spread fk k1 k2 = fromList . map funion . M.toList . F.foldl' (spread1 fk k1 k2) M.empty
   where
     funion (km, vm) = GTR.union km vm
   
@@ -189,7 +189,7 @@ groupBy k tbl = fromList <$> groupL k tbl
 
 groupL :: (Foldable t, Eq k, GT.TrieKey k, Eq v, Ord v) =>
           k -> t (GTR.Row k v) -> M.Map v [GTR.Row k v]
-groupL k tbl = F.foldl insf M.empty tbl where
+groupL k tbl = F.foldl' insf M.empty tbl where
   insf acc row = maybe acc (\v -> M.insertWith (++) v [row] acc) (GTR.lookup k row)
 {-# inline groupL #-}  
 
@@ -204,7 +204,7 @@ joinWith :: (Foldable t, Ord v, GT.TrieKey k, Eq v, Eq k) =>
          -> t (GTR.Row k v)
          -> t (GTR.Row k v)
          -> Frame (GTR.Row k v)
-joinWith f k1 k2 table1 table2 = fromList $ F.foldl insf [] table1 where
+joinWith f k1 k2 table1 table2 = fromList $ F.foldl' insf [] table1 where
   insf acc row1 = maybe (f row1 acc) appendMatchRows (GTR.lookup k1 row1) where
     appendMatchRows v = map (GTR.union row1) mr2 ++ acc where
       mr2 = matchingRows k2 v table2
@@ -255,7 +255,7 @@ matchingRows k v rows = fromMaybe [] (M.lookup v rowMap) where
 -- For a given key 'k' and a set of frame rows, populates a hashmap from the _values_ corresponding to 'k' to the corresponding rows.
 hjBuild :: (Foldable t, Eq k, GT.TrieKey k, Eq v, Ord v) =>
            k -> t (GTR.Row k v) -> M.Map v [GTR.Row k v]
-hjBuild k = F.foldl insf M.empty where
+hjBuild k = F.foldl' insf M.empty where
   insf hmAcc row = maybe hmAcc (\v -> M.insertWith (++) v [row] hmAcc) $ GTR.lookup k row
 {-# INLINE hjBuild #-}
    

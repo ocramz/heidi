@@ -34,11 +34,10 @@ import Data.Typeable (Typeable)
 import Control.Exception (Exception(..))
 import Control.Monad.Catch (MonadThrow(..))
 
--- import Core.Data.Frame (Frame, fromList)
 import qualified Core.Data.Frame.List as FL (Frame, fromList)
 import qualified Heidi.Data.Row.HashMap as HMR (Row, mkRow)
 import qualified Heidi.Data.Row.GenericTrie as GTR (Row, mkRow)
-import Data.Generics.Encode.Internal (gflattenHM, gflattenGT, HasGE, TC, VP)
+import Data.Generics.Encode.Internal (gflattenHM, gflattenGT, Heidi, TC, VP)
 
 
 -- $setup
@@ -46,11 +45,11 @@ import Data.Generics.Encode.Internal (gflattenHM, gflattenGT, HasGE, TC, VP)
 -- >>> import qualified GHC.Generics as G
 -- >>> import qualified Data.Generics.Encode.Internal as GE
 -- >>> data P1 = P1 Int Char deriving (Eq, Show, G.Generic)
--- >>> instance GE.HasGE P1
+-- >>> instance GE.Heidi P1
 -- >>> data P2 = P2 { p2i :: Int, p2c :: Char } deriving (Eq, Show, G.Generic)
--- >>> instance GE.HasGE P2
+-- >>> instance GE.Heidi P2
 -- >>> data Q = Q (Maybe Int) (Either Double Char) deriving (Eq, Show, G.Generic)
--- >>> instance GE.HasGE Q
+-- >>> instance GE.Heidi Q
 
 -- | Populate a 'Frame' with the generic encoding of the row data and throws a 'DataException' if the input data is malformed.
 --
@@ -58,13 +57,13 @@ import Data.Generics.Encode.Internal (gflattenHM, gflattenGT, HasGE, TC, VP)
 --
 -- @
 -- data P1 = P1 Int Char deriving (Eq, Show, 'G.Generic')
--- instance 'GE.HasGE' P1
+-- instance 'GE.Heidi' P1
 -- 
 -- data P2 = P2 { p2i :: Int, p2c :: Char } deriving (Eq, Show, Generic)
--- instance HasGE P2
+-- instance Heidi P2
 --
 -- data Q = Q (Maybe Int) (Either Double Char) deriving (Eq, Show, Generic)
--- instance HasGE Q
+-- instance Heidi Q
 -- @
 --
 -- >>> gToFrameHM [P1 42 'z']
@@ -79,7 +78,7 @@ import Data.Generics.Encode.Internal (gflattenHM, gflattenGT, HasGE, TC, VP)
 -- Frame {tableRows = [([TC "Q" "_1",TC "Either" "Left"],VPDouble 1.2),([TC "Q" "_0",TC "Maybe" "Just"],VPInt 42)] :| [[([TC "Q" "_1",TC "Either" "Right"],VPChar 'b')]]}
 --
 -- NB: as the last example above demonstrates, 'Nothing' values are not inserted in the rows, which can be used to encode missing data features.
-gToFrameHM :: (MonadThrow m, Foldable t, HasGE a) =>
+gToFrameHM :: (MonadThrow m, Foldable t, Heidi a) =>
               t a
            -> m (FL.Frame (HMR.Row [TC] VP))
 gToFrameHM ds
@@ -114,7 +113,7 @@ gToFrameHM ds
 -- Frame {tableRows = [([TC "Q" "_0",TC "Maybe" "Just"],VPInt 42),([TC "Q" "_1",TC "Either" "Left"],VPDouble 1.2)] :| [[([TC "Q" "_1",TC "Either" "Right"],VPChar 'b')]]}
 --
 -- NB: as the last example above demonstrates, 'Nothing' values are not inserted in the rows, which can be used to encode missing data features.
-gToFrameGT :: (MonadThrow m, Foldable t, HasGE a) =>
+gToFrameGT :: (MonadThrow m, Foldable t, Heidi a) =>
               t a
            -> m (FL.Frame (GTR.Row [TC] VP))
 gToFrameGT ds
@@ -122,21 +121,19 @@ gToFrameGT ds
   | otherwise = pure $ FL.fromList $ map gToRowGT $ F.toList ds  
 
 -- | Populate a 'Row' with a generic encoding of the input value (hashmap backend)
-gToRowHM :: HasGE a => a -> HMR.Row [TC] VP
+gToRowHM :: Heidi a => a -> HMR.Row [TC] VP
 gToRowHM = HMR.mkRow . gflattenHM
 
 -- | Populate a 'Row' with a generic encoding of the input value (generic-trie backend)
-gToRowGT :: HasGE a => a -> GTR.Row [TC] VP
+gToRowGT :: Heidi a => a -> GTR.Row [TC] VP
 gToRowGT = GTR.mkRow . gflattenGT
 
 -- | Exceptions related to the input data
 data DataException =
-    -- AnonRecordE -- ^ Anonymous records not implemented yet
     NoDataE     -- ^ Dataset has 0 rows
   deriving (Eq, Typeable)
 instance Show DataException where
   show = \case
-    -- AnonRecordE -> "Anonymous records not implemented yet"
     NoDataE -> "The dataset has 0 rows"
 instance Exception DataException
 

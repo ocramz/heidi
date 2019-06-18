@@ -57,7 +57,6 @@ onehotDim = ohDim
 onehotIx :: OneHot i -> i
 onehotIx = ohIx
 
-
 constructorList :: SListI xs => DatatypeInfo xs -> [ConstructorName]
 constructorList di = hcollapse $ hmap (\(Constructor x) -> K x) $ constructorInfo di
 
