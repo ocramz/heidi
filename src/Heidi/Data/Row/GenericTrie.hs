@@ -26,7 +26,7 @@ module Heidi.Data.Row.GenericTrie (
   -- * Access  
   , toList, keys
   -- * Filtering
-  , delete, filterWithKey, removeKnownKeys
+  , delete, filterWithKey, filterWithKeyPrefix, removeKnownKeys
   -- ** Decoders  
   , real, scientific, text, string, oneHot
   -- * Lookup  
@@ -45,6 +45,7 @@ module Heidi.Data.Row.GenericTrie (
   , traverseWithKey
   ) where
 
+import Data.List (isPrefixOf)
 import Data.Maybe (fromMaybe)
 import Data.Typeable (Typeable)
 import Control.Applicative (Alternative(..))
@@ -174,6 +175,9 @@ delete k (Row gt) = Row $ GT.delete k gt
 -- NB : filtering _retains_ the elements that satisfy the predicate.
 filterWithKey :: GT.TrieKey k => (k -> v -> Bool) -> Row k v -> Row k v
 filterWithKey ff (Row gt) = Row $ GT.filterWithKey ff gt
+
+filterWithKeyPrefix :: (GT.TrieKey a, Eq a) => [a] -> Row [a] v -> Row [a] v
+filterWithKeyPrefix kpre (Row gt) = Row $ GT.filterWithKey (\k _ -> kpre `isPrefixOf` k) gt
 
 -- | Produce a new 'Row' such that its keys do _not_ belong to a certain set.
 removeKnownKeys :: (GT.TrieKey k, Ord k) => S.Set k -> Row k v -> Row k v

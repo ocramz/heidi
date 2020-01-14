@@ -28,7 +28,7 @@ module Heidi.Data.Row.HashMap (
   -- * Access
   , toList, keys, elems
   -- * Filtering
-  , filterWithKey, removeKnownKeys
+  , filterWithKey, filterWithKeyPrefix, removeKnownKeys
   -- ** Decoders
   , real, scientific, text, string, oneHot
   -- * Lookup
@@ -50,6 +50,7 @@ module Heidi.Data.Row.HashMap (
     ) where
 
 -- import Control.Monad (filterM)
+import Data.List (isPrefixOf)
 import Data.Maybe (fromMaybe)
 import Data.Typeable (Typeable)
 import Control.Applicative (Alternative(..))
@@ -225,6 +226,9 @@ elems = HM.elems . unRow
 -- NB : filtering _retains_ the elements that satisfy the predicate.
 filterWithKey :: (k -> v -> Bool) -> Row k v -> Row k v
 filterWithKey ff (Row hm) = Row $ HM.filterWithKey ff hm
+
+filterWithKeyPrefix :: (Eq a) => [a] -> Row [a] v -> Row [a] v
+filterWithKeyPrefix kpre (Row gt) = Row $ HM.filterWithKey (\k _ -> kpre `isPrefixOf` k) gt
 
 -- | Produce a new 'Row' such that its keys do _not_ belong to a certain set.
 removeKnownKeys :: Ord k => S.Set k -> Row k v -> Row k v
