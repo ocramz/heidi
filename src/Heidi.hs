@@ -32,17 +32,27 @@ module Heidi (
   -- , groupBy, innerJoin, leftOuterJoin
   -- ** Vector-related
   , toVector, fromVector  
-  -- ** Generic encoding
+  -- * Encode
   , gToFrameHM, gToFrameGT, Heidi, TC, tcTyN, tcTyCon, mkTyN, mkTyCon, VP
   -- * Decode
   , D.Decode, D.runDecode
-             ) where
+  -- ** Row
+  -- *** HashMap
+  
+  -- *** generic-trie
+  
+  -- ** 'MonadThrow' getters
+  , TypeError(..)
+  ) where
+
+import Control.Monad.Catch (MonadThrow(..))
 
 import Core.Data.Frame.List (Frame, fromList, head, take, drop, zipWith, numRows, filter, filterA, groupWith, scanl, scanr, toVector, fromVector)
 -- import Core.Data.Frame (Frame, fromNEList, fromList, head, take, drop, zipWith, numRows, filter, filterDecode, groupWith, scanl, scanr, toVector, fromVector)
 import Core.Data.Frame.Generic (gToFrameHM, gToFrameGT)
-import Data.Generics.Encode.Internal (Heidi, TC, tcTyN, tcTyCon, mkTyN, mkTyCon, VP)
+import Data.Generics.Encode.Internal (Heidi, VP(..))
 import qualified Data.Generics.Decode as D (Decode, runDecode)
+import Data.Generics.Codec (TC(..), tcTyN, tcTyCon, mkTyN, mkTyCon, TypeError(..))
 
 
 -- import Control.Monad.Catch (MonadThrow(..))

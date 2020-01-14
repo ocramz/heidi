@@ -29,18 +29,17 @@ library
                   Heidi.Data.Row.HashMap
                   Heidi.Data.Frame.Algorithms.HashMap
                   Heidi.Data.Frame.Algorithms.GenericTrie                    
-                  Data.Generics.Decode                      
+                  Data.Generics.Codec
   other-modules:
-              
-                Data.Generics.Encode
                 Data.Generics.Encode.OneHot
-                Data.Generics.Encode.Internal                  
+                Data.Generics.Encode.Internal
+                Data.Generics.Decode
                 Core.Data.Frame
                 Core.Data.Frame.List                
                 Core.Data.Frame.PrettyPrint
                 Core.Data.Frame.Generic                  
                 Core.Data.Row
-                Core.Data.Row.Decode
+                -- Core.Data.Row.Decode
                 Core.Data.Row.Internal
   hs-source-dirs:
       src

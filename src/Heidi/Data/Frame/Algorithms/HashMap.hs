@@ -37,7 +37,7 @@ import qualified Data.Set as S (Set, fromList)
 -- import Data.Scientific (Scientific, toRealFloat)
 -- import Data.Typeable (Typeable)
 
--- import qualified Data.Generics.Decode as D (Decode, runDecode)
+import qualified Data.Generics.Decode as D (Decode, runDecode)
 -- import Data.Generics.Decode ((>>>))
 import Core.Data.Frame.List (Frame, filter, fromList, zipWith)
 import qualified Heidi.Data.Row.HashMap as HMR
@@ -76,10 +76,10 @@ filterByKey k ff = filter (k HMR.!: ff)
 -- * Data tidying
 
 -- | 'gather' moves column names into a "key" column, gathering the column values into a single "value" column
-gather :: (Foldable t, Ord k, Hashable k) =>
+gather :: (Foldable t, Hashable k, Ord k) =>
           (k -> v)
        -> S.Set k     -- ^ set of keys to gather
-       -> k           -- ^ "key" key           
+       -> k           -- ^ "key" key
        -> k           -- ^ "value" key
        -> t (HMR.Row k v) -- ^ input dataframe
        -> Frame (HMR.Row k v)
@@ -89,7 +89,7 @@ gather fk ks kKey kValue = fromList . F.foldMap f where
 -- | gather one row into a list of rows
 gather1 :: (Ord k, Hashable k) =>
            (k -> v)
-        -> S.Set k     
+        -> S.Set k
         -> HMR.Row k v -- ^ row to look into
         -> k           -- ^ "key" key
         -> k           -- ^ "value" key
@@ -98,21 +98,21 @@ gather1 fk ks row kKey kValue = fromMaybe [] $ F.foldlM insf [] ks where
   rowBase = HMR.removeKnownKeys ks row
   lookupInsert k = do
     x <- HMR.lookup k row
-    let 
+    let
       r'  = HMR.insert kKey   (fk k) rowBase
       r'' = HMR.insert kValue x r'
     pure r''
   insf acc k = do
     r' <- lookupInsert k
     pure $ r' : acc
-{-# inline gather1 #-}    
+{-# inline gather1 #-}
 
 
 
 
 
 -- | 'spread' moves the unique values of a key column into the column names, spreading the values of a value column across the new columns.
-spread :: (Hashable k, Foldable t, Ord k, Ord v) =>
+spread :: (Foldable t, Hashable k, Ord k, Ord v) =>
           (v -> k)
        -> k   -- ^ "key" key
        -> k   -- ^ "value" key
@@ -121,7 +121,7 @@ spread :: (Hashable k, Foldable t, Ord k, Ord v) =>
 spread fk k1 k2 = fromList . map funion . M.toList . F.foldl' (spread1 fk k1 k2) M.empty
   where
     funion (km, vm) = HMR.union km vm
-  
+
 -- | spread1 creates a single row from multiple ones that share a subset of key-value pairs.
 spread1 :: (Ord k, Ord v, Hashable k, Eq k) =>
            (v -> k)
@@ -165,6 +165,14 @@ groupL k tbl = F.foldl' insf HM.empty tbl where
 
 
 
+joinWith' f k1 k2 table1 table2 = fromList $ F.foldl' insf [] table1 where
+  insf acc row1 = maybe (f row1 acc) appendMatchRows (HMR.lookup k1 row1) where
+    appendMatchRows v = map (HMR.union row1) mr2 ++ acc where
+      mr2 = matchingRows k2 v table2
+
+
+
+
 joinWith :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
             (HMR.Row k v -> [HMR.Row k v] -> [HMR.Row k v])
          -> k
@@ -175,7 +183,7 @@ joinWith :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
 joinWith f k1 k2 table1 table2 = fromList $ F.foldl' insf [] table1 where
   insf acc row1 = maybe (f row1 acc) appendMatchRows (HMR.lookup k1 row1) where
     appendMatchRows v = map (HMR.union row1) mr2 ++ acc where
-      mr2 = matchingRows k2 v table2   
+      mr2 = matchingRows k2 v table2
 
 -- | LEFT (OUTER) JOIN : given two dataframes and one key from each, compute the left outer join using the keys as relations.
 leftOuterJoin :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
@@ -203,10 +211,10 @@ innerJoin :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
           -> t (HMR.Row k v)  -- ^ First dataframe
           -> t (HMR.Row k v)  -- ^ Second dataframe
           -> Frame (HMR.Row k v)
-innerJoin = joinWith seq
+innerJoin = joinWith (\_ x -> x)
 
 
-   
+
 matchingRows :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
                 k
              -> v
@@ -215,7 +223,7 @@ matchingRows :: (Foldable t, Hashable v, Hashable k, Eq v, Eq k) =>
 matchingRows k v rows = fromMaybe [] (HM.lookup v rowMap) where
   rowMap = hjBuild k rows
 {-# INLINE matchingRows #-}
-    
+
 -- | "build" phase of the hash-join algorithm
 --
 -- For a given key 'k' and a set of frame rows, populates a hashmap from the _values_ corresponding to 'k' to the corresponding rows.
