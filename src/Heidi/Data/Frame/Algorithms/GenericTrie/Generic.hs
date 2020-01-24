@@ -15,15 +15,20 @@ import Core.Data.Frame.List (Frame(..))
 
 import Data.Generics.Encode.Internal (VP(..), TC(..), tcTyCon, tcTyN, mkTyCon, mkTyN)
 
-{-
-λ> :t spreadWith valueToKey
 
-<interactive>:1:1-21: error:
-    • Could not deduce (Ord VP) arising from a use of ‘spreadWith’
-        bound by the inferred type of
-                   it :: Foldable t =>
-                         [TC] -> [TC] -> t (Row [TC] VP) -> Frame (Row [TC] VP)
--}
+
+-- -- a user shouldn\t have to manipulate TCs
+
+-- spread :: Foldable t => [TC] -> [TC] -> t (Row [TC] VP) -> Frame (Row [TC] VP)
+-- spread = spreadWith valueToKey
+
+-- gather :: Foldable t =>
+--           S.Set [TC]
+--        -> [TC]
+--        -> [TC]
+--        -> t (Row [TC] VP)
+--        -> Frame (Row [TC] VP)
+-- gather = gatherWith keyToValue
 
 
 keyToValue :: [TC] -> VP

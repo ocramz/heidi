@@ -50,13 +50,10 @@ mkOH di sop = oneHot where
 data OneHot i = OH {
   ohDim :: i -- ^ Dimensionality of the ambient space
   , ohIx :: i  -- ^ index of '1'
-  } deriving (Eq, G.Generic)
+  } deriving (Eq, Ord, G.Generic)
 instance Hashable i => Hashable (OneHot i)
 instance Show i => Show (OneHot i) where
   show (OH od oi) = concat ["OH_", show od, "_", show oi]
--- instance Eq i => Ord (OneHot i) where
---   (OH d )
-  
 
 -- | Embedding dimension of the 1-hot encoded vector
 onehotDim :: OneHot i -> i

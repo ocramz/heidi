@@ -83,6 +83,8 @@ import Prelude hiding (getChar)
 -- >>> import qualified GHC.Generics as G
 
 -- | Primitive types
+--
+-- NB : this is just a convenience for unityping the dataframe contents, but it should not be exposed to the library users 
 data VP =
      VPInt    { _vpInt :: Int }    -- ^ 'Int'
    | VPInt8   Int8  -- ^ 'Int8'
@@ -102,7 +104,7 @@ data VP =
    | VPString { _vpString :: String } -- ^ 'String'
    | VPText   { _vpText :: Text } -- ^ 'Text'
    | VPOH     { _vpOneHot :: OneHot Int }  -- ^ 1-hot encoding of an enum value
-   deriving (Eq, G.Generic)
+   deriving (Eq, Ord, G.Generic)
 instance Hashable VP
 makeLenses ''VP
 
@@ -135,6 +137,13 @@ gflattenHM = flattenHM . toVal
 -- | Flatten a value into a 'GT.Trie', via the value's generic encoding
 gflattenGT :: Heidi a => a -> GT.Trie [TC] VP
 gflattenGT = flattenGT . toVal
+
+
+-- | Commands for manipulating lists of TC's
+data TCAlg = TCAnyTyCon String -- ^ Matches any type constructor name
+           | TCFirstTyCon String -- ^ " first type constructor name
+           | TCAnyTyN String -- ^ " any type name
+           | TCFirstTyN String -- ^ first type name
 
 
 -- | A (type, constructor) name pair
