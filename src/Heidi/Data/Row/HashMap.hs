@@ -1,4 +1,6 @@
 {-# language DeriveFunctor, GeneralizedNewtypeDeriving, DeriveTraversable #-}
+{-# language LambdaCase #-}
+{-# language RankNTypes #-}
 -- {-# language ConstraintKinds #-}
 -- {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 {-# OPTIONS_GHC -Wno-type-defaults #-}
@@ -55,13 +57,23 @@ import Data.Maybe (fromMaybe)
 import Data.Typeable (Typeable)
 import Control.Applicative (Alternative(..))
 import qualified Data.Foldable as F
-import Data.Hashable (Hashable(..))
-import Control.Monad.Catch(MonadThrow(..))
+
+
+-- containers
 import qualified Data.HashMap.Strict as HM
+import qualified Data.Set as S (Set, member)
+-- exceptions
+import Control.Monad.Catch(MonadThrow(..))
+-- hashable
+import Data.Hashable (Hashable(..))
+-- microlens
+import Lens.Micro (Lens', (<&>))
+-- scientific
 import Data.Scientific (Scientific)
+-- text
 -- import qualified Data.Text as T (pack)
 import Data.Text (Text)
-import qualified Data.Set as S (Set, member)
+
 
 import qualified Data.Generics.Decode as D (Decode, mkDecode)
 import Data.Generics.Decode ((>>>))
@@ -87,9 +99,15 @@ newtype Row k v = Row { unRow :: HM.HashMap k v } deriving (Eq, Functor, Foldabl
 
 instance (Show k, Show v) => Show (Row k v) where
   show = show . HM.toList . unRow
-  
+
 instance (Ord k, Ord v) => Ord (Row k v) where
-  r1 <= r2 = toList r1 <= toList r2  
+  r1 <= r2 = toList r1 <= toList r2
+
+at :: (Eq k, Hashable k) => k -> Lens' (Row k a) (Maybe a)
+at k f m = f mv <&> \case
+    Nothing -> maybe m (const (delete k m)) mv
+    Just v' -> insert k v' m
+    where mv = lookup k m
 
 -- | Construct a 'Row' from a list of key-element pairs.
 --
@@ -234,6 +252,10 @@ filterWithKeyPrefix kpre (Row gt) = Row $ HM.filterWithKey (\k _ -> kpre `isPref
 removeKnownKeys :: Ord k => S.Set k -> Row k v -> Row k v
 removeKnownKeys ks = filterWithKey f where
   f k _ = not $ S.member k ks
+
+-- | Delete a key-value pair from a row
+delete :: (Eq k, Hashable k) => k -> Row k v -> Row k v
+delete k (Row hm) = Row $ HM.delete k hm
 
 -- | Left-associative fold over a row with a function of both key and value
 foldlWithKey' :: (a -> k -> v -> a) -> a -> Row k v -> a

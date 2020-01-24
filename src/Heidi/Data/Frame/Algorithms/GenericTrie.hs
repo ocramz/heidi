@@ -1,3 +1,4 @@
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Heidi.Data.Frame.Algorithms.GenericTrie
@@ -24,19 +25,29 @@ import Data.Maybe (fromMaybe)
 -- import Control.Applicative (Alternative(..))
 import qualified Data.Foldable as F (foldMap, foldl', foldlM)
 -- import Data.Foldable (foldl, foldr, foldlM, foldrM)
--- import qualified Data.Vector as V
--- import qualified Data.Vector.Generic.Mutable as VGM
--- import qualified Data.Vector.Algorithms.Merge as V (sort, sortBy, Comparison)
--- import qualified Data.Text as T (pack)
--- import Data.Text (Text)
-import qualified Data.Map as M
-import qualified Data.Set as S (Set, fromList)
--- import Control.Monad.Primitive (PrimMonad(..), PrimState(..))
--- import Control.Monad.Catch(Exception(..), MonadThrow(..))
--- import Data.Scientific (Scientific, toRealFloat)
 -- import Data.Typeable (Typeable)
 
+-- containers
+import qualified Data.Map as M
+import qualified Data.Set as S (Set, fromList)
+-- exception
+-- import Control.Monad.Catch(Exception(..), MonadThrow(..))
+
+-- primitive
+-- import Control.Monad.Primitive (PrimMonad(..), PrimState(..))
+-- scientific
+-- import Data.Scientific (Scientific, toRealFloat)
+-- vector
+-- import qualified Data.Vector as V
+-- import qualified Data.Vector.Generic.Mutable as VGM
+-- vector-algorithms
+-- import qualified Data.Vector.Algorithms.Merge as V (sort, sortBy, Comparison)
+-- generic-trie
 import qualified Data.GenericTrie as GT
+-- text
+-- import qualified Data.Text as T (pack)
+-- import Data.Text (Text)
+
 
 -- import qualified Data.Generics.Decode as D (Decode, runDecode)
 -- import Data.Generics.Decode ((>>>))

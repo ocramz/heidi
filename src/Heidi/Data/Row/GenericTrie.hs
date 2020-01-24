@@ -1,6 +1,9 @@
 {-# language DeriveFunctor #-}
 {-# language DeriveFoldable #-}
 {-# language DeriveTraversable #-}
+{-# language TemplateHaskell #-}
+{-# language LambdaCase #-}
+{-# language RankNTypes #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Heidi.Data.Row.GenericTrie
@@ -19,17 +22,17 @@ module Heidi.Data.Row.GenericTrie (
     Row
     -- * Construction
   , fromList, emptyRow
-  -- ** (unsafe)  
+  -- ** (unsafe)
   , mkRow
-  -- * Update  
+  -- * Update
   , insert, insertWith
-  -- * Access  
+  -- * Access
   , toList, keys
   -- * Filtering
   , delete, filterWithKey, filterWithKeyPrefix, removeKnownKeys
-  -- ** Decoders  
+  -- ** Decoders
   , real, scientific, text, string, oneHot
-  -- * Lookup  
+  -- * Lookup
   , lookup, lookupThrowM, (!:), elemSatisfies
   -- ** Lookup utilities
   , maybeEmpty
@@ -53,10 +56,19 @@ import qualified Data.Foldable as F
 -- import Control.Monad (filterM)
 import Control.Monad.Catch(MonadThrow(..))
 import Data.Scientific (Scientific)
+-- text
 import Data.Text (Text)
+-- containers
 import qualified Data.Set as S (Set, member)
 
+-- generic-trie
 import qualified Data.GenericTrie as GT
+
+-- microlens
+import Lens.Micro (Lens', (<&>))
+-- -- microlens-th
+-- import Lens.Micro.TH (makeLenses)
+
 
 import qualified Data.Generics.Decode as D (Decode, mkDecode)
 import Data.Generics.Decode ((>>>))
@@ -79,15 +91,22 @@ import Prelude hiding (lookup)
 -- * Fast random access 
 -- * Fast set operations 
 -- * Supports missing elements 
-newtype Row k v = Row { unRow :: GT.Trie k v } deriving (Functor, Foldable, Traversable)
+newtype Row k v = Row { _unRow :: GT.Trie k v } deriving (Functor, Foldable, Traversable)
+-- makeLenses ''Row
 instance (GT.TrieKey k, Show k, Show v) => Show (Row k v) where
-  show = show . GT.toList . unRow
+  show = show . GT.toList . _unRow
 
 instance (GT.TrieKey k, Eq k, Eq v) => Eq (Row k v) where
   r1 == r2 = toList r1 == toList r2
 
 instance (GT.TrieKey k, Eq k, Eq v, Ord k, Ord v) => Ord (Row k v) where
   r1 <= r2 = toList r1 <= toList r2
+
+at :: GT.TrieKey k => k -> Lens' (Row k a) (Maybe a)
+at k f m = f mv <&> \case
+    Nothing -> maybe m (const (delete k m)) mv
+    Just v' -> insert k v' m
+    where mv = lookup k m
 
 -- | Construct a 'Row' from a list of key-element pairs.
 --
@@ -108,7 +127,7 @@ emptyRow = Row GT.empty
 
 -- | Access the key-value pairs contained in the 'Row'
 toList :: GT.TrieKey k => Row k v -> [(k ,v)]
-toList = GT.toList . unRow
+toList = GT.toList . _unRow
 
 -- | Lookup the value stored at a given key in a row
 --
@@ -117,7 +136,7 @@ toList = GT.toList . unRow
 -- >>> lookup 1 row0
 -- Nothing
 lookup :: (GT.TrieKey k) => k -> Row k v -> Maybe v
-lookup k = GT.lookup k . unRow
+lookup k = GT.lookup k . _unRow
 
 liftLookup :: GT.TrieKey k =>
               (a -> b -> c) -> k -> Row k a -> Row k b -> Maybe c
@@ -195,17 +214,19 @@ removeKnownKeys ks = filterWithKey f where
 --     Just v' -> insert k v' t
 --     Nothing -> delete k t
 
+-- modify k v = 
+
 
 -- | Insert a key-value pair into a row and return the updated one
 -- 
 -- >>> keys $ insert 2 'y' row0
 -- [0,2,3]
 insert :: (GT.TrieKey k) => k -> v -> Row k v -> Row k v
-insert k v = Row . GT.insert k v . unRow
+insert k v = Row . GT.insert k v . _unRow
 
 -- | Insert a key-value pair into a row and return the updated one, or updates the value by using the combination function.
 insertWith :: (GT.TrieKey k) => (v -> v -> v) -> k -> v -> Row k v -> Row k v
-insertWith f k v = Row . GT.insertWith f k v . unRow
+insertWith f k v = Row . GT.insertWith f k v . _unRow
 
 -- | Fold over a row with a function of both key and value
 foldWithKey :: GT.TrieKey k => (k -> a -> r -> r) -> r -> Row k a -> r
@@ -213,7 +234,7 @@ foldWithKey fk z (Row gt) = GT.foldWithKey fk z gt
 
 -- | Traverse a 'Row' using a function of both the key and the element.
 traverseWithKey :: (Applicative f, GT.TrieKey k) => (k -> a -> f b) -> Row k a -> f (Row k b)
-traverseWithKey f r = Row <$> GT.traverseWithKey f (unRow r)
+traverseWithKey f r = Row <$> GT.traverseWithKey f (_unRow r)
 
 
 -- | Set union of two rows
@@ -221,20 +242,20 @@ traverseWithKey f r = Row <$> GT.traverseWithKey f (unRow r)
 -- >>> keys $ union row0 row1
 -- [0,1,3,666]
 union :: (GT.TrieKey k) => Row k v -> Row k v -> Row k v
-union r1 r2 = Row $ GT.union (unRow r1) (unRow r2)
+union r1 r2 = Row $ GT.union (_unRow r1) (_unRow r2)
 
 -- | Set union of two rows, using a combining function for equal keys
 unionWith :: (GT.TrieKey k) =>
              (v -> v -> v) -> Row k v -> Row k v -> Row k v
-unionWith f r1 r2 = Row $ GT.unionWith f (unRow r1) (unRow r2)
+unionWith f r1 r2 = Row $ GT.unionWith f (_unRow r1) (_unRow r2)
 
 -- | Set intersection of two rows
 intersection :: GT.TrieKey k => Row k v -> Row k b -> Row k v
-intersection r1 r2 = Row $ GT.intersection (unRow r1) (unRow r2)
+intersection r1 r2 = Row $ GT.intersection (_unRow r1) (_unRow r2)
 
 -- | Set intersections of two rows, using a combining function for equal keys
 intersectionWith :: GT.TrieKey k => (a -> b -> v) -> Row k a -> Row k b -> Row k v
-intersectionWith f r1 r2 = Row $ GT.intersectionWith f (unRow r1) (unRow r2)
+intersectionWith f r1 r2 = Row $ GT.intersectionWith f (_unRow r1) (_unRow r2)
 
 
 -- | Looks up a key from a row and applies a predicate to its value (if this is found). If no value is found at that key the function returns False.
