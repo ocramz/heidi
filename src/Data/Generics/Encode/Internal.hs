@@ -40,31 +40,39 @@ module Data.Generics.Encode.Internal (gflattenHM, gflattenGT,
                                      -- * Heidi (generic ADT encoding)
                                      Heidi) where
 
+import qualified GHC.Generics as G
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Word (Word, Word8, Word16, Word32, Word64)
 import Data.Typeable (Typeable)
-import qualified GHC.Generics as G
+
+-- exceptions
+import Control.Monad.Catch(Exception(..), MonadThrow(..))
+-- generics-sop
 import Generics.SOP (All, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), FieldName, ConstructorInfo(..), constructorInfo, All, All2, hcliftA2, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse)
 -- import Generics.SOP.NP (cpure_NP)
 -- import Generics.SOP.Constraint (SListIN)
 import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
-
-import Control.Monad.Catch(Exception(..), MonadThrow(..))
+-- generic-trie
+import qualified Data.GenericTrie as GT
+-- hashable
 import Data.Hashable (Hashable(..))
--- import qualified Data.Text as T ()
-import Data.Text (Text)
+-- scientific
+import Data.Scientific (Scientific)
+-- text
+import Data.Text (Text, unpack)
+
 -- import Data.Time (Day, LocalTime, TimeOfDay)
 -- import qualified Data.Vector as V
 -- import qualified Data.Map as M
 import qualified Data.HashMap.Strict as HM
 -- import qualified Data.GenericTrie as GT
-import Data.Scientific (Scientific)
+
 import Data.Generics.Encode.OneHot (OneHot, mkOH)
 -- import Data.List (unfoldr)
 -- import qualified Data.Foldable as F
 -- import qualified Data.Sequence as S (Seq(..), empty)
 -- import Data.Sequence ((<|), (|>))
-import qualified Data.GenericTrie as GT
+
 import Prelude hiding (getChar)
 
 -- $setup
@@ -120,26 +128,47 @@ flatten z insf = go ([], z) where
 
 -- | Primitive types
 data VP =
-    VPInt    Int    -- ^ 'Int'
-  | VPInt8   Int8  -- ^ 'Int8'
-  | VPInt16   Int16  -- ^ 'Int16'
-  | VPInt32   Int32 -- ^ 'Int32'
-  | VPInt64   Int64 -- ^ 'Int64'
-  | VPWord   Word   -- ^ 'Word'
-  | VPWord8   Word8  -- ^ 'Word8'
-  | VPWord16   Word16 -- ^ 'Word16'
-  | VPWord32   Word32 -- ^ 'Word32'
-  | VPWord64   Word64   -- ^ 'Word64'
-  | VPBool    Bool -- ^ 'Bool'
-  | VPFloat  Float -- ^ 'Float'
-  | VPDouble Double -- ^ 'Double'
-  | VPScientific Scientific -- ^ 'Scientific'
-  | VPChar   Char -- ^ 'Char'
-  | VPString String -- ^ 'String'
-  | VPText   Text -- ^ 'Text'
-  | VPOH     (OneHot Int)  -- ^ 1-hot encoding of an enum value
-  deriving (Eq, Show, G.Generic)
+     VPInt    Int    -- ^ 'Int'
+   | VPInt8   Int8  -- ^ 'Int8'
+   | VPInt16   Int16  -- ^ 'Int16'
+   | VPInt32   Int32 -- ^ 'Int32'
+   | VPInt64   Int64 -- ^ 'Int64'
+   | VPWord   Word   -- ^ 'Word'
+   | VPWord8   Word8  -- ^ 'Word8'
+   | VPWord16   Word16 -- ^ 'Word16'
+   | VPWord32   Word32 -- ^ 'Word32'
+   | VPWord64   Word64   -- ^ 'Word64'
+   | VPBool    Bool -- ^ 'Bool'
+   | VPFloat  Float -- ^ 'Float'
+   | VPDouble Double -- ^ 'Double'
+   | VPScientific Scientific -- ^ 'Scientific'
+   | VPChar   Char -- ^ 'Char'
+   | VPString String -- ^ 'String'
+   | VPText   Text -- ^ 'Text'
+   | VPOH     (OneHot Int)  -- ^ 1-hot encoding of an enum value
+   deriving (Eq, G.Generic)
 instance Hashable VP
+
+instance Show VP where
+  show = \case
+    VPInt x -> show x
+    VPInt8 x -> show x
+    VPInt16 x -> show x
+    VPInt32 x -> show x
+    VPInt64 x -> show x
+    VPWord x -> show x
+    VPWord8 x -> show x
+    VPWord16 x -> show x
+    VPWord32 x -> show x
+    VPWord64 x -> show x
+    VPBool b   -> show b
+    VPFloat f -> show f
+    VPDouble d -> show d
+    VPScientific s -> show s
+    VPChar d -> pure d
+    VPString s -> s
+    VPText t -> unpack t
+    VPOH oh -> show oh
 
 -- | Extract an Int
 getInt :: VP -> Maybe Int

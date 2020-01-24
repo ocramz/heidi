@@ -49,7 +49,7 @@ scientificM =
   scientific <|>
   (fromFloatDigits . fromIntegral <$> int) <|>
   (fromFloatDigits <$> double)             <|>
-  (fromFloatDigits <$> float)             
+  (fromFloatDigits <$> float)
 
 -- | Decode a string ('String' or 'Text') into a Text
 textM :: (Alternative m, MonadThrow m) => Decode m VP T.Text

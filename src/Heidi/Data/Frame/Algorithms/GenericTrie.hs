@@ -15,9 +15,9 @@ module Heidi.Data.Frame.Algorithms.GenericTrie (
   -- ** Filtering 
   -- , filterByKey
   -- ** Data tidying
-  , spread, gather
+  , spreadWith, gatherWith
   -- ** Relational operations
-  , groupBy, innerJoin, leftOuterJoin  
+  , groupBy, innerJoin, leftOuterJoin
                                            ) where
 
 import Data.Maybe (fromMaybe)
@@ -87,15 +87,15 @@ unionColsWith f = zipWith (GTR.unionWith f)
 
 -- * Data tidying
 
--- | 'gather' moves column names into a "key" column, gathering the column values into a single "value" column
-gather :: (Foldable t, Ord k, GT.TrieKey k) =>
-          (k -> v)
-       -> S.Set k     -- ^ set of keys to gather
-       -> k           -- ^ "key" key           
-       -> k           -- ^ "value" key
-       -> t (GTR.Row k v) -- ^ input dataframe
-       -> Frame (GTR.Row k v)
-gather fk ks kKey kValue = fromList . F.foldMap f where
+-- | 'gatherWith' moves column names into a "key" column, gathering the column values into a single "value" column
+gatherWith :: (Foldable t, Ord k, GT.TrieKey k) =>
+              (k -> v)
+           -> S.Set k     -- ^ set of keys to gather
+           -> k           -- ^ "key" key           
+           -> k           -- ^ "value" key
+           -> t (GTR.Row k v) -- ^ input dataframe
+           -> Frame (GTR.Row k v)
+gatherWith fk ks kKey kValue = fromList . F.foldMap f where
   f row = gather1 fk ks row kKey kValue
 
 -- | gather one row into a list of rows
@@ -122,14 +122,14 @@ gather1 fk ks row kKey kValue = fromMaybe [] $ F.foldlM insf [] ks where
 
 
 
--- | 'spread' moves the unique values of a key column into the column names, spreading the values of a value column across the new columns.
-spread :: (GT.TrieKey k, Foldable t, Ord k, Ord v) =>
-          (v -> k)
-       -> k   -- ^ "key" key
-       -> k   -- ^ "value" key
-       -> t (GTR.Row k v)  -- ^ input dataframe
-       -> Frame (GTR.Row k v)
-spread fk k1 k2 = fromList . map funion . M.toList . F.foldl' (spread1 fk k1 k2) M.empty
+-- | 'spreadWith' moves the unique values of a key column into the column names, spreading the values of a value column across the new columns.
+spreadWith :: (GT.TrieKey k, Foldable t, Ord k, Ord v) =>
+              (v -> k)
+           -> k   -- ^ "key" key
+           -> k   -- ^ "value" key
+           -> t (GTR.Row k v)  -- ^ input dataframe
+           -> Frame (GTR.Row k v)
+spreadWith fk k1 k2 = fromList . map funion . M.toList . F.foldl' (spread1 fk k1 k2) M.empty
   where
     funion (km, vm) = GTR.union km vm
   

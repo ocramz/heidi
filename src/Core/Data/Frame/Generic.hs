@@ -82,8 +82,8 @@ gToFrameHM :: (MonadThrow m, Foldable t, Heidi a) =>
               t a
            -> m (FL.Frame (HMR.Row [TC] VP))
 gToFrameHM ds
-  | null ds = throwM NoDataE 
-  | otherwise = pure $ FL.fromList $ map gToRowHM $ F.toList ds
+  | null ds = throwM NoDataE
+  | otherwise = pure $ gToFrameWith gToRowHM ds
 
 
 -- | Populate a 'Frame' with the generic encoding of the row data and throws a 'DataException' if the input data is malformed.
@@ -117,8 +117,8 @@ gToFrameGT :: (MonadThrow m, Foldable t, Heidi a) =>
               t a
            -> m (FL.Frame (GTR.Row [TC] VP))
 gToFrameGT ds
-  | null ds = throwM NoDataE 
-  | otherwise = pure $ FL.fromList $ map gToRowGT $ F.toList ds  
+  | null ds = throwM NoDataE
+  | otherwise = pure $ gToFrameWith gToRowGT ds
 
 -- | Populate a 'Row' with a generic encoding of the input value (hashmap backend)
 gToRowHM :: Heidi a => a -> HMR.Row [TC] VP
@@ -127,6 +127,9 @@ gToRowHM = HMR.mkRow . gflattenHM
 -- | Populate a 'Row' with a generic encoding of the input value (generic-trie backend)
 gToRowGT :: Heidi a => a -> GTR.Row [TC] VP
 gToRowGT = GTR.mkRow . gflattenGT
+
+gToFrameWith :: Foldable t => (a -> row) -> t a -> FL.Frame row
+gToFrameWith f = FL.fromList . map f . F.toList
 
 -- | Exceptions related to the input data
 data DataException =

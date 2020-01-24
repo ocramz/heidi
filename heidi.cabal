@@ -28,7 +28,8 @@ library
                   Heidi.Data.Row.GenericTrie
                   Heidi.Data.Row.HashMap
                   Heidi.Data.Frame.Algorithms.HashMap
-                  Heidi.Data.Frame.Algorithms.GenericTrie                    
+                  Heidi.Data.Frame.Algorithms.GenericTrie
+                  Heidi.Data.Frame.Algorithms.GenericTrie.Generic                  
                   Data.Generics.Codec
   other-modules:
                 Data.Generics.Encode.OneHot
