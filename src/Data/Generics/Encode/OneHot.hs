@@ -47,10 +47,16 @@ mkOH di sop = oneHot where
 -- | 1-hot encoded vector.
 --
 -- This representation is used to encode categorical variables as points in a vector space.
-data OneHot i = OH { ohDim :: i, ohIx :: i } deriving (Eq, G.Generic)
+data OneHot i = OH {
+  ohDim :: i -- ^ Dimensionality of the ambient space
+  , ohIx :: i  -- ^ index of '1'
+  } deriving (Eq, G.Generic)
 instance Hashable i => Hashable (OneHot i)
 instance Show i => Show (OneHot i) where
   show (OH od oi) = concat ["OH_", show od, "_", show oi]
+-- instance Eq i => Ord (OneHot i) where
+--   (OH d )
+  
 
 -- | Embedding dimension of the 1-hot encoded vector
 onehotDim :: OneHot i -> i
