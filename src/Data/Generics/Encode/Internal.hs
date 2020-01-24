@@ -119,11 +119,21 @@ flattenGT = flatten GT.empty GT.insert
 
 flatten :: t -> ([TC] -> VP -> t -> t) -> Val -> t
 flatten z insf = go ([], z) where
-  insRev ks = insf (reverse ks)  
+  insRev ks = insf (reverse ks)
   go (ks, hmacc) = \case
     VRec ty hm     -> HM.foldlWithKey' (\hm' k t -> go (TC ty k : ks, hm') t) hmacc hm
     VEnum ty cn oh -> insRev (TC ty cn : ks) (VPOH oh) hmacc
     VPrim vp       -> insRev ks vp hmacc
+
+
+
+-- flatten' z insf = go ([], z) where
+--   insRev ks = insf (reverse ks)
+--   go (ks, hmacc) = \case
+--     VRec ty hm     -> HM.foldlWithKey' (\hm' k t -> go (TC ty k : ks, hm') t) hmacc hm
+--     -- VEnum ty cn oh -> insRev (TC ty cn : ks) (VPOH oh) hmacc
+--     -- VPrim vp       -> insRev ks vp hmacc
+
 
 
 -- | Primitive types
@@ -282,18 +292,18 @@ data TypeError =
   | Word8CastE
   | Word16CastE
   | Word32CastE
-  | Word64CastE     
+  | Word64CastE
   | BoolCastE
   | CharCastE
   | StringCastE
   | TextCastE
   | OneHotCastE
   deriving (Show, Eq, Typeable)
-instance Exception TypeError 
+instance Exception TypeError
 
 
 -- | Internal representation of encoded ADTs values
--- 
+--
 -- The first String parameter contains the type name at the given level, the second contains the type constructor name
 data Val =
     VRec   String        (HM.HashMap String Val) -- ^ recursion
@@ -328,7 +338,7 @@ sopHeidi di sop@(SOP xss) = hcollapse $ hcliftA2
   where
      tyName = datatypeName di
      oneHot = mkOH di sop
-     
+
 mkVal :: All Heidi xs =>
          ConstructorInfo xs -> NP I xs -> DatatypeName -> OneHot Int -> Val
 mkVal cinfo xs tyn oh = case cinfo of

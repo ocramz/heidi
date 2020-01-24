@@ -7,7 +7,7 @@ bug-reports:    https://github.com/ocramz/heidi/issues
 author:         Marco Zocca
 maintainer:     Marco Zocca
 license:        MIT
-copyright:      (c) 2019, Marco Zocca
+copyright:      (c) 2019-2020, Marco Zocca
 category:       Generics, Data, Data Science
 build-type:     Simple
 cabal-version:  1.12
