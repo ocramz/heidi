@@ -112,7 +112,7 @@ gatherWith fk ks kKey kValue = fromList . F.foldMap f where
 -- | gather one row into a list of rows
 gather1 :: (Ord k, GT.TrieKey k) =>
            (k -> v)
-        -> S.Set k     
+        -> S.Set k
         -> GTR.Row k v -- ^ row to look into
         -> k           -- ^ "key" key
         -> k           -- ^ "value" key

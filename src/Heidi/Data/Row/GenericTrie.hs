@@ -196,7 +196,10 @@ filterWithKey :: GT.TrieKey k => (k -> v -> Bool) -> Row k v -> Row k v
 filterWithKey ff (Row gt) = Row $ GT.filterWithKey ff gt
 
 filterWithKeyPrefix :: (GT.TrieKey a, Eq a) => [a] -> Row [a] v -> Row [a] v
-filterWithKeyPrefix kpre (Row gt) = Row $ GT.filterWithKey (\k _ -> kpre `isPrefixOf` k) gt
+filterWithKeyPrefix kpre = filterWithKey (\k _ -> kpre `isPrefixOf` k)
+
+filterWithKeyAny :: (GT.TrieKey a, Eq a) => a -> Row [a] v -> Row [a] v
+filterWithKeyAny kany = filterWithKey (\k _ -> kany `elem` k)
 
 -- | Produce a new 'Row' such that its keys do _not_ belong to a certain set.
 removeKnownKeys :: (GT.TrieKey k, Ord k) => S.Set k -> Row k v -> Row k v
