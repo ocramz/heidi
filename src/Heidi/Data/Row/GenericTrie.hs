@@ -155,14 +155,15 @@ oneHot k = at k . _Just . vpOneHot
 --
 -- e.g.
 --
--- >>> foldMany (+) int 0 :: (Foldable t, GT.TrieKey k) => Row k VP -> t k -> Maybe Int
-foldMany :: Foldable t => (b -> a -> b)
-         -> (k -> Getting (First a) s a) -- ^ colum decoder
+-- >>> foldMany (+) 0 int :: (Foldable t, GT.TrieKey k) => t k -> Row k VP -> Maybe Int
+foldMany :: Foldable t =>
+            (b -> a -> b)
          -> b
-         -> s
+         -> (k -> Getting (First a) s a) -- ^ column decoder
          -> t k
+         -> s
          -> Maybe b
-foldMany op getter ks r = foldM (\acc k -> op acc <$> r ^? getter k) ks
+foldMany op z getter ks r = foldM (\acc k -> op acc <$> r ^? getter k) z ks
 
 
 -- | Lift a binary function to act on the decoded contents of a row at the given two column indices
