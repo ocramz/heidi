@@ -30,7 +30,7 @@ module Heidi.Data.Row.GenericTrie (
   , toList, keys
   -- * Filtering
   , delete, filterWithKey, filterWithKeyPrefix, filterWithKeyAny
-  , removeKnownKeys
+  , deleteMany
   -- -- ** Decoders
   -- , real, scientific, text, string, oneHot
   -- * Lookup
@@ -120,6 +120,22 @@ at k f m = f mv <&> \case
     Just v' -> insert k v' m
     where mv = lookup k m
 {-# INLINABLE at #-}
+
+-- | atPrefix : a Lens' that takes a key prefix and relates a row having lists as keys and the subset of columns corresponding to keys having that prefix
+--
+-- atPrefix :: [a] -> Lens' (Row [a] v) [v]
+
+-- atPrefix :: (Functor f, GT.TrieKey a, Eq a) =>
+--             [a] -> (Maybe v -> f (Maybe v)) -> Row [a] v -> f (Row [a] v)
+atPrefix k f m = \case
+  [] -> case keys mv of
+    [] -> m
+    ks -> deleteMany ks m
+  -- vs -> insertMany k vs m
+  where
+    mv = filterWithKeyPrefix k m
+
+
 
 -- ** Lenses
 
@@ -261,6 +277,11 @@ delete :: GT.TrieKey k =>
        -> Row k v
 delete k (Row gt) = Row $ GT.delete k gt
 
+-- | Produce a new 'Row' such that its keys do _not_ belong to a certain set.
+deleteMany :: (GT.TrieKey k, Foldable t) => t k -> Row k v -> Row k v
+deleteMany ks r = foldl (flip delete) r ks
+
+
 
 -- | Filter a row by applying a predicate to its keys and corresponding elements.
 --
@@ -275,10 +296,6 @@ filterWithKeyPrefix kpre = filterWithKey (\k _ -> kpre `isPrefixOf` k)
 filterWithKeyAny :: (GT.TrieKey a, Eq a) => a -> Row [a] v -> Row [a] v
 filterWithKeyAny kany = filterWithKey (\k _ -> kany `elem` k)
 
--- | Produce a new 'Row' such that its keys do _not_ belong to a certain set.
-removeKnownKeys :: (GT.TrieKey k, Ord k) => S.Set k -> Row k v -> Row k v
-removeKnownKeys ks = filterWithKey f where
-  f k _ = not $ S.member k ks
 
 
 

@@ -118,7 +118,7 @@ gather1 :: (Ord k, GT.TrieKey k) =>
         -> k           -- ^ "value" key
         -> [GTR.Row k v]
 gather1 fk ks row kKey kValue = fromMaybe [] $ F.foldlM insf [] ks where
-  rowBase = GTR.removeKnownKeys ks row
+  rowBase = GTR.deleteMany ks row
   lookupInsert k = do
     x <- GTR.lookup k row
     let 
@@ -128,7 +128,7 @@ gather1 fk ks row kKey kValue = fromMaybe [] $ F.foldlM insf [] ks where
   insf acc k = do
     r' <- lookupInsert k
     pure $ r' : acc
-{-# inline gather1 #-}    
+{-# inline gather1 #-}
 
 
 
@@ -154,7 +154,7 @@ spread1 :: (Ord k, Ord v, GT.TrieKey k, Eq k) =>
         -> M.Map (GTR.Row k v) (GTR.Row k v)
 spread1 fk k1 k2 hmacc row = M.insert rowBase kvNew hmacc where
   ks = S.fromList [k1, k2]
-  rowBase = GTR.removeKnownKeys ks row
+  rowBase = GTR.deleteMany ks row
   hmv = GTR.maybeEmpty $ M.lookup rowBase hmacc
   kvNew = GTR.maybeEmpty $ do
     k <- GTR.lookup k1 row

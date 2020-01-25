@@ -141,11 +141,11 @@ gflattenGT :: Heidi a => a -> GT.Trie [TC] VP
 gflattenGT = flattenGT . toVal
 
 
--- | Commands for manipulating lists of TC's
-data TCAlg = TCAnyTyCon String -- ^ Matches any type constructor name
-           | TCFirstTyCon String -- ^ " first type constructor name
-           | TCAnyTyN String -- ^ " any type name
-           | TCFirstTyN String -- ^ first type name
+-- -- | Commands for manipulating lists of TC's
+-- data TCAlg = TCAnyTyCon String -- ^ Matches any type constructor name
+--            | TCFirstTyCon String -- ^ " first type constructor name
+--            | TCAnyTyN String -- ^ " any type name
+--            | TCFirstTyN String -- ^ first type name
 
 
 -- | A (type, constructor) name pair
