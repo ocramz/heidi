@@ -29,11 +29,14 @@ module Heidi.Data.Row.GenericTrie (
   -- * Access
   , toList, keys
   -- * Filtering
-  , delete, filterWithKey, filterWithKeyPrefix, removeKnownKeys
-  -- ** Decoders
-  , real, scientific, text, string, oneHot
+  , delete, filterWithKey, filterWithKeyPrefix, filterWithKeyAny
+  , removeKnownKeys
+  -- -- ** Decoders
+  -- , real, scientific, text, string, oneHot
   -- * Lookup
-  , lookup, lookupThrowM, (!:), elemSatisfies
+  , lookup
+  -- , lookupThrowM
+  , (!:), elemSatisfies
   -- ** Lookup utilities
   , maybeEmpty
   -- ** Comparison by lookup
@@ -46,36 +49,42 @@ module Heidi.Data.Row.GenericTrie (
   , foldWithKey
   -- * Traversals  
   , traverseWithKey
+  -- * Lenses
+  , int, bool, float, double, char, string, text, scientific, oneHot
   ) where
 
+import Control.Monad (foldM)
 import Data.List (isPrefixOf)
 import Data.Maybe (fromMaybe)
+import Data.Monoid (First)
+import Data.Semigroup (Endo)
 import Data.Typeable (Typeable)
 import Control.Applicative (Alternative(..))
 import qualified Data.Foldable as F
 -- import Control.Monad (filterM)
-import Control.Monad.Catch(MonadThrow(..))
+
+-- containers
+import qualified Data.Set as S (Set, member)
+-- generic-trie
+import qualified Data.GenericTrie as GT
+-- exceptions
+import Control.Monad.Catch (MonadThrow(..))
+-- microlens
+import Lens.Micro (Lens', Traversal', (<&>), _Just, (^.), (^..), (^?), Getting, traversed)
+-- -- microlens-th
+-- import Lens.Micro.TH (makeLenses)
+-- scientific
 import Data.Scientific (Scientific)
 -- text
 import Data.Text (Text)
--- containers
-import qualified Data.Set as S (Set, member)
-
--- generic-trie
-import qualified Data.GenericTrie as GT
-
--- microlens
-import Lens.Micro (Lens', (<&>))
--- -- microlens-th
--- import Lens.Micro.TH (makeLenses)
 
 
-import qualified Data.Generics.Decode as D (Decode, mkDecode)
-import Data.Generics.Decode ((>>>))
-import Data.Generics.Encode.Internal (VP)
+-- import qualified Data.Generics.Decode as D (Decode, mkDecode)
+-- import Data.Generics.Decode ((>>>))
+import Data.Generics.Encode.Internal (VP, vpInt, vpFloat, vpDouble, vpString, vpChar, vpText, vpBool, vpScientific, vpOneHot)
 import Data.Generics.Encode.OneHot (OneHot)
-import Data.Generics.Codec
-import Core.Data.Row.Internal (KeyError(..))
+-- import Data.Generics.Codec
+-- import Core.Data.Row.Internal (KeyError(..))
 
 import Prelude hiding (lookup)
 
@@ -107,6 +116,54 @@ at k f m = f mv <&> \case
     Nothing -> maybe m (const (delete k m)) mv
     Just v' -> insert k v' m
     where mv = lookup k m
+{-# INLINABLE at #-}
+
+-- ** Lenses
+
+-- | Decode a 'Bool' from the given column index
+bool :: GT.TrieKey k => k -> Traversal' (Row k VP) Bool
+bool k = at k . _Just . vpBool
+-- | Decode a 'Int' from the given column index
+int :: GT.TrieKey k => k -> Traversal' (Row k VP) Int
+int k = at k . _Just . vpInt
+-- | Decode a 'Float' from the given column index
+float :: GT.TrieKey k => k -> Traversal' (Row k VP) Float
+float k = at k . _Just . vpFloat
+-- | Decode a 'Double' from the given column index
+double :: GT.TrieKey k => k -> Traversal' (Row k VP) Double
+double k = at k . _Just . vpDouble
+-- | Decode a 'Char' from the given column index
+char :: GT.TrieKey k => k -> Traversal' (Row k VP) Char
+char k = at k . _Just . vpChar
+-- | Decode a 'String' from the given column index
+string :: GT.TrieKey k => k -> Traversal' (Row k VP) String
+string k = at k . _Just . vpString
+-- | Decode a 'Text' from the given column index
+text :: GT.TrieKey k => k -> Traversal' (Row k VP) Text
+text k = at k . _Just . vpText
+-- | Decode a 'Scientific' from the given column index
+scientific :: GT.TrieKey k => k -> Traversal' (Row k VP) Scientific
+scientific k = at k . _Just . vpScientific
+-- | Decode a 'OneHot' from the given column index
+oneHot :: GT.TrieKey k => k -> Traversal' (Row k VP) (OneHot Int)
+oneHot k = at k . _Just . vpOneHot
+
+liftRowMany getter r = traverse (\k -> r ^? getter k)
+
+-- | 
+--
+-- liftRow2 int :: GT.TrieKey k =>
+--    (Int -> Int -> b) -> Row k VP -> k -> k -> Maybe b
+liftRow2 :: (t -> Getting (First a) s a)
+         -> (a -> a -> b)
+         -> s
+         -> t
+         -> t
+         -> Maybe b
+liftRow2 getter f r k1 k2 = f <$> r ^? getter k1 <*> r ^? getter k2
+
+
+
 
 -- | Construct a 'Row' from a list of key-element pairs.
 --
@@ -165,10 +222,10 @@ eqByLookups :: (Foldable t, GT.TrieKey k, Eq k, Eq a) =>
 eqByLookups ks r1 r2 = F.foldlM insf True ks where
   insf b k = (&&) <$> pure b <*> eqByLookup k r1 r2
 
--- | Like 'lookup', but throws a 'KeyError' if the lookup is unsuccessful
-lookupThrowM :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k) =>
-                k -> Row k v -> m v
-lookupThrowM k r = maybe (throwM $ MissingKeyError k) pure (lookup k r)
+-- -- | Like 'lookup', but throws a 'KeyError' if the lookup is unsuccessful
+-- lookupThrowM :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k) =>
+--                 k -> Row k v -> m v
+-- lookupThrowM k r = maybe (throwM $ MissingKeyError k) pure (lookup k r)
 
 -- | Returns an empty row if the argument is Nothing.
 maybeEmpty :: GT.TrieKey k => Maybe (Row k v) -> Row k v
@@ -276,49 +333,49 @@ elemSatisfies f k row = maybe False f (lookup k row)
 (!:) :: (GT.TrieKey k) => k -> (a -> Bool) -> Row k a -> Bool
 k !: f = elemSatisfies f k 
 
--- | Lookup a value from a Row indexed at the given key (returns in a MonadThrow type)
-lookupColM :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k) =>
-              k -> D.Decode m (Row k o) o
-lookupColM k = D.mkDecode (lookupThrowM k)
+-- -- | Lookup a value from a Row indexed at the given key (returns in a MonadThrow type)
+-- lookupColM :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k) =>
+--               k -> D.Decode m (Row k o) o
+-- lookupColM k = D.mkDecode (lookupThrowM k)
 
--- -- | Lookup a value from a Row indexed at the given key (returns in the Maybe monad)
--- lookupCol :: GT.TrieKey k => k -> D.Decode Maybe (Row k o) o
--- lookupCol k = D.mkDecode (lookup k)
-
-
-
-
-
--- * Decoders
-
--- | Lookup and decode a real number
-real :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k, Alternative m) =>
-        k -> D.Decode m (Row k VP) Double
-real k = lookupColM k >>> realM
-
--- | Lookup and decode a real 'Scientific' value
-scientific :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k, Alternative m) =>
-              k -> D.Decode m (Row k VP) Scientific
-scientific k = lookupColM k >>> scientificM
-
--- | Lookup and decode a text string (defaults to Text)
-text :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k, Alternative m) =>
-        k -> D.Decode m (Row k VP) Text
-text k = lookupColM k >>> textM
-
--- | Lookup and decode a text string (defaults to 'String')
-string :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k, Alternative m) =>
-          k -> D.Decode m (Row k VP) String
-string k = lookupColM k >>> stringM
-
--- | Lookup and decode a one-hot encoded enum
-oneHot :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k) =>
-          k -> D.Decode m (Row k VP) (OneHot Int)
-oneHot k = lookupColM k >>> oneHotM
+-- -- -- | Lookup a value from a Row indexed at the given key (returns in the Maybe monad)
+-- -- lookupCol :: GT.TrieKey k => k -> D.Decode Maybe (Row k o) o
+-- -- lookupCol k = D.mkDecode (lookup k)
 
 
 
 
--- spork k1 k2 = (>) <$> real k1 <*> real k2
+
+-- -- * Decoders
+
+-- -- | Lookup and decode a real number
+-- real :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k, Alternative m) =>
+--         k -> D.Decode m (Row k VP) Double
+-- real k = lookupColM k >>> realM
+
+-- -- | Lookup and decode a real 'Scientific' value
+-- scientific :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k, Alternative m) =>
+--               k -> D.Decode m (Row k VP) Scientific
+-- scientific k = lookupColM k >>> scientificM
+
+-- -- | Lookup and decode a text string (defaults to Text)
+-- text :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k, Alternative m) =>
+--         k -> D.Decode m (Row k VP) Text
+-- text k = lookupColM k >>> textM
+
+-- -- | Lookup and decode a text string (defaults to 'String')
+-- string :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k, Alternative m) =>
+--           k -> D.Decode m (Row k VP) String
+-- string k = lookupColM k >>> stringM
+
+-- -- | Lookup and decode a one-hot encoded enum
+-- oneHot :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k) =>
+--           k -> D.Decode m (Row k VP) (OneHot Int)
+-- oneHot k = lookupColM k >>> oneHotM
+
+
+
+
+-- -- spork k1 k2 = (>) <$> real k1 <*> real k2
 
 

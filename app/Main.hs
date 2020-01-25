@@ -16,44 +16,10 @@ import Control.Monad.Catch
 -- import qualified Core.Data.Row.HashMap as HMR
 import qualified Heidi.Data.Row.GenericTrie as GTR
 -- import Data.Generics.Encode.Internal (HasGE, TC, VP)
-import Heidi
+import Heidi (Heidi(..), Frame, TC, VP, gToFrameGT)
 import Heidi.Data.Frame.Algorithms.GenericTrie (innerJoin)
 
 import Prelude hiding (filter, lookup)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 -- | Item
@@ -91,17 +57,17 @@ gItems = gToFrameGT items
 gPurchases = gToFrameGT purchases
 
 
-noLegal :: (MonadThrow f, Alternative f) =>
-           String
-        -> Frame (GTR.Row [TC] VP)
-        -> f (Frame (GTR.Row [TC] VP))
-noLegal k = filterDecode dec where
-  dec = (/= "legal") <$> GTR.text (keyN k)   -- FIXME : how to zoom in on 
+-- noLegal :: (MonadThrow f, Alternative f) =>
+--            String
+--         -> Frame (GTR.Row [TC] VP)
+--         -> f (Frame (GTR.Row [TC] VP))
+-- noLegal k = filterDecode dec where
+--   dec = (/= "legal") <$> GTR.text (keyN k)   -- FIXME : how to zoom in on
 
-keyN, keyTyC :: String -> [TC]
-keyN k = [mkTyN k] 
+-- keyN, keyTyC :: String -> [TC]
+-- keyN k = [mkTyN k] 
 
-keyTyC k = [mkTyCon k]
+-- keyTyC k = [mkTyCon k]
 
 
 -- joinTables = innerJoin k1 k2 where
