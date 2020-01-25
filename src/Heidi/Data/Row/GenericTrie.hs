@@ -51,6 +51,8 @@ module Heidi.Data.Row.GenericTrie (
   , traverseWithKey
   -- * Lenses
   , int, bool, float, double, char, string, text, scientific, oneHot
+  -- ** Combinators
+  , liftRow2, foldMany
   ) where
 
 import Control.Monad (foldM)
@@ -148,19 +150,31 @@ scientific k = at k . _Just . vpScientific
 oneHot :: GT.TrieKey k => k -> Traversal' (Row k VP) (OneHot Int)
 oneHot k = at k . _Just . vpOneHot
 
-liftRowMany getter r = traverse (\k -> r ^? getter k)
 
--- | 
+-- | Fold over a collection of items using the given binary function and "getter" (e.g. column decoder)
 --
--- liftRow2 int :: GT.TrieKey k =>
---    (Int -> Int -> b) -> Row k VP -> k -> k -> Maybe b
-liftRow2 :: (t -> Getting (First a) s a)
-         -> (a -> a -> b)
+-- e.g.
+--
+-- >>> foldMany (+) int 0 :: (Foldable t, GT.TrieKey k) => Row k VP -> t k -> Maybe Int
+foldMany :: Foldable t => (b -> a -> b)
+         -> (k -> Getting (First a) s a) -- ^ colum decoder
+         -> b
          -> s
-         -> t
-         -> t
+         -> t k
          -> Maybe b
-liftRow2 getter f r k1 k2 = f <$> r ^? getter k1 <*> r ^? getter k2
+foldMany op getter ks r = foldM (\acc k -> op acc <$> r ^? getter k) ks
+
+
+-- | Lift a binary function to act on the decoded contents of a row at the given two column indices
+--
+-- >>> liftRow2 (+) int :: GT.TrieKey k => Row k VP -> k -> k -> Maybe Int
+liftRow2 :: (a -> a -> b)
+         -> (k -> Getting (First a) s a) -- ^ column decoder
+         -> s
+         -> k
+         -> k
+         -> Maybe b
+liftRow2 f getter r k1 k2 = f <$> r ^? getter k1 <*> r ^? getter k2
 
 
 
