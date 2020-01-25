@@ -113,6 +113,7 @@ instance (GT.TrieKey k, Eq k, Eq v) => Eq (Row k v) where
 instance (GT.TrieKey k, Eq k, Eq v, Ord k, Ord v) => Ord (Row k v) where
   r1 <= r2 = toList r1 <= toList r2
 
+-- | Focus on a given colum 
 at :: GT.TrieKey k => k -> Lens' (Row k a) (Maybe a)
 at k f m = f mv <&> \case
     Nothing -> maybe m (const (delete k m)) mv
@@ -267,9 +268,10 @@ delete k (Row gt) = Row $ GT.delete k gt
 filterWithKey :: GT.TrieKey k => (k -> v -> Bool) -> Row k v -> Row k v
 filterWithKey ff (Row gt) = Row $ GT.filterWithKey ff gt
 
+-- | Retains the entries for which the given list is a prefix of the indexing key
 filterWithKeyPrefix :: (GT.TrieKey a, Eq a) => [a] -> Row [a] v -> Row [a] v
 filterWithKeyPrefix kpre = filterWithKey (\k _ -> kpre `isPrefixOf` k)
-
+-- | Retains the entries for which the given item appears at any position in the indexing key
 filterWithKeyAny :: (GT.TrieKey a, Eq a) => a -> Row [a] v -> Row [a] v
 filterWithKeyAny kany = filterWithKey (\k _ -> kany `elem` k)
 
