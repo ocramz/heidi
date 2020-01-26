@@ -16,7 +16,7 @@ import Control.Monad.Catch
 -- import qualified Core.Data.Row.HashMap as HMR
 import qualified Heidi.Data.Row.GenericTrie as GTR
 -- import Data.Generics.Encode.Internal (HasGE, TC, VP)
-import Heidi (Heidi(..), Frame, TC, VP, gToFrameGT)
+import Heidi (Heidi, Frame, TC, VP, gToFrameGT)
 import Heidi.Data.Frame.Algorithms.GenericTrie (innerJoin)
 
 import Prelude hiding (filter, lookup)
