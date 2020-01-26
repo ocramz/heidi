@@ -1,11 +1,6 @@
-{-# language
-    DataKinds
-  , FlexibleContexts
-  , GADTs 
-  , LambdaCase 
-  , TypeOperators
-  , ScopedTypeVariables
-#-}
+{-# language DeriveGeneric #-}
+{-# language LambdaCase #-}
+
 {-# OPTIONS_GHC -Wall #-}
 -----------------------------------------------------------------------------
 -- |
@@ -32,12 +27,16 @@ module Core.Data.Frame.Generic (
 import qualified Data.Foldable as F (toList)
 import Data.Typeable (Typeable)
 import Control.Exception (Exception(..))
+import GHC.Generics (Generic(..))
+-- exceptions
 import Control.Monad.Catch (MonadThrow(..))
+-- microlens
+import Lens.Micro (toListOf)
 
 import qualified Core.Data.Frame.List as FL (Frame, fromList)
 import qualified Heidi.Data.Row.HashMap as HMR (Row, mkRow)
 import qualified Heidi.Data.Row.GenericTrie as GTR (Row, mkRow)
-import Data.Generics.Encode.Internal (gflattenHM, gflattenGT, Heidi, TC, VP)
+import Data.Generics.Encode.Internal (gflattenHM, gflattenGT, Heidi(..), TC(..), VP)
 
 
 -- $setup
@@ -140,3 +139,26 @@ instance Show DataException where
     NoDataE -> "The dataset has 0 rows"
 instance Exception DataException
 
+
+
+
+
+
+-- example data
+
+{-
+λ> gToRowGT $ B (A 42 'z') "moo"
+[
+ ([TC "B" "b1" ,TC "A" "a1" ], 42)
+,([TC "B" "b1" ,TC "A" "a2"],  z)
+,([TC "B" "b2"],               moo)
+]
+-}
+
+
+
+data A = A { a1 :: Int, a2 :: Char } deriving (Eq, Show, Generic)
+instance Heidi A
+
+data B = B { b1 :: A, b2 :: String } deriving (Eq, Show, Generic)
+instance Heidi B

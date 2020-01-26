@@ -1,4 +1,3 @@
-
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Heidi.Data.Frame.Algorithms.GenericTrie
@@ -102,7 +101,7 @@ unionColsWith f = zipWith (GTR.unionWith f)
 gatherWith :: (Foldable t, Ord k, GT.TrieKey k) =>
               (k -> v)
            -> S.Set k     -- ^ set of keys to gather
-           -> k           -- ^ "key" key           
+           -> k           -- ^ "key" key
            -> k           -- ^ "value" key
            -> t (GTR.Row k v) -- ^ input dataframe
            -> Frame (GTR.Row k v)
@@ -121,7 +120,7 @@ gather1 fk ks row kKey kValue = fromMaybe [] $ F.foldlM insf [] ks where
   rowBase = GTR.deleteMany ks row
   lookupInsert k = do
     x <- GTR.lookup k row
-    let 
+    let
       r'  = GTR.insert kKey   (fk k) rowBase
       r'' = GTR.insert kValue x r'
     pure r''

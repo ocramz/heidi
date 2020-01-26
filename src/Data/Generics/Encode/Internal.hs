@@ -197,6 +197,114 @@ flatten z insf = go ([], z) where
 
 
 
+
+
+
+-- | Internal representation of encoded ADTs values
+--
+-- The first String parameter contains the type name at the given level, the second contains the type constructor name
+data Val =
+     VRec   String        (HM.HashMap String Val) -- ^ recursion
+   | VEnum  String String (OneHot Int)            -- ^ 1-hot encoding of an enum
+   | VPrim  VP                                    -- ^ primitive types
+   deriving (Eq, Show)
+
+
+-- | Typeclass for types which have a generic encoding.
+--
+-- NOTE: if your type has a 'G.Generic' instance you just need to declare an empty instance of 'Heidi' for it (a default implementation of 'toVal' is provided).
+--
+-- example:
+--
+-- @
+-- data A = A Int Char deriving ('G.Generic')
+-- instance 'Heidi' A
+-- @
+class Heidi a where
+  toVal :: a -> Val
+  default toVal ::
+    (G.Generic a, All2 Heidi (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
+  toVal x = sopHeidi (gdatatypeInfo (Proxy :: Proxy a)) (gfrom x)  
+
+
+sopHeidi :: All2 Heidi xss => DatatypeInfo xss -> SOP I xss -> Val
+sopHeidi di sop@(SOP xss) = hcollapse $ hcliftA2
+    (Proxy :: Proxy (All Heidi))
+    (\ci xs -> K (mkVal ci xs tyName oneHot))
+    (constructorInfo di)
+    xss
+  where
+     tyName = datatypeName di
+     oneHot = mkOH di sop
+
+mkVal :: All Heidi xs =>
+         ConstructorInfo xs -> NP I xs -> DatatypeName -> OneHot Int -> Val
+mkVal cinfo xs tyn oh = case cinfo of
+    Infix cn _ _  -> VRec cn $ mkAnonProd xs
+    Constructor cn
+      | null cns  -> VEnum tyn cn oh
+      | otherwise -> VRec cn  $ mkAnonProd xs
+    Record _ fi   -> VRec tyn $ mkProd fi xs
+  where
+    cns :: [Val]
+    cns = npHeidis xs
+
+mkProd :: All Heidi xs => NP FieldInfo xs -> NP I xs -> HM.HashMap String Val
+mkProd fi xs = HM.fromList $ hcollapse $ hcliftA2 (Proxy :: Proxy Heidi) mk fi xs where
+  mk :: Heidi v => FieldInfo v -> I v -> K (FieldName, Val) v
+  mk (FieldInfo n) (I x) = K (n, toVal x)
+
+mkAnonProd :: All Heidi xs => NP I xs -> HM.HashMap String Val
+mkAnonProd xs = HM.fromList $ zip labels cns where
+  cns = npHeidis xs
+
+npHeidis :: All Heidi xs => NP I xs -> [Val]
+npHeidis xs = hcollapse $ hcmap (Proxy :: Proxy Heidi) (mapIK toVal) xs
+
+-- | >>> take 3 labels
+-- ["_0","_1","_2"]
+labels :: [String]
+labels = map (('_' :) . show) [0 ..]
+
+
+-- instance Heidi () where toVal = VPrim VUnit
+instance Heidi Bool where toVal = VPrim . VPBool
+instance Heidi Int where toVal = VPrim . VPInt
+instance Heidi Int8 where toVal = VPrim . VPInt8
+instance Heidi Int16 where toVal = VPrim . VPInt16
+instance Heidi Int32 where toVal = VPrim . VPInt32
+instance Heidi Int64 where toVal = VPrim . VPInt64
+instance Heidi Word8 where toVal = VPrim . VPWord8
+instance Heidi Word16 where toVal = VPrim . VPWord16
+instance Heidi Word32 where toVal = VPrim . VPWord32
+instance Heidi Word64 where toVal = VPrim . VPWord64
+instance Heidi Float where toVal = VPrim . VPFloat
+instance Heidi Double where toVal = VPrim . VPDouble
+instance Heidi Scientific where toVal = VPrim . VPScientific
+instance Heidi Char where toVal = VPrim . VPChar
+instance Heidi String where toVal = VPrim . VPString
+instance Heidi Text where toVal = VPrim . VPText
+
+instance Heidi a => Heidi (Maybe a) where
+  toVal = \case
+    Nothing -> VRec "Maybe" HM.empty
+    Just x  -> VRec "Maybe" $ HM.singleton "Just" $ toVal x
+  
+instance (Heidi a, Heidi b) => Heidi (Either a b) where
+  toVal = \case
+    Left  l -> VRec "Either" $ HM.singleton "Left" $ toVal l
+    Right r -> VRec "Either" $ HM.singleton "Right" $ toVal r
+
+instance (Heidi a, Heidi b) => Heidi (a, b) where
+  toVal (x, y) = VRec "(,)" $ HM.fromList $ zip labels [toVal x, toVal y]
+
+instance (Heidi a, Heidi b, Heidi c) => Heidi (a, b, c) where
+  toVal (x, y, z) = VRec "(,,)" $ HM.fromList $ zip labels [toVal x, toVal y, toVal z] 
+
+
+
+
+
 -- | Extract an Int
 getInt :: VP -> Maybe Int
 getInt = \case {VPInt i -> Just i; _ -> Nothing}
@@ -317,110 +425,6 @@ data TypeError =
   | OneHotCastE
   deriving (Show, Eq, Typeable)
 instance Exception TypeError
-
-
--- | Internal representation of encoded ADTs values
---
--- The first String parameter contains the type name at the given level, the second contains the type constructor name
-data Val =
-    VRec   String        (HM.HashMap String Val) -- ^ recursion
-  | VEnum  String String (OneHot Int)            -- ^ 1-hot encoding of an enum
-  | VPrim  VP                                    -- ^ primitive types
-  deriving (Eq, Show)
-
-
--- | Typeclass for types which have a generic encoding.
---
--- NOTE: if your type has a 'G.Generic' instance you just need to declare an empty instance of 'Heidi' for it (a default implementation of 'toVal' is provided).
---
--- example:
---
--- @
--- data A = A Int Char deriving ('G.Generic')
--- instance 'Heidi' A
--- @
-class Heidi a where
-  toVal :: a -> Val
-  default toVal ::
-    (G.Generic a, All2 Heidi (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
-  toVal x = sopHeidi (gdatatypeInfo (Proxy :: Proxy a)) (gfrom x)  
-
-
-sopHeidi :: All2 Heidi xss => DatatypeInfo xss -> SOP I xss -> Val
-sopHeidi di sop@(SOP xss) = hcollapse $ hcliftA2
-    (Proxy :: Proxy (All Heidi))
-    (\ci xs -> K (mkVal ci xs tyName oneHot))
-    (constructorInfo di)
-    xss
-  where
-     tyName = datatypeName di
-     oneHot = mkOH di sop
-
-mkVal :: All Heidi xs =>
-         ConstructorInfo xs -> NP I xs -> DatatypeName -> OneHot Int -> Val
-mkVal cinfo xs tyn oh = case cinfo of
-    Infix cn _ _  -> VRec cn $ mkAnonProd xs
-    Constructor cn
-      | null cns  -> VEnum tyn cn oh
-      | otherwise -> VRec cn  $ mkAnonProd xs
-    Record _ fi   -> VRec tyn $ mkProd fi xs
-  where
-    cns :: [Val]
-    cns = npHeidis xs
-
-mkProd :: All Heidi xs => NP FieldInfo xs -> NP I xs -> HM.HashMap String Val
-mkProd fi xs = HM.fromList $ hcollapse $ hcliftA2 (Proxy :: Proxy Heidi) mk fi xs where
-  mk :: Heidi v => FieldInfo v -> I v -> K (FieldName, Val) v
-  mk (FieldInfo n) (I x) = K (n, toVal x)
-
-mkAnonProd :: All Heidi xs => NP I xs -> HM.HashMap String Val
-mkAnonProd xs = HM.fromList $ zip labels cns where
-  cns = npHeidis xs
-
-npHeidis :: All Heidi xs => NP I xs -> [Val]
-npHeidis xs = hcollapse $ hcmap (Proxy :: Proxy Heidi) (mapIK toVal) xs
-
--- | >>> take 3 labels
--- ["_0","_1","_2"]
-labels :: [String]
-labels = map (('_' :) . show) [0 ..]
-
-
--- instance Heidi () where toVal = VPrim VUnit
-instance Heidi Bool where toVal = VPrim . VPBool
-instance Heidi Int where toVal = VPrim . VPInt
-instance Heidi Int8 where toVal = VPrim . VPInt8
-instance Heidi Int16 where toVal = VPrim . VPInt16
-instance Heidi Int32 where toVal = VPrim . VPInt32
-instance Heidi Int64 where toVal = VPrim . VPInt64
-instance Heidi Word8 where toVal = VPrim . VPWord8
-instance Heidi Word16 where toVal = VPrim . VPWord16
-instance Heidi Word32 where toVal = VPrim . VPWord32
-instance Heidi Word64 where toVal = VPrim . VPWord64
-instance Heidi Float where toVal = VPrim . VPFloat
-instance Heidi Double where toVal = VPrim . VPDouble
-instance Heidi Scientific where toVal = VPrim . VPScientific
-instance Heidi Char where toVal = VPrim . VPChar
-instance Heidi String where toVal = VPrim . VPString
-instance Heidi Text where toVal = VPrim . VPText
-
-instance Heidi a => Heidi (Maybe a) where
-  toVal = \case
-    Nothing -> VRec "Maybe" HM.empty
-    Just x  -> VRec "Maybe" $ HM.singleton "Just" $ toVal x
-  
-instance (Heidi a, Heidi b) => Heidi (Either a b) where
-  toVal = \case
-    Left  l -> VRec "Either" $ HM.singleton "Left" $ toVal l
-    Right r -> VRec "Either" $ HM.singleton "Right" $ toVal r
-
-instance (Heidi a, Heidi b) => Heidi (a, b) where
-  toVal (x, y) = VRec "(,)" $ HM.fromList $ zip labels [toVal x, toVal y]
-
-instance (Heidi a, Heidi b, Heidi c) => Heidi (a, b, c) where
-  toVal (x, y, z) = VRec "(,,)" $ HM.fromList $ zip labels [toVal x, toVal y, toVal z] 
-
-
 
 
 

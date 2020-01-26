@@ -15,30 +15,7 @@
 --
 --
 -----------------------------------------------------------------------------
-module Core.Data.Row
-  (
-  Row
-  -- ,
-  -- -- * Construction
-  -- fromKVs,
-  -- -- ** (unsafe)
-  -- mkRow, 
-  -- -- * Update
-  -- insert, insertRowFun, insertRowFunM, 
-  -- -- * Access
-  -- toList, keys, elems,
-  -- -- ** Decoders
-  -- real, scientific, text, oneHot, 
-  -- -- * Lookup
-  -- lookup, lookupThrowM, lookupDefault, (!:), elemSatisfies, 
-  -- -- * Set operations
-  -- union, unionWith,
-  -- -- * Traversals
-  -- traverseWithKey,
-  -- -- * Key constraint
-  -- Key,
-  )
-  where
+module Core.Data.Row where
 
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as S
@@ -50,22 +27,22 @@ import Data.Generics.Encode.Internal (TC(..), VP(..))
 
 
 
-newtype GR = G { unGR :: GTR.Row [TC] VP }
+-- newtype GR = G { unGR :: GTR.Row [TC] VP }
 
-newtype HR = H { unHR :: HMR.Row [TC] VP }
+-- newtype HR = H { unHR :: HMR.Row [TC] VP }
 
-type K = [TC]
-type V = VP
+-- type K = [TC]
+-- type V = VP
 
-class Row r where
-  fromList :: [(K, V)] -> r
-  empty :: r
-  lookup :: K -> r -> Maybe V
+-- class Row r where
+--   fromList :: [(K, V)] -> r
+--   empty :: r
+--   lookup :: K -> r -> Maybe V
 
-instance Row GR where
-  fromList l = G $ GTR.fromList l
-  empty = G GTR.emptyRow
-  lookup k (G g) = GTR.lookup k g
+-- instance Row GR where
+--   fromList l = G $ GTR.fromList l
+--   empty = G GTR.emptyRow
+--   lookup k (G g) = GTR.lookup k g
 
 
 

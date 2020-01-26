@@ -1,5 +1,6 @@
 {-# language DeriveFunctor #-}
 {-# language DeriveFoldable #-}
+{-# language DeriveGeneric #-}
 {-# language DeriveTraversable #-}
 {-# language TemplateHaskell #-}
 {-# language LambdaCase #-}
@@ -21,7 +22,7 @@
 module Heidi.Data.Row.GenericTrie (
     Row
     -- * Construction
-  , fromList, emptyRow
+  , fromList, empty
   -- ** (unsafe)
   , mkRow
   -- * Update
@@ -31,6 +32,8 @@ module Heidi.Data.Row.GenericTrie (
   -- * Filtering
   , delete, filterWithKey, filterWithKeyPrefix, filterWithKeyAny
   , deleteMany
+  -- * Partitioning
+  , partitionWithKey, partitionWithKeyPrefix
   -- -- ** Decoders
   -- , real, scientific, text, string, oneHot
   -- * Lookup
@@ -42,35 +45,38 @@ module Heidi.Data.Row.GenericTrie (
   -- ** Comparison by lookup
   , eqByLookup, eqByLookups
   , compareByLookup
-  -- * Set operations  
+  -- * Set operations
   , union, unionWith
   , intersection, intersectionWith
+  -- * Maps
+  , mapWithKey
   -- * Folds
   , foldWithKey
-  -- * Traversals  
+  -- * Traversals
   , traverseWithKey
   -- * Lenses
   , int, bool, float, double, char, string, text, scientific, oneHot
-  -- ** Combinators
-  , liftRow2, foldMany
+  -- ** Lens combinators
+  , eachPrefixed, foldPrefixed
   ) where
 
 import Control.Monad (foldM)
+import Data.Functor.Identity (Identity(..))
 import Data.List (isPrefixOf)
 import Data.Maybe (fromMaybe)
 import Data.Monoid (First)
 import Data.Semigroup (Endo)
 import Data.Typeable (Typeable)
-import Control.Applicative (Alternative(..))
+-- import Control.Applicative (Alternative(..))
 import qualified Data.Foldable as F
 -- import Control.Monad (filterM)
 
 -- containers
-import qualified Data.Set as S (Set, member)
+
 -- generic-trie
 import qualified Data.GenericTrie as GT
 -- exceptions
-import Control.Monad.Catch (MonadThrow(..))
+-- import Control.Monad.Catch (MonadThrow(..))
 -- microlens
 import Lens.Micro (Lens', Traversal', ASetter', Getting, SimpleFold, (&), (<&>), _Just, _1, _2, mapped, (^.), (^..), toListOf, (^?), Getting, traversed, folded, folding)
 -- -- microlens-th
@@ -99,9 +105,9 @@ import Prelude hiding (lookup)
 
 -- | A 'Row' type is internally a Trie:
 --
--- * Fast random access 
--- * Fast set operations 
--- * Supports missing elements 
+-- * Fast random access
+-- * Fast set operations
+-- * Supports missing elements
 newtype Row k v = Row { _unRow :: GT.Trie k v } deriving (Functor, Foldable, Traversable)
 -- makeLenses ''Row
 instance (GT.TrieKey k, Show k, Show v) => Show (Row k v) where
@@ -130,9 +136,19 @@ atPrefix k f m = f vs <&> \case
     kvs = toList $ filterWithKeyPrefix k m
     (ks, vs) = unzip kvs
 
+{- | Focus on all elements that share a common key prefix
+
+e.g.
+
+@
+>>> :t \k -> 'toListOf' (eachPrefixed k . 'vpBool')
+(GT.TrieKey k, Eq k) => [k] -> Row [k] VP -> [Bool]
+@
+-}
 eachPrefixed :: (GT.TrieKey k, Eq k) => [k] -> Traversal' (Row [k] v) v
 eachPrefixed k = atPrefix k . traversed
 
+-- | Extract all elements that share a common key prefix into a monoidal value (e.g. a list)
 foldPrefixed :: (GT.TrieKey k, Eq k, Monoid r) => [k] -> Getting r (Row [k] v) v
 foldPrefixed k = atPrefix k . folded
 
@@ -170,31 +186,7 @@ oneHot :: GT.TrieKey k => k -> Traversal' (Row k VP) (OneHot Int)
 oneHot k = at k . _Just . vpOneHot
 
 
--- | Fold over a collection of items using the given binary function and "getter" (e.g. column decoder)
---
--- e.g.
---
--- >>> foldMany (+) 0 int :: (Foldable t, GT.TrieKey k) => t k -> Row k VP -> Maybe Int
-foldMany :: Foldable t =>
-            (b -> a -> b)
-         -> b
-         -> (k -> Getting (First a) row a) -- ^ column decoder
-         -> t k -- ^ Keys to be considered 
-         -> row
-         -> Maybe b
-foldMany op z getter ks r = foldM (\acc k -> op acc <$> r ^? getter k) z ks
 
-
--- | Lift a binary function to act on the decoded contents of a row at the given two column indices
---
--- >>> liftRow2 (+) int :: GT.TrieKey k => k -> k -> Row k VP -> Maybe Int
-liftRow2 :: (a -> a -> b)
-         -> (k -> Getting (First a) row a) -- ^ column decoder
-         -> k
-         -> k
-         -> row
-         -> Maybe b
-liftRow2 f getter k1 k2 r = f <$> r ^? getter k1 <*> r ^? getter k2
 
 
 
@@ -213,8 +205,8 @@ mkRow :: GT.Trie k v -> Row k v
 mkRow = Row
 
 -- | An empty row
-emptyRow :: GT.TrieKey k => Row k v
-emptyRow = Row GT.empty
+empty :: GT.TrieKey k => Row k v
+empty = Row GT.empty
 
 -- | Access the key-value pairs contained in the 'Row'
 toList :: GT.TrieKey k => Row k v -> [(k ,v)]
@@ -263,7 +255,7 @@ eqByLookups ks r1 r2 = F.foldlM insf True ks where
 
 -- | Returns an empty row if the argument is Nothing.
 maybeEmpty :: GT.TrieKey k => Maybe (Row k v) -> Row k v
-maybeEmpty = fromMaybe emptyRow
+maybeEmpty = fromMaybe empty
 
 -- | List the keys of a given row
 --
@@ -283,6 +275,10 @@ delete k (Row gt) = Row $ GT.delete k gt
 deleteMany :: (GT.TrieKey k, Foldable t) => t k -> Row k v -> Row k v
 deleteMany ks r = foldl (flip delete) r ks
 
+-- | Map over all elements with a function of both the key and the value
+mapWithKey :: GT.TrieKey k => (k -> a -> b) -> Row k a -> Row k b
+mapWithKey ff (Row gt) =
+  runIdentity $ Row <$> GT.traverseWithKey (\k v -> pure (ff k v)) gt
 
 
 -- | Filter a row by applying a predicate to its keys and corresponding elements.
@@ -292,8 +288,29 @@ filterWithKey :: GT.TrieKey k => (k -> v -> Bool) -> Row k v -> Row k v
 filterWithKey ff (Row gt) = Row $ GT.filterWithKey ff gt
 
 -- | Retains the entries for which the given list is a prefix of the indexing key
-filterWithKeyPrefix :: (GT.TrieKey a, Eq a) => [a] -> Row [a] v -> Row [a] v
+filterWithKeyPrefix :: (GT.TrieKey a, Eq a) =>
+                       [a] -- ^ key prefix
+                    -> Row [a] v
+                    -> Row [a] v
 filterWithKeyPrefix kpre = filterWithKey (\k _ -> kpre `isPrefixOf` k)
+
+-- | Partition a 'Row' into two new ones, such as the elements that satisfy the predicate will end up in the _left_ row.
+partitionWithKey :: GT.TrieKey k =>
+                    (k -> v -> Bool) -- ^ predicate
+                 -> Row k v
+                 -> (Row k v, Row k v) 
+partitionWithKey qf = foldWithKey insf (empty, empty)
+  where
+    insf k v (lacc, racc) | qf k v    = (insert k v lacc, racc)
+                          | otherwise = (lacc, insert k v racc)
+
+-- | Uses 'partitionWithKey' internally
+partitionWithKeyPrefix :: (GT.TrieKey a, Eq a) =>
+                          [a] -- ^ key prefix
+                       -> Row [a] v
+                       -> (Row [a] v, Row [a] v)
+partitionWithKeyPrefix kpre = partitionWithKey (\k _ -> kpre `isPrefixOf` k)
+
 -- | Retains the entries for which the given item appears at any position in the indexing key
 filterWithKeyAny :: (GT.TrieKey a, Eq a) => a -> Row [a] v -> Row [a] v
 filterWithKeyAny kany = filterWithKey (\k _ -> kany `elem` k)
