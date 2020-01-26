@@ -25,7 +25,7 @@ module Heidi.Data.Row.GenericTrie (
   -- ** (unsafe)
   , mkRow
   -- * Update
-  , insert, insertWith
+  , insert, insertMany, insertWith
   -- * Access
   , toList, keys
   -- * Filtering
@@ -72,7 +72,7 @@ import qualified Data.GenericTrie as GT
 -- exceptions
 import Control.Monad.Catch (MonadThrow(..))
 -- microlens
-import Lens.Micro (Lens', Traversal', (<&>), _Just, (^.), (^..), (^?), Getting, traversed)
+import Lens.Micro (Lens', Traversal', ASetter', Getting, SimpleFold, (&), (<&>), _Just, _1, _2, mapped, (^.), (^..), toListOf, (^?), Getting, traversed, folded, folding)
 -- -- microlens-th
 -- import Lens.Micro.TH (makeLenses)
 -- scientific
@@ -113,7 +113,7 @@ instance (GT.TrieKey k, Eq k, Eq v) => Eq (Row k v) where
 instance (GT.TrieKey k, Eq k, Eq v, Ord k, Ord v) => Ord (Row k v) where
   r1 <= r2 = toList r1 <= toList r2
 
--- | Focus on a given colum 
+-- | Focus on a given column
 at :: GT.TrieKey k => k -> Lens' (Row k a) (Maybe a)
 at k f m = f mv <&> \case
     Nothing -> maybe m (const (delete k m)) mv
@@ -121,20 +121,22 @@ at k f m = f mv <&> \case
     where mv = lookup k m
 {-# INLINABLE at #-}
 
--- | atPrefix : a Lens' that takes a key prefix and relates a row having lists as keys and the subset of columns corresponding to keys having that prefix
---
--- atPrefix :: [a] -> Lens' (Row [a] v) [v]
-
--- atPrefix :: (Functor f, GT.TrieKey a, Eq a) =>
---             [a] -> (Maybe v -> f (Maybe v)) -> Row [a] v -> f (Row [a] v)
-atPrefix k f m = \case
-  [] -> case keys mv of
-    [] -> m
-    ks -> deleteMany ks m
-  -- vs -> insertMany k vs m
+-- | 'atPrefix' : a Lens' that takes a key prefix and relates a row having lists as keys and the subset of columns corresponding to keys having that prefix
+atPrefix :: (GT.TrieKey k, Eq k) => [k] -> Lens' (Row [k] v) [v]
+atPrefix k f m = f vs <&> \case
+  [] -> if null kvs then m else deleteMany ks m
+  vs' -> insertMany (zip ks vs') m
   where
-    mv = filterWithKeyPrefix k m
+    kvs = toList $ filterWithKeyPrefix k m
+    (ks, vs) = unzip kvs
 
+eachPrefixed :: (GT.TrieKey k, Eq k) => [k] -> Traversal' (Row [k] v) v
+eachPrefixed k = atPrefix k . traversed
+
+foldPrefixed :: (GT.TrieKey k, Eq k, Monoid r) => [k] -> Getting r (Row [k] v) v
+foldPrefixed k = atPrefix k . folded
+
+-- foldingPrefixed f k = atPrefix k . folding f
 
 
 -- ** Lenses
@@ -317,6 +319,9 @@ filterWithKeyAny kany = filterWithKey (\k _ -> kany `elem` k)
 -- [0,2,3]
 insert :: (GT.TrieKey k) => k -> v -> Row k v -> Row k v
 insert k v = Row . GT.insert k v . _unRow
+
+insertMany :: (GT.TrieKey k, Foldable t) => t (k, v) -> Row k v -> Row k v
+insertMany kvs r = foldl (\acc (k, v) -> insert k v acc) r kvs
 
 -- | Insert a key-value pair into a row and return the updated one, or updates the value by using the combination function.
 insertWith :: (GT.TrieKey k) => (v -> v -> v) -> k -> v -> Row k v -> Row k v
