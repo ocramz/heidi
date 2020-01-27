@@ -57,7 +57,9 @@ module Heidi.Data.Row.GenericTrie (
   -- * Lenses
   , int, bool, float, double, char, string, text, scientific, oneHot
   -- ** Lens combinators
-  , eachPrefixed, foldPrefixed
+  , at
+  -- *** Combinators for list-indexed rows
+  , atPrefix, eachPrefixed, foldPrefixed
   ) where
 
 import Control.Monad (foldM)
@@ -128,7 +130,9 @@ at k f m = f mv <&> \case
 {-# INLINABLE at #-}
 
 -- | 'atPrefix' : a Lens' that takes a key prefix and relates a row having lists as keys and the subset of columns corresponding to keys having that prefix
-atPrefix :: (GT.TrieKey k, Eq k) => [k] -> Lens' (Row [k] v) [v]
+atPrefix :: (GT.TrieKey k, Eq k) =>
+            [k] -- ^ prefix of the keys of interest
+         -> Lens' (Row [k] v) [v]
 atPrefix k f m = f vs <&> \case
   [] -> if null kvs then m else deleteMany ks m
   vs' -> insertMany (zip ks vs') m
