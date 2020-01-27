@@ -6,6 +6,8 @@ module Core.Data.Frame.PrettyPrint where
 
 import GHC.Generics (Generic(..))
 import qualified Data.Foldable as F (foldlM)
+import Data.Function (on)
+import Data.List (filter, sortBy)
 
 -- boxes
 import Text.PrettyPrint.Boxes (Box, Alignment, emptyBox, vcat, hcat, vsep, hsep, text, para, punctuateH, render, printBox, (<>), (<+>), (//), (/+/), top, left, right)
@@ -35,6 +37,9 @@ a trie with strings as keys and lists as values ?
 | Ava   | 34  | Blue  | $115000 |
 | Sonic | 12  | Green | $150000 |
 +-------+-----+-------+---------+
+
+(table example from colonnade : https://hackage.haskell.org/package/colonnade-1.2.0.2/docs/src/Colonnade.html#cap )
+
 -}
 
 
@@ -50,7 +55,7 @@ foldWithKey :: GT.TrieKey k => (k -> a -> r -> r) -> r -> Row k a -> r
 
 -}
 
-
+arr0, arr1 :: [Box]
 arr0 = [text "moo", text "123123123"]
 arr1 = [text "asdfasdfasdfasdf", text "z"]
 
