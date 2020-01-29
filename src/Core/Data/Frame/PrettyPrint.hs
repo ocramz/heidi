@@ -2,15 +2,17 @@
 {-# language DeriveFoldable #-}
 {-# language DeriveGeneric #-}
 {-# language DeriveTraversable #-}
+{-# language LambdaCase #-}
 module Core.Data.Frame.PrettyPrint where
 
 import GHC.Generics (Generic(..))
-import qualified Data.Foldable as F (foldlM)
+import qualified Data.Foldable as F (foldl', foldlM)
+-- import Data.
 import Data.Function (on)
-import Data.List (filter, sortBy)
+import Data.List (filter, sortBy, groupBy)
 
 -- boxes
-import Text.PrettyPrint.Boxes (Box, Alignment, emptyBox, vcat, hcat, vsep, hsep, text, para, punctuateH, render, printBox, (<>), (<+>), (//), (/+/), top, left, right)
+import Text.PrettyPrint.Boxes (Box, Alignment, emptyBox, nullBox, vcat, hcat, vsep, hsep, text, para, punctuateH, render, printBox, (<>), (<+>), (//), (/+/), top, left, right)
 
 -- import qualified Data.Text as T
 import qualified Data.Map as M
@@ -67,85 +69,65 @@ box1 aln = hsep 2 top [c0, c1]
     c1 = vsep 1 aln arr1
 
 
-data PTree k a =
-     PColumn { plContents :: [Maybe a] }
-   | PBranch { pbBranches :: M.Map k (PTree k a) }
+--   +-------------+-----------------+
+--   | Person      | House           |
+--   +-------+-----+-------+---------+
+--   | Name  | Age | Color | Price   |
 
--- layer k0 r0 = undefined
---   where
---     (lrow, rrow) = GTR.partitionWithKey (\k _ -> k0 == head k) r0
---     mlayer = M.singleton k0
-
-
--- peel r = GTR.fromList $ map g $ GTR.toList r
---   where
---     g (kss, v) | null ks = M.insert
---       -- let (k:ks) = kss
---       -- in if null ks
---       --    then ([k], Right v)
---       --    else (ks, Left v)
-
-ptree0 :: PTree k a
-ptree0 = PBranch M.empty
-
--- updateCol :: Show a => a -> PTree k1 a -> PTree k2 a
--- updateCol x (PColumn w0 xs) =
---   let
---     w = length $ show x
---     w1 = max w0 w
---   in PColumn w1 (x:xs) 
-
--- -- quiz: what's the "extrude" function that populates an M1 using an M2 ?
-
--- data M1 l a =
---     M1Leaf a
---   | M1Branch (M.Map l (M1 l a))
-
--- upsertM1 :: Ord k => (v -> a -> v) -> [k] -> a -> M1 k v -> M1 k v
--- upsertM1 f kss v m0 = go kss m0 where
---   go [] acc = case acc of
---     M1Leaf u    -> M1Leaf $ f u v
---     ma -> ma
---   go (k:ks) acc = case acc of
---     M1Branch m -> M1Branch $ M.insert k (go ks acc) m
---     l -> l
+box2 :: Box
+box2 = l <+> r
+  where
+    l = text "Person" // (text "Name" <+> text "Age")
+    r = text "House" // (text "Color" <+> text "Price")
 
 
--- -- insertM1 kss v = go kss M.empty where
--- --   go [] _ = M1Leaf v
--- --   go (k:ks) acc = M1Branch $ M.insert k (go ks acc) acc
 
--- -- data M2 l a = M2 (M.Map [l] a)
+
+
+-- data Header a = Header a [Header a] deriving (Show, Functor)
+
+
+
+data M a = Ml String
+         | Mb (M.Map String (M a))
+
+boxM (Ml s) = text s
+boxM (Mb mm) = foldl ins nullBox mm
+  where
+    ins acc x = acc <+> boxM x
+
+
+
+-- >>> groupSort ["aa", "ab", "cab", "xa", "cx"]
+-- [["aa","ab"],["cab","cx"],["xa"]]
+groupSort :: Ord a => [[a]] -> [[[a]]]
+groupSort = groupSortBy head
+
+groupSortBy :: Ord a1 => (a2 -> a1) -> [a2] -> [[a2]]
+groupSortBy f = groupBy ((==) `on` f) . sortBy (compare `on` f)
+
+-- render a column of a frame
+columnBox :: (Foldable t, Show a, GT.TrieKey k) =>
+             t (GTR.Row k a) -- ^ dataframe
+          -> k -- ^ column key
+          -> Box
+columnBox rows k = foldl ins nullBox rows
+  where
+    ins acc row = acc // maybe (emptyBox 1 0) (text . show) (GTR.lookup k row)
 
 
 
 
 
 
+-- | union of the set of keys across all rows
+allKeys :: (GT.TrieKey k, Foldable f) => f (GTR.Row k v) -> [k]
+allKeys = GTR.keys . GTR.keysOnly
 
 
 
 
+-- data Sized a = Sized !Int a
 
--- newtype T v = T (GT.Trie [String] [v])
-
--- newtype Cols k v = Cols { unCols :: GT.Trie [k] v } deriving (Functor, Foldable, Traversable)
-
--- instance (GT.TrieKey k, Show k, Show v) => Show (Cols k v) where
---   show = show . GT.toList . unCols
-
--- empty :: GT.TrieKey k => Cols k v
--- empty = Cols GT.empty
-
--- insert :: GT.TrieKey k => [k] -> v -> Cols k v -> Cols k v
--- insert k v (Cols gt) = Cols $ GT.insert k v gt
-
--- fromList :: GT.TrieKey k => [([k], v)] -> Cols k v
--- fromList = Cols . GT.fromList
-
-
-
-
--- -- | number of characters of a Show instance
--- lshow :: Show a => a -> Int
--- lshow = length . show
+-- annotateWithDepth :: (GT.TrieKey k) => GTR.Row [k] a -> GTR.Row [k] (Sized a)
+-- annotateWithDepth = GTR.mapWithKey (\k v -> Sized (length k) v)

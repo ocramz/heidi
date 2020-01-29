@@ -51,7 +51,7 @@ module Heidi.Data.Row.GenericTrie (
   -- * Maps
   , mapWithKey
   -- * Folds
-  , foldWithKey
+  , foldWithKey, keysOnly
   -- * Traversals
   , traverseWithKey
   -- * Lenses
@@ -62,13 +62,13 @@ module Heidi.Data.Row.GenericTrie (
   , atPrefix, eachPrefixed, foldPrefixed
   ) where
 
-import Control.Monad (foldM)
+-- import Control.Monad (foldM)
 import Data.Functor.Identity (Identity(..))
 import Data.List (isPrefixOf)
 import Data.Maybe (fromMaybe)
-import Data.Monoid (First)
-import Data.Semigroup (Endo)
-import Data.Typeable (Typeable)
+-- import Data.Monoid (First)
+-- import Data.Semigroup (Endo)
+-- import Data.Typeable (Typeable)
 -- import Control.Applicative (Alternative(..))
 import qualified Data.Foldable as F
 -- import Control.Monad (filterM)
@@ -80,7 +80,7 @@ import qualified Data.GenericTrie as GT
 -- exceptions
 -- import Control.Monad.Catch (MonadThrow(..))
 -- microlens
-import Lens.Micro (Lens', Traversal', ASetter', Getting, SimpleFold, (&), (<&>), _Just, _1, _2, mapped, (^.), (^..), toListOf, (^?), Getting, traversed, folded, folding)
+import Lens.Micro (Lens', Traversal', Getting, (<&>), _Just, Getting, traversed, folded)
 -- -- microlens-th
 -- import Lens.Micro.TH (makeLenses)
 -- scientific
@@ -131,7 +131,7 @@ at k f m = f mv <&> \case
 
 -- | 'atPrefix' : a Lens' that takes a key prefix and relates a row having lists as keys and the subset of columns corresponding to keys having that prefix
 atPrefix :: (GT.TrieKey k, Eq k) =>
-            [k] -- ^ prefix of the keys of interest
+            [k] -- ^ key prefix of the columns of interest
          -> Lens' (Row [k] v) [v]
 atPrefix k f m = f vs <&> \case
   [] -> if null kvs then m else deleteMany ks m
@@ -145,15 +145,18 @@ atPrefix k f m = f vs <&> \case
 e.g.
 
 @
->>> :t \k -> 'toListOf' (eachPrefixed k . 'vpBool')
+>>> :t \k -> 'Lens.Micro.toListOf' (eachPrefixed k . 'vpBool')
 (GT.TrieKey k, Eq k) => [k] -> Row [k] VP -> [Bool]
 @
 -}
-eachPrefixed :: (GT.TrieKey k, Eq k) => [k] -> Traversal' (Row [k] v) v
+eachPrefixed :: (GT.TrieKey k, Eq k) => [k] -- ^ ke prefix of the columns of interest
+             -> Traversal' (Row [k] v) v
 eachPrefixed k = atPrefix k . traversed
 
 -- | Extract all elements that share a common key prefix into a monoidal value (e.g. a list)
-foldPrefixed :: (GT.TrieKey k, Eq k, Monoid r) => [k] -> Getting r (Row [k] v) v
+foldPrefixed :: (GT.TrieKey k, Eq k, Monoid r) =>
+                [k] -- ^ key prefix of the columns of interest
+             -> Getting r (Row [k] v) v
 foldPrefixed k = atPrefix k . folded
 
 -- foldingPrefixed f k = atPrefix k . folding f
@@ -267,6 +270,10 @@ maybeEmpty = fromMaybe empty
 -- [0,3]
 keys :: GT.TrieKey k => Row k v -> [k]
 keys = map fst . toList
+
+-- | Takes the union of a Foldable container of 'Row's and discards the values
+keysOnly :: (GT.TrieKey k, Foldable f) => f (Row k v) -> Row k ()
+keysOnly ks = () <$ F.foldl' union empty ks
 
 -- | Returns a new 'Row' that doesn't have a given key-value pair
 delete :: GT.TrieKey k =>
