@@ -84,17 +84,54 @@ box2 = l <+> r
 
 
 
--- data Header a = Header a [Header a] deriving (Show, Functor)
 
 
 
-data M a = Ml String
-         | Mb (M.Map String (M a))
 
-boxM (Ml s) = text s
-boxM (Mb mm) = foldl ins nullBox mm
+data M k v = Ml v
+           | Mb (M.Map k (M k v)) deriving (Functor, Foldable)
+instance (Show k, Show v) => Show (M k v) where
+  show = \case
+    Ml x -> show x
+    Mb m -> show $ M.toList m
+
+empty :: M k v
+empty = Mb M.empty
+
+-- | Copy the contents of a list-indexed Row into a tree-shaped structure (for pretty-printing)
+--
+-- >>> unfold [("aa", 41), ("ab", 42)]
+-- [('a',[('a',[('a',41)]),('b',42)])]  -- FIXME why 3 levels and not 2 ?!?
+unfold :: (Foldable t, Ord k) =>
+          t ([k], v) -- each GTR.Row is isomorphic to this parameter
+       -> M k v
+unfold kvs = foldl insf empty kvs
   where
-    ins acc x = acc <+> boxM x
+    insf (Mb acc) (ks, v) = unfold1 acc ks v
+    insf _        _       = undefined -- FIXME
+
+unfold1 :: Ord k => M.Map k (M k v) -> [k] -> v -> M k v
+unfold1 = go
+  where
+    go _ [] v = Ml v
+    go m (k:ks) v = Mb $ M.insert k (go m ks v) m
+
+
+-- data Tree a = Node {
+--         rootLabel :: a,         -- ^ label value
+--         subForest :: [Tree a]   -- ^ zero or more child trees
+
+-- unfoldTree :: (b -> (a, [b])) -> b -> Tree a
+-- unfoldTree f b = let (a, bs) = f b in Node a (unfoldForest f bs)
+-- 
+-- unfoldForest :: (b -> (a, [b])) -> [b] -> Forest a
+-- unfoldForest f = map (unfoldTree f)
+
+
+-- boxM (Ml s) = text s
+-- boxM (Mb mm) = foldl ins nullBox mm
+--   where
+--     ins acc x = acc <+> boxM x
 
 
 
