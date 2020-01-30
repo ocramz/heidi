@@ -107,11 +107,15 @@ unfold :: (Foldable t, Ord k) =>
        -> M k v
 unfold kvs = foldl insf empty kvs
   where
-    insf (Mb acc) (ks, v) = unfold1 acc ks v
+    insf (Mb acc) (ks, v) = insert acc ks v
     insf _        _       = undefined -- FIXME
 
-unfold1 :: Ord k => M.Map k (M k v) -> [k] -> v -> M k v
-unfold1 = go
+-- | Copy a single list-indexed value into a tree
+--
+-- >>> insert M.empty "abc" 42
+-- [('a',[('b',[('c',42)])])]
+insert :: Ord k => M.Map k (M k v) -> [k] -> v -> M k v
+insert = go
   where
     go _ [] v = Ml v
     go m (k:ks) v = Mb $ M.insert k (go m ks v) m
