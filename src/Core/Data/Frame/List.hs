@@ -21,7 +21,7 @@ module Core.Data.Frame.List (
   -- * Frame
   Frame,
   -- ** Construction
-  fromList,
+  frameFromList,
   -- ** Access
   Core.Data.Frame.List.head,
   Core.Data.Frame.List.take,
@@ -61,10 +61,10 @@ drop :: Int -> Frame row -> Frame row
 drop n = Frame . Prelude.drop n . tableRows
 
 zipWith :: (a -> b -> c) -> Frame a -> Frame b -> Frame c
-zipWith f x y = fromList $ Prelude.zipWith f (tableRows x) (tableRows y)
+zipWith f x y = frameFromList $ Prelude.zipWith f (tableRows x) (tableRows y)
 
-fromList :: [row] -> Frame row
-fromList = Frame
+frameFromList :: [row] -> Frame row
+frameFromList = Frame
 
 toList :: Frame row -> [row]
 toList = tableRows
@@ -79,7 +79,7 @@ filter p = Frame . Prelude.filter p . tableRows
 -- | This generalizes the list-based 'filter' function.
 filterA :: Applicative f =>
            (row -> f Bool) -> Frame row -> f (Frame row)
-filterA fm t = fromList <$> CM.filterM fm (toList t)
+filterA fm t = frameFromList <$> CM.filterM fm (toList t)
 
 
 
@@ -107,4 +107,4 @@ toVector = V.fromList . tableRows
 
 -- | Produce a Frame from a 'Vector' of rows
 fromVector :: V.Vector row -> Frame row
-fromVector = fromList . V.toList
+fromVector = frameFromList . V.toList

@@ -50,7 +50,7 @@ import qualified Data.GenericTrie as GT
 
 -- import qualified Data.Generics.Decode as D (Decode, runDecode)
 -- import Data.Generics.Decode ((>>>))
-import Core.Data.Frame.List (Frame, fromList, zipWith)
+import Core.Data.Frame.List (Frame, frameFromList, zipWith)
 import qualified Heidi.Data.Row.GenericTrie as GTR
 -- import Core.Data.Row.Internal
 -- import Data.Generics.Encode.Val (VP, getIntM, getFloatM, getDoubleM, getScientificM, getStringM, getTextM, getOneHotM)
@@ -105,7 +105,7 @@ gatherWith :: (Foldable t, Ord k, GT.TrieKey k) =>
            -> k           -- ^ "value" key
            -> t (GTR.Row k v) -- ^ input dataframe
            -> Frame (GTR.Row k v)
-gatherWith fk ks kKey kValue = fromList . F.foldMap f where
+gatherWith fk ks kKey kValue = frameFromList . F.foldMap f where
   f row = gather1 fk ks row kKey kValue
 
 -- | gather one row into a list of rows
@@ -139,7 +139,7 @@ spreadWith :: (GT.TrieKey k, Foldable t, Ord k, Ord v) =>
            -> k   -- ^ "value" key
            -> t (GTR.Row k v)  -- ^ input dataframe
            -> Frame (GTR.Row k v)
-spreadWith fk k1 k2 = fromList . map funion . M.toList . F.foldl' (spread1 fk k1 k2) M.empty
+spreadWith fk k1 k2 = frameFromList . map funion . M.toList . F.foldl' (spread1 fk k1 k2) M.empty
   where
     funion (km, vm) = GTR.union km vm
   
@@ -195,13 +195,13 @@ groupBy :: (Foldable t, GT.TrieKey k, Eq k, Ord v) =>
            k  -- ^ Key to group by
         -> t (GTR.Row k v) -- ^ A 'Frame (GTR.Row k v) can be used here
         -> M.Map v (Frame (GTR.Row k v))
-groupBy k tbl = fromList <$> groupL k tbl
+groupBy k tbl = frameFromList <$> groupL k tbl
 
 groupL :: (Foldable t, Eq k, GT.TrieKey k, Eq v, Ord v) =>
           k -> t (GTR.Row k v) -> M.Map v [GTR.Row k v]
 groupL k tbl = F.foldl' insf M.empty tbl where
   insf acc row = maybe acc (\v -> M.insertWith (++) v [row] acc) (GTR.lookup k row)
-{-# inline groupL #-}  
+{-# inline groupL #-}
 
 
 
@@ -214,7 +214,7 @@ joinWith :: (Foldable t, Ord v, GT.TrieKey k, Eq v, Eq k) =>
          -> t (GTR.Row k v)
          -> t (GTR.Row k v)
          -> Frame (GTR.Row k v)
-joinWith f k1 k2 table1 table2 = fromList $ F.foldl' insf [] table1 where
+joinWith f k1 k2 table1 table2 = frameFromList $ F.foldl' insf [] table1 where
   insf acc row1 = maybe (f row1 acc) appendMatchRows (GTR.lookup k1 row1) where
     appendMatchRows v = map (GTR.union row1) mr2 ++ acc where
       mr2 = matchingRows k2 v table2

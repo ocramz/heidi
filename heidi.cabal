@@ -11,7 +11,8 @@ copyright:      (c) 2019-2020, Marco Zocca
 category:       Data Science, Data Mining, Generics
 build-type:     Simple
 cabal-version:  1.12
-tested-with:    GHC == 8.0.2, GHC == 8.6.3, GHC == 8.6.4, GHC == 8.6.5             
+tested-with:    GHC == 8.0.2, GHC == 8.6.3, GHC == 8.6.4, GHC == 8.6.5
+license-file:   LICENSE.md
 extra-source-files:
     CHANGELOG.md
     LICENSE.md
@@ -25,13 +26,14 @@ source-repository head
 library
   exposed-modules:
                   Heidi
-                  Heidi.Data.Row.GenericTrie
                   Heidi.Data.Frame.Algorithms.GenericTrie
+
+  other-modules:
+                  Heidi.Data.Row.GenericTrie
+                  
                   Heidi.Data.Frame.Algorithms.GenericTrie.Generic                  
                   Data.Generics.Codec
-                  Data.Generics.Encode.OneHot
-  other-modules:
-                
+                  Data.Generics.Encode.OneHot                
                 Data.Generics.Encode.Internal
                 Data.Generics.Decode
                 Core.Data.Frame

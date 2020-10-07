@@ -11,22 +11,21 @@ import Control.Monad.Catch
 
 -- import Data.Hashable (Hashable)
 -- import qualified Data.HashMap.Strict as HM
--- import qualified Data.Text as T
+import qualified Data.Text as T
 
 -- import Core.Data.Frame
 -- import Core.Data.Frame.Generic
--- import qualified Core.Data.Row.HashMap as HMR
-import qualified Heidi.Data.Row.GenericTrie as GTR
+-- import qualified Heidi.Data.Row.GenericTrie as GTR
 -- import Data.Generics.Encode.Internal (HasGE, TC, VP)
 import Heidi -- (Heidi, Frame, TC, VP, gToFrameGT, filterDecode, mkTyN, mkTyCon)
 import Heidi.Data.Frame.Algorithms.GenericTrie (innerJoin)
 
-import Prelude hiding (filter, lookup)
+-- import Lens.Micro ((^.), (%~), to, has)
 
+import Prelude hiding (filter, lookup)
 
 -- | Item
 data Item a = Itm String a deriving (Eq, Show, Generic, Heidi)
--- instance Heidi a => Heidi (Item a)
 
 -- | Purchase
 data Purchase a = Pur {
@@ -35,8 +34,6 @@ data Purchase a = Pur {
   , item :: String
   , qty :: a
   } deriving (Eq, Show, Generic, Heidi)
--- instance Heidi a => Heidi (Purchase a)
-
 
 items :: [Item Double]
 items = [i1, i2, i3] where
@@ -53,8 +50,7 @@ purchases = [p1, p2, p3, p4, p5] where
   p5 = Pur 1 "bob" "computer" 1
 
 
-
-gItems, gPurchases :: Maybe (Frame (GTR.Row [TC] VP))
+gItems, gPurchases :: Maybe (Frame (Row [TC] VP))
 gItems = gToFrameGT items
 gPurchases = gToFrameGT purchases
 
@@ -67,12 +63,17 @@ gPurchases = gToFrameGT purchases
 --         -> Frame (GTR.Row [TC] VP)
 --         -> f (Frame (GTR.Row [TC] VP))
 -- noLegal k = filterDecode dec where
---   dec = (/= "legal") <$> GTR.text (keyN k)   -- FIXME : how to zoom in on
+--   dec r = r ^. GTR.text (keyN k) == "legal"
 
--- keyN, keyTyC :: String -> [TC]
--- keyN k = [mkTyN k] 
+noLegal :: String -> Frame (Row [TC] VP) -> Frame (Row [TC] VP)
+noLegal k = filter look
+  where
+    look = keep (text (keyN k)) (== "legal")
 
--- keyTyC k = [mkTyCon k]
+keyN, keyTyC :: String -> [TC]
+keyN k = [mkTyN k]
+
+keyTyC k = [mkTyCon k]
 
 
 -- joinTables = innerJoin k1 k2 where

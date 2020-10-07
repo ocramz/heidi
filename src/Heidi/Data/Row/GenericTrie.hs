@@ -5,6 +5,7 @@
 {-# language TemplateHaskell #-}
 {-# language LambdaCase #-}
 {-# language RankNTypes #-}
+{-# options_ghc -Wno-unused-imports #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Heidi.Data.Row.GenericTrie
@@ -22,7 +23,7 @@
 module Heidi.Data.Row.GenericTrie (
     Row
     -- * Construction
-  , fromList, empty
+  , rowFromList, empty
   -- ** (unsafe)
   , mkRow
   -- * Update
@@ -57,30 +58,28 @@ module Heidi.Data.Row.GenericTrie (
   -- * Lenses
   , int, bool, float, double, char, string, text, scientific, oneHot
   -- ** Lens combinators
-  , at
+  , at, keep
   -- *** Combinators for list-indexed rows
   , atPrefix, eachPrefixed, foldPrefixed
   ) where
 
--- import Control.Monad (foldM)
+-- import Control.Monad (foldM
+import Data.Functor.Const (Const(..))
 import Data.Functor.Identity (Identity(..))
 import Data.List (isPrefixOf)
 import Data.Maybe (fromMaybe)
--- import Data.Monoid (First)
+import Data.Monoid (Any(..), All(..))
 -- import Data.Semigroup (Endo)
 -- import Data.Typeable (Typeable)
 -- import Control.Applicative (Alternative(..))
 import qualified Data.Foldable as F
 -- import Control.Monad (filterM)
-
--- containers
-
 -- generic-trie
 import qualified Data.GenericTrie as GT
 -- exceptions
 -- import Control.Monad.Catch (MonadThrow(..))
 -- microlens
-import Lens.Micro (Lens', Traversal', Getting, (<&>), _Just, Getting, traversed, folded)
+import Lens.Micro (Lens', Traversal', Getting, (^.), (<&>), _Just, Getting, traversed, folded, to, has)
 -- -- microlens-th
 -- import Lens.Micro.TH (makeLenses)
 -- scientific
@@ -96,7 +95,7 @@ import Data.Generics.Encode.OneHot (OneHot)
 -- import Data.Generics.Codec
 -- import Core.Data.Row.Internal (KeyError(..))
 
-import Prelude hiding (lookup)
+import Prelude hiding (any, lookup)
 
 
 -- $setup
@@ -116,10 +115,10 @@ instance (GT.TrieKey k, Show k, Show v) => Show (Row k v) where
   show = show . GT.toList . _unRow
 
 instance (GT.TrieKey k, Eq k, Eq v) => Eq (Row k v) where
-  r1 == r2 = toList r1 == toList r2
+  r1 == r2 = F.toList r1 == F.toList r2
 
 instance (GT.TrieKey k, Eq k, Eq v, Ord k, Ord v) => Ord (Row k v) where
-  r1 <= r2 = toList r1 <= toList r2
+  r1 <= r2 = F.toList r1 <= F.toList r2
 
 -- | Focus on a given column
 at :: GT.TrieKey k => k -> Lens' (Row k a) (Maybe a)
@@ -149,7 +148,8 @@ e.g.
 (GT.TrieKey k, Eq k) => [k] -> Row [k] VP -> [Bool]
 @
 -}
-eachPrefixed :: (GT.TrieKey k, Eq k) => [k] -- ^ ke prefix of the columns of interest
+eachPrefixed :: (GT.TrieKey k, Eq k) =>
+                [k] -- ^ key prefix of the columns of interest
              -> Traversal' (Row [k] v) v
 eachPrefixed k = atPrefix k . traversed
 
@@ -161,6 +161,24 @@ foldPrefixed k = atPrefix k . folded
 
 -- foldingPrefixed f k = atPrefix k . folding f
 
+-- any :: Eq a => a -> a -> Any
+-- any v = Any . (== v)
+
+-- | Helper for filtering
+--
+-- e.g.
+--
+-- >>> :t \k -> keep (text k) (== "hello")
+--   :: GT.TrieKey k => k -> Row k VP -> Bool
+keep :: Getting Any row a
+     -> (a -> b) -- ^ e.g. a predicate
+     -> row
+     -> Bool
+keep l f = has (l . to f)
+
+
+-- keep :: (Eq a) => Getting Any row a -> a -> row -> Bool
+-- keep l v = has (l . to (== v))
 
 -- ** Lenses
 
@@ -200,12 +218,12 @@ oneHot k = at k . _Just . vpOneHot
 
 -- | Construct a 'Row' from a list of key-element pairs.
 --
--- >>> lookup 3 (fromList [(3,'a'),(4,'b')])
+-- >>> lookup 3 (rowFromList [(3,'a'),(4,'b')])
 -- Just 'a'
--- >>> lookup 6 (fromList [(3,'a'),(4,'b')])
+-- >>> lookup 6 (rowFromList [(3,'a'),(4,'b')])
 -- Nothing
-fromList :: GT.TrieKey k => [(k, v)] -> Row k v
-fromList = Row . GT.fromList
+rowFromList :: GT.TrieKey k => [(k, v)] -> Row k v
+rowFromList = Row . GT.fromList
 
 -- | Construct a 'Row' from a trie (unsafe).
 mkRow :: GT.Trie k v -> Row k v

@@ -32,7 +32,7 @@ import Control.Monad.Catch (MonadThrow(..))
 -- microlens
 import Lens.Micro (toListOf)
 
-import qualified Core.Data.Frame.List as FL (Frame, fromList)
+import qualified Core.Data.Frame.List as FL (Frame, frameFromList)
 import qualified Heidi.Data.Row.GenericTrie as GTR (Row, mkRow)
 import Data.Generics.Encode.Internal (gflattenHM, gflattenGT, Heidi, TC(..), VP)
 
@@ -47,8 +47,6 @@ import Data.Generics.Encode.Internal (gflattenHM, gflattenGT, Heidi, TC(..), VP)
 -- >>> instance GE.Heidi P2
 -- >>> data Q = Q (Maybe Int) (Either Double Char) deriving (Eq, Show, G.Generic)
 -- >>> instance GE.Heidi Q
-
-
 
 
 -- | Populate a 'Frame' with the generic encoding of the row data and throws a 'DataException' if the input data is malformed.
@@ -90,7 +88,7 @@ gToRowGT :: Heidi a => a -> GTR.Row [TC] VP
 gToRowGT = GTR.mkRow . gflattenGT
 
 gToFrameWith :: Foldable t => (a -> row) -> t a -> FL.Frame row
-gToFrameWith f = FL.fromList . map f . F.toList
+gToFrameWith f = FL.frameFromList . map f . F.toList
 
 -- | Exceptions related to the input data
 data DataException =

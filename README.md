@@ -29,6 +29,8 @@ What about Haskell?
 
 ```
 {-# language DeriveGenerics, DeriveAnyClass #-}
+module MyDataScienceTask where
+
 import Heidi
 
 data Sales = Row String Int deriving (Eq, Show, Generic, Heidi)
