@@ -1,7 +1,7 @@
 name:           heidi
 version:        0.0.0
 synopsis:       Tidy data in Haskell
-description:    Tidy data in Haskell
+description:    Tidy data in Haskell, via generics.
 homepage:       https://github.com/ocramz/heidi#readme
 bug-reports:    https://github.com/ocramz/heidi/issues
 author:         Marco Zocca
