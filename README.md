@@ -51,7 +51,7 @@ One thing that the language doesn't natively support is lookup by accessor name.
 
 In addition to lookup, many data tasks require relational operations across pairs of data tables; algorithmically, these require lookups both across rows and columns, and there's nothing in Haskell's implementation of records that supports this.
 
-This library was then developed to address these needs in a uniform and ergonomic way.
+There are a number of additional tasks that are routine in data analysis but not so
 
 
 ## Advanced
@@ -69,7 +69,13 @@ Elm, Purescript etc.
 
 ### Row types
 
-Frames, vinyl, heterogeneous lists, sums-of-products ...
+As you might know, the "row types" problem is well understood and has been explored in practice; discussing the various tradeoffs between approaches would be lengthy and quite technical (and your humble author is not too qualified to do full justice to the topic either).
+
+In Haskell , the Frames [2] library and related ecosystem stands out as a full-featured dataframe implementation that does not compromise on type safety. 
+
+Heidi instead offers generic transformations from the source datatypes to uni-typed values (conceptually, each row is a `Map String T` where `data T = TInt Int | TChar Char` etc.), a domain in which it's convenient to perform lookups and similar operations.
+
+Exploring further : vinyl [3], heterogeneous lists, sums-of-products ...
 
 
 
@@ -77,3 +83,9 @@ Frames, vinyl, heterogeneous lists, sums-of-products ...
 ## References
 
 [1] OverloadedRecordFields : https://downloads.haskell.org/ghc/latest/docs/html/users_guide/glasgow_exts.html#record-field-selector-polymorphism
+
+[2] Frames : https://hackage.haskell.org/package/Frames
+
+[3] vinyl : https://hackage.haskell.org/package/vinyl 
+
+[4] generics-sop : https://hackage.haskell.org/package/generics-sop
