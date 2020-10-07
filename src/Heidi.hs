@@ -11,6 +11,7 @@
 -- Heidi : tidy data in Haskell
 -- 
 -----------------------------------------------------------------------------
+{-# options_ghc -Wno-unused-imports #-}
 module Heidi (
   -- * Frame
   Frame
@@ -18,7 +19,7 @@ module Heidi (
   , fromList
   -- ** Access
   , head, take, drop, zipWith, numRows
-  -- ** Filtering 
+  -- ** Filtering
   , filter
   -- *** 'D.Decode'-based filtering
   , filterDecode
@@ -38,9 +39,9 @@ module Heidi (
   , D.Decode, D.runDecode
   -- ** Row
   -- *** HashMap
-  
+
   -- *** generic-trie
-  
+
   -- ** 'MonadThrow' getters
   , TypeError(..)
   ) where

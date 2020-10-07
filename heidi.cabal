@@ -1,5 +1,5 @@
 name:           heidi
-version:        0.1.0
+version:        0.0.0
 synopsis:       Tidy data in Haskell
 description:    Tidy data in Haskell
 homepage:       https://github.com/ocramz/heidi#readme
@@ -8,7 +8,7 @@ author:         Marco Zocca
 maintainer:     Marco Zocca
 license:        MIT
 copyright:      (c) 2019-2020, Marco Zocca
-category:       Generics, Data, Data Science
+category:       Data Science, Data Mining, Generics
 build-type:     Simple
 cabal-version:  1.12
 tested-with:    GHC == 8.0.2, GHC == 8.6.3, GHC == 8.6.4, GHC == 8.6.5             
@@ -29,8 +29,9 @@ library
                   Heidi.Data.Frame.Algorithms.GenericTrie
                   Heidi.Data.Frame.Algorithms.GenericTrie.Generic                  
                   Data.Generics.Codec
+                  Data.Generics.Encode.OneHot
   other-modules:
-                Data.Generics.Encode.OneHot
+                
                 Data.Generics.Encode.Internal
                 Data.Generics.Decode
                 Core.Data.Frame

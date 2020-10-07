@@ -3,6 +3,7 @@
 {-# language DeriveGeneric #-}
 {-# language DeriveTraversable #-}
 {-# language LambdaCase #-}
+{-# options_ghc -Wno-unused-imports #-}
 module Core.Data.Frame.PrettyPrint where
 
 import GHC.Generics (Generic(..))

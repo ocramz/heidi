@@ -1,4 +1,5 @@
 {-# language LambdaCase #-}
+{-# options_ghc -Wno-unused-imports #-}
 module Heidi.Data.Frame.Algorithms.GenericTrie.Generic where
 
 -- containers
@@ -8,9 +9,9 @@ import qualified Data.GenericTrie as GT
 -- text
 import qualified Data.Text as T (Text, pack, unpack)
 
-import Heidi.Data.Row.GenericTrie (Row(..))
+import Heidi.Data.Row.GenericTrie (Row)
 import Heidi.Data.Frame.Algorithms.GenericTrie (spreadWith, gatherWith)
-import Core.Data.Frame.List (Frame(..))
+import Core.Data.Frame.List (Frame)
 -- import Data.Generics.Codec ()
 
 import Data.Generics.Encode.Internal (VP(..), TC(..), tcTyCon, tcTyN, mkTyCon, mkTyN)

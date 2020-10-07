@@ -1,7 +1,8 @@
 {-# language DeriveGeneric #-}
 {-# language LambdaCase #-}
 
-{-# OPTIONS_GHC -Wall #-}
+-- {-# OPTIONS_GHC -Wall #-}
+{-# options_ghc -Wno-unused-imports #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Core.Data.Frame.Generic
@@ -33,7 +34,7 @@ import Lens.Micro (toListOf)
 
 import qualified Core.Data.Frame.List as FL (Frame, fromList)
 import qualified Heidi.Data.Row.GenericTrie as GTR (Row, mkRow)
-import Data.Generics.Encode.Internal (gflattenHM, gflattenGT, Heidi(..), TC(..), VP)
+import Data.Generics.Encode.Internal (gflattenHM, gflattenGT, Heidi, TC(..), VP)
 
 
 -- $setup
@@ -56,13 +57,13 @@ import Data.Generics.Encode.Internal (gflattenHM, gflattenGT, Heidi(..), TC(..),
 --
 -- @
 -- data P1 = P1 Int Char deriving (Eq, Show, 'G.Generic')
--- instance 'GE.HasGE' P1
+-- instance 'Heidi' P1
 -- 
 -- data P2 = P2 { p2i :: Int, p2c :: Char } deriving (Eq, Show, Generic)
--- instance HasGE P2
+-- instance Heidi P2
 --
 -- data Q = Q (Maybe Int) (Either Double Char) deriving (Eq, Show, Generic)
--- instance HasGE Q
+-- instance Heidi Q
 -- @
 --
 -- >>> gToFrameGT [P1 42 'z']

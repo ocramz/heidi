@@ -1,3 +1,6 @@
+{-# options_ghc -Wno-unused-imports #-}
+{-# options_ghc -Wno-unused-top-binds #-}
+{-# options_ghc -Wno-type-defaults #-}
 module Data.Generics.Codec (
   realM, scientificM, textM, stringM, oneHotM, int, int8, int16, int32, int64, word, word8, word16, word32, word64, 
   -- * TC (Type and Constructor annotation)

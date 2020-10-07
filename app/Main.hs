@@ -1,5 +1,7 @@
+{-# language DeriveAnyClass #-}
 {-# language DeriveGeneric #-}
 {-# language OverloadedStrings #-}
+{-# options_ghc -Wno-unused-imports #-}
 module Main where
 
 import Control.Applicative (Alternative)
@@ -16,15 +18,15 @@ import Control.Monad.Catch
 -- import qualified Core.Data.Row.HashMap as HMR
 import qualified Heidi.Data.Row.GenericTrie as GTR
 -- import Data.Generics.Encode.Internal (HasGE, TC, VP)
-import Heidi (Heidi, Frame, TC, VP, gToFrameGT)
+import Heidi -- (Heidi, Frame, TC, VP, gToFrameGT, filterDecode, mkTyN, mkTyCon)
 import Heidi.Data.Frame.Algorithms.GenericTrie (innerJoin)
 
 import Prelude hiding (filter, lookup)
 
 
 -- | Item
-data Item a = Itm String a deriving (Eq, Show, Generic)
-instance Heidi a => Heidi (Item a)
+data Item a = Itm String a deriving (Eq, Show, Generic, Heidi)
+-- instance Heidi a => Heidi (Item a)
 
 -- | Purchase
 data Purchase a = Pur {
@@ -32,8 +34,8 @@ data Purchase a = Pur {
   , pers :: String
   , item :: String
   , qty :: a
-  } deriving (Eq, Show, Generic)
-instance Heidi a => Heidi (Purchase a)
+  } deriving (Eq, Show, Generic, Heidi)
+-- instance Heidi a => Heidi (Purchase a)
 
 
 items :: [Item Double]
@@ -56,6 +58,9 @@ gItems, gPurchases :: Maybe (Frame (GTR.Row [TC] VP))
 gItems = gToFrameGT items
 gPurchases = gToFrameGT purchases
 
+
+
+-- FIXME now we use Traversal' rather than Decode
 
 -- noLegal :: (MonadThrow f, Alternative f) =>
 --            String
