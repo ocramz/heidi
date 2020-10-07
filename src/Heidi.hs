@@ -2,7 +2,7 @@
 -- |
 -- Module      :  Heidi
 -- Description :  tidy data in Haskell
--- Copyright   :  (c) Marco Zocca (2018-2019)
+-- Copyright   :  (c) Marco Zocca (2018-2020)
 -- License     :  BSD-style
 -- Maintainer  :  ocramz fripost org
 -- Stability   :  experimental
@@ -10,9 +10,10 @@
 --
 -- Heidi : tidy data in Haskell
 --
--- A 'Frame' is a list-like container of data rows
+-- In Heidi, a data 'Frame' is not meant to be constructed directly, but 'encode'd from a
+-- collection of values. The encoding produces a simple representation which can be easily manipulated for common data analysis tasks.
 --
--- In Heidi, a 'Frame' is not meant to be constructed directly, but
+-- 
 --
 -----------------------------------------------------------------------------
 {-# options_ghc -Wno-unused-imports #-}
