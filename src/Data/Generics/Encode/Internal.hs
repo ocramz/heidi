@@ -212,7 +212,7 @@ data Val =
 
 -- | Typeclass for types which have a generic encoding.
 --
--- NOTE: if your type has a 'G.Generic' instance you just need to declare an empty instance of 'Heidi' for it (a default implementation of 'toVal' is provided).
+-- NOTE: if your type has a 'G.Generic' instance you just need to declare an empty instance of 'Heidi' for it.
 --
 -- example:
 --

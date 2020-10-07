@@ -164,7 +164,7 @@ foldPrefixed k = atPrefix k . folded
 -- any :: Eq a => a -> a -> Any
 -- any v = Any . (== v)
 
--- | Helper for filtering
+-- | Helper for filtering 'Frame's
 --
 -- e.g.
 --

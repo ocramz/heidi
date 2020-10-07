@@ -20,7 +20,7 @@ import qualified Data.Map as M
 import qualified Data.GenericTrie as GT
 
 import qualified Core.Data.Frame as CDF
-import qualified Core.Data.Frame.Generic as CDF (gToFrameGT, gToRowGT)
+import qualified Core.Data.Frame.Generic as CDF (encode, gToRowGT)
 import qualified Heidi.Data.Row.GenericTrie as GTR
 
 import Prelude hiding ((<>))

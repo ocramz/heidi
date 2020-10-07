@@ -18,9 +18,9 @@
 -----------------------------------------------------------------------------
 module Core.Data.Frame.Generic (
     -- * GenericTrie-based rows
-    gToRowGT, gToFrameGT, 
-    -- * Exceptions
-    DataException(..)
+    gToRowGT, encode,
+    -- -- * Exceptions
+    -- DataException(..)
   ) where
 
 import qualified Data.Foldable as F (toList)
@@ -49,14 +49,14 @@ import Data.Generics.Encode.Internal (gflattenHM, gflattenGT, Heidi, TC(..), VP)
 -- >>> instance GE.Heidi Q
 
 
--- | Populate a 'Frame' with the generic encoding of the row data and throws a 'DataException' if the input data is malformed.
+-- | Populate a 'Frame' with the generic encoding of the row data
 --
 -- For example, a list of records having two fields each will produce a dataframe with two columns, having the record field names as column labels.
 --
 -- @
 -- data P1 = P1 Int Char deriving (Eq, Show, 'G.Generic')
 -- instance 'Heidi' P1
--- 
+--
 -- data P2 = P2 { p2i :: Int, p2c :: Char } deriving (Eq, Show, Generic)
 -- instance Heidi P2
 --
@@ -64,24 +64,22 @@ import Data.Generics.Encode.Internal (gflattenHM, gflattenGT, Heidi, TC(..), VP)
 -- instance Heidi Q
 -- @
 --
--- >>> gToFrameGT [P1 42 'z']
+-- >>> encode [P1 42 'z']
 -- Frame {tableRows = [([TC "P1" "_0"],VPInt 42),([TC "P1" "_1"],VPChar 'z')] :| []}
--- 
--- >>> gToFrameGT [P2 42 'z']
+--
+-- >>> encode [P2 42 'z']
 -- Frame {tableRows = [([TC "P2" "p2c"],VPChar 'z'),([TC "P2" "p2i"],VPInt 42)] :| []}
 --
 -- Test using 'Maybe' and 'Either' record fields :
 --
--- >>> gToFrameGT [Q (Just 42) (Left 1.2), Q Nothing (Right 'b')]
+-- >>> encode [Q (Just 42) (Left 1.2), Q Nothing (Right 'b')]
 -- Frame {tableRows = [([TC "Q" "_0",TC "Maybe" "Just"],VPInt 42),([TC "Q" "_1",TC "Either" "Left"],VPDouble 1.2)] :| [[([TC "Q" "_1",TC "Either" "Right"],VPChar 'b')]]}
 --
 -- NB: as the last example above demonstrates, 'Nothing' values are not inserted in the rows, which can be used to encode missing data features.
-gToFrameGT :: (MonadThrow m, Foldable t, Heidi a) =>
-              t a
-           -> m (FL.Frame (GTR.Row [TC] VP))
-gToFrameGT ds
-  | null ds = throwM NoDataE
-  | otherwise = pure $ gToFrameWith gToRowGT ds
+encode :: (Foldable t, Heidi a) =>
+          t a
+       -> FL.Frame (GTR.Row [TC] VP)
+encode ds = gToFrameWith gToRowGT ds
 
 -- | Populate a 'Row' with a generic encoding of the input value (generic-trie backend)
 gToRowGT :: Heidi a => a -> GTR.Row [TC] VP
@@ -90,14 +88,14 @@ gToRowGT = GTR.mkRow . gflattenGT
 gToFrameWith :: Foldable t => (a -> row) -> t a -> FL.Frame row
 gToFrameWith f = FL.frameFromList . map f . F.toList
 
--- | Exceptions related to the input data
-data DataException =
-    NoDataE     -- ^ Dataset has 0 rows
-  deriving (Eq, Typeable)
-instance Show DataException where
-  show = \case
-    NoDataE -> "The dataset has 0 rows"
-instance Exception DataException
+-- -- | Exceptions related to the input data
+-- data DataException =
+--     NoDataE     -- ^ Dataset has 0 rows
+--   deriving (Eq, Typeable)
+-- instance Show DataException where
+--   show = \case
+--     NoDataE -> "The dataset has 0 rows"
+-- instance Exception DataException
 
 
 

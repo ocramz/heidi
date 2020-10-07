@@ -21,7 +21,7 @@ module Heidi (
   Frame
   -- ** Construction
   -- *** Encoding
-  , gToFrameGT, Heidi, TC, VP
+  , encode, Heidi, TC, VP
   -- *** Direct
   , frameFromList
   -- ** Access
@@ -79,14 +79,15 @@ module Heidi (
   -- *** Combinators for list-indexed rows
   , atPrefix, eachPrefixed, foldPrefixed
   -- ** Encode internals
-  , tcTyN, tcTyCon, mkTyN, mkTyCon, DataException(..)
+  , tcTyN, tcTyCon, mkTyN, mkTyCon
+  -- , DataException(..)
   )
   where
 
 import Control.Monad.Catch (MonadThrow(..))
 
 import Core.Data.Frame.List (Frame, frameFromList, head, take, drop, zipWith, numRows, filter, filterA, groupWith, scanl, scanr, toVector, fromVector)
-import Core.Data.Frame.Generic (gToFrameGT, DataException(..))
+import Core.Data.Frame.Generic (encode)
 import Data.Generics.Encode.Internal (Heidi, VP(..))
 -- import qualified Data.Generics.Decode as D (Decode, runDecode)
 import Data.Generics.Codec (TC(..), tcTyN, tcTyCon, mkTyN, mkTyCon, TypeError(..))

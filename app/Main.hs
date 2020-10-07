@@ -50,9 +50,9 @@ purchases = [p1, p2, p3, p4, p5] where
   p5 = Pur 1 "bob" "computer" 1
 
 
-gItems, gPurchases :: Maybe (Frame (Row [TC] VP))
-gItems = gToFrameGT items
-gPurchases = gToFrameGT purchases
+gItems, gPurchases :: Frame (Row [TC] VP)
+gItems = encode items
+gPurchases = encode purchases
 
 
 
