@@ -12,7 +12,7 @@
 
 This library aims to bridge the gap between Haskell's precise but inflexible type discipline and the dynamic world of dataframes.
 
-If this sounds interesting to you, read on!
+If this sounds interesting, read on!
 
 
 ## Introduction
@@ -24,6 +24,8 @@ In scientific practice, a "tidy" dataframe is a specific way of arranging the da
 Nowadays, data science is a very established practice and many software libraries offer excellent functionality for working with such dataframes. `R` has `tidyverse` , Python has `pandas`, and so on.
 
 What about Haskell?
+
+The `Frames` [1] library offers rigorous type safety and good runtime performance, at the cost of some setup overhead. `Heidi`'s  main design goal instead is to have minimal overhead and possibly very low cognitive load to data science practitioners, at the cost of some type safety.
 
 ## TL;DR
 
@@ -53,7 +55,7 @@ One thing that the language doesn't natively support is lookup by accessor name.
 
 In addition to lookup, many data tasks require relational operations across pairs of data tables; algorithmically, these require lookups both across rows and columns, and there's nothing in Haskell's implementation of records that supports this.
 
-There are a number of additional tasks that are routine in data analysis but not so
+There are a number of additional tasks that are routine in data analysis such as plotting, rendering the dataset to various tabular formats (CSV, database ...), and this library aims to support those too with a convenient syntax.
 
 
 ## Advanced
