@@ -82,6 +82,7 @@ module Heidi (
   -- ** Encode internals
   , tcTyN, tcTyCon, mkTyN, mkTyCon
   -- , DataException(..)
+  , OneHot
   )
   where
 
@@ -90,7 +91,7 @@ import Control.Monad.Catch (MonadThrow(..))
 import Core.Data.Frame.List (Frame, frameFromList, head, take, drop, zipWith, numRows, filter, filterA, groupWith, scanl, scanr, toVector, fromVector)
 import Core.Data.Frame.Generic (encode)
 import Data.Generics.Encode.Internal (Heidi, VP(..))
--- import qualified Data.Generics.Decode as D (Decode, runDecode)
+import Data.Generics.Encode.OneHot (OneHot)
 import Data.Generics.Codec (TC(..), tcTyN, tcTyCon, mkTyN, mkTyCon, TypeError(..))
 import Heidi.Data.Row.GenericTrie 
 import Heidi.Data.Frame.Algorithms.GenericTrie (innerJoin, leftOuterJoin, gatherWith, spreadWith, groupBy)

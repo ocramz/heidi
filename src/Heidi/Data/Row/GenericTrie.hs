@@ -79,7 +79,7 @@ import qualified Data.GenericTrie as GT
 -- exceptions
 -- import Control.Monad.Catch (MonadThrow(..))
 -- microlens
-import Lens.Micro (Lens', Traversal', Getting, (^.), (<&>), _Just, Getting, traversed, folded, to, has)
+import Lens.Micro (Lens', Traversal', Getting, (^.), (^?), (<&>), _Just, Getting, traversed, folded, to, has, (.~))
 -- -- microlens-th
 -- import Lens.Micro.TH (makeLenses)
 -- scientific
@@ -144,7 +144,7 @@ atPrefix k f m = f vs <&> \case
 e.g.
 
 @
->>> :t \k -> 'Lens.Micro.toListOf' (eachPrefixed k . 'vpBool')
+>>> :t \k -> 'Lens.Micro.toListOf' (eachPrefixed k . vpBool)
 (GT.TrieKey k, Eq k) => [k] -> Row [k] VP -> [Bool]
 @
 -}

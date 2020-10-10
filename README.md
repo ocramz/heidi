@@ -17,7 +17,7 @@ If this sounds interesting, read on!
 
 ## Introduction
 
-A "dataframe" is conceptually a table of data that can be manipulated with a computer program; it potentially contains numbers, text and anything else that can be rendered as a string of text.
+A "dataframe" is conceptually a table of data that can be manipulated with a computer program; it potentially contains numbers, text and anything else that can be rendered as text.
 
 In scientific practice, a "tidy" dataframe is a specific way of arranging the data in which each row represents a distinct observation ("data point") and each column a "feature" (i.e. some observable aspect) of the data. 
 
@@ -25,7 +25,7 @@ Nowadays, data science is a very established practice and many software librarie
 
 What about Haskell?
 
-The `Frames` [1] library offers rigorous type safety and good runtime performance, at the cost of some setup overhead. `Heidi`'s  main design goal instead is to have minimal overhead and possibly very low cognitive load to data science practitioners, at the cost of some type safety.
+The `Frames` [1] library offers rigorous type safety and good runtime performance, at the cost of some setup overhead. `Heidi`'s  main design goal instead is to have minimal overhead and possibly very low cognitive load to data science practitioners, at the cost of some type safety. 
 
 ## TL;DR
 

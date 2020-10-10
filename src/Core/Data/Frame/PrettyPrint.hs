@@ -1,3 +1,4 @@
+{-# language DeriveAnyClass #-}
 {-# language DeriveFunctor #-}
 {-# language DeriveFoldable #-}
 {-# language DeriveGeneric #-}
@@ -10,27 +11,27 @@ import GHC.Generics (Generic(..))
 import qualified Data.Foldable as F (foldl', foldlM)
 -- import Data.
 import Data.Function (on)
-import Data.List (filter, sortBy, groupBy)
+import Data.List (filter, sortBy, groupBy, intersperse)
 
 -- boxes
-import Text.PrettyPrint.Boxes (Box, Alignment, emptyBox, nullBox, vcat, hcat, vsep, hsep, text, para, punctuateH, render, printBox, (<>), (<+>), (//), (/+/), top, left, right)
+import Text.PrettyPrint.Boxes (Box, Alignment, emptyBox, nullBox, vcat, hcat, vsep, hsep, text, para, punctuateH, render, printBox, (<>), (<+>), (//), (/+/), top, left, right, center1, center2, rows, cols)
 
 -- import qualified Data.Text as T
+-- containers
 import qualified Data.Map as M
+-- generic-trie
 import qualified Data.GenericTrie as GT
+-- unordered-containers
+import qualified Data.HashMap.Strict as HM (HashMap, toList, keys, mapWithKey)
 
 import qualified Core.Data.Frame as CDF
 import qualified Core.Data.Frame.Generic as CDF (encode, gToRowGT)
-import qualified Heidi.Data.Row.GenericTrie as GTR
+import Data.Generics.Encode.Internal (Heidi, toVal, Val(..), VP(..))
+import qualified Data.Generics.Encode.OneHot as OH (OneHot)
 
 import Prelude hiding ((<>))
 
 {-
-
-what's the best data structure for representing this kind of table display?
-
-a trie with strings as keys and lists as values ?
-
 +-------------+-----------------+
 | Person      | House           |
 +-------+-----+-------+---------+
@@ -42,21 +43,69 @@ a trie with strings as keys and lists as values ?
 +-------+-----+-------+---------+
 
 (table example from colonnade : https://hackage.haskell.org/package/colonnade-1.2.0.2/docs/src/Colonnade.html#cap )
-
 -}
 
 
-{-
+-- render the frame header
+--
+-- λ> printBox $ header $ toVal (E (Just 32) Nothing)
+--       E
+-- -------------
+--   _0  |   _1
+-- Maybe   Maybe
+--  ----
+--  Just
+--   ()
+-- λ>
+header :: Val -> Box
+header = \case
+  VRec ty hm ->
+    let
+      bxs = values $ HM.mapWithKey (\k v -> text k /|/ header v) hm
+    in text ty /|/ dashesP bxs /|/ hSepList bxs
+  VPrim _ -> text "()"
+  _ -> undefined -- TODO
 
-fold over a list of tries to update a PTree
+values :: HM.HashMap k v -> [v]
+values = map snd . HM.toList
 
-[Trie [k] v] -> PTree v
+dashesP :: [Box] -> Box
+dashesP = punctuateH top (text "+") . map (\b -> dashes (cols b + 2))
 
-foldl :: Foldable t => (b -> row -> b) -> b -> t row -> b
+dashes :: Int -> Box
+dashes n = text $ replicate n '-'
 
-foldWithKey :: GT.TrieKey k => (k -> a -> r -> r) -> r -> Row k a -> r
+hSepList :: [Box] -> Box
+hSepList = hcat top . intersperse seph
 
--}
+seph :: Box
+seph = text " | "
+
+(/|/) :: Box -> Box -> Box
+b1 /|/ b2 = vcat center1 [b1, b2]
+
+
+data Z = Z Int Int
+instance Show Z where
+  show (Z a b) = unwords [show a, "\n", show b]
+
+-- -- examples
+
+data A0 = A0 deriving (Eq, Show, Generic, Heidi)
+newtype A = A Int deriving (Eq, Show, Generic, Heidi)
+newtype A2 = A2 { a2 :: Int } deriving (Eq, Show, Generic, Heidi)
+data B = B Int Char deriving (Eq, Show, Generic, Heidi)
+data B2 = B2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, Generic, Heidi)
+data C = C1 Int | C2 Char | C3 String deriving (Eq, Show, Generic, Heidi)
+data D = D (Maybe Int) (Either Int String) deriving (Eq, Show, Generic, Heidi)
+data E = E (Maybe Int) (Maybe Char) deriving (Eq, Show, Generic, Heidi)
+data R = R { r1 :: B, r2 :: C } deriving (Eq, Show, Generic, Heidi)
+
+
+
+
+
+
 
 arr0, arr1 :: [Box]
 arr0 = [text "moo", text "123123123"]
@@ -85,87 +134,28 @@ box2 = l <+> r
 
 
 
+-- -- >>> groupSort ["aa", "ab", "cab", "xa", "cx"]
+-- -- [["aa","ab"],["cab","cx"],["xa"]]
+-- groupSort :: Ord a => [[a]] -> [[[a]]]
+-- groupSort = groupSortBy head
 
+-- groupSortBy :: Ord a1 => (a2 -> a1) -> [a2] -> [[a2]]
+-- groupSortBy f = groupBy ((==) `on` f) . sortBy (compare `on` f)
 
-
-
-data M k v = Ml v
-           | Mb (M.Map k (M k v)) deriving (Functor, Foldable)
-instance (Show k, Show v) => Show (M k v) where
-  show = \case
-    Ml x -> show x
-    Mb m -> show $ M.toList m
-
-empty :: M k v
-empty = Mb M.empty
-
--- | Copy the contents of a list-indexed Row into a tree-shaped structure (for pretty-printing)
---
--- >>> unfold [("aa", 41), ("ab", 42)]
--- [('a',[('a',[('a',41)]),('b',42)])]  -- FIXME why 3 levels and not 2 ?!?
-unfold :: (Foldable t, Ord k) =>
-          t ([k], v) -- each GTR.Row is isomorphic to this parameter
-       -> M k v
-unfold kvs = foldl insf empty kvs
-  where
-    insf (Mb acc) (ks, v) = insert acc ks v
-    insf _        _       = undefined -- FIXME
-
--- | Copy a single list-indexed value into a tree
---
--- >>> insert M.empty "abc" 42
--- [('a',[('b',[('c',42)])])]
-insert :: Ord k => M.Map k (M k v) -> [k] -> v -> M k v
-insert = go
-  where
-    go _ [] v = Ml v
-    go m (k:ks) v = Mb $ M.insert k (go m ks v) m
-
-
--- data Tree a = Node {
---         rootLabel :: a,         -- ^ label value
---         subForest :: [Tree a]   -- ^ zero or more child trees
-
--- unfoldTree :: (b -> (a, [b])) -> b -> Tree a
--- unfoldTree f b = let (a, bs) = f b in Node a (unfoldForest f bs)
--- 
--- unfoldForest :: (b -> (a, [b])) -> [b] -> Forest a
--- unfoldForest f = map (unfoldTree f)
-
-
--- boxM (Ml s) = text s
--- boxM (Mb mm) = foldl ins nullBox mm
+-- -- render a column of a frame
+-- columnBox :: (Foldable t, Show a, GT.TrieKey k) =>
+--              t (GTR.Row k a) -- ^ dataframe
+--           -> k -- ^ column key
+--           -> Box
+-- columnBox rows k = foldl ins nullBox rows
 --   where
---     ins acc x = acc <+> boxM x
+--     ins acc row = acc // maybe (emptyBox 1 0) (text . show) (GTR.lookup k row)
 
 
 
--- >>> groupSort ["aa", "ab", "cab", "xa", "cx"]
--- [["aa","ab"],["cab","cx"],["xa"]]
-groupSort :: Ord a => [[a]] -> [[[a]]]
-groupSort = groupSortBy head
-
-groupSortBy :: Ord a1 => (a2 -> a1) -> [a2] -> [[a2]]
-groupSortBy f = groupBy ((==) `on` f) . sortBy (compare `on` f)
-
--- render a column of a frame
-columnBox :: (Foldable t, Show a, GT.TrieKey k) =>
-             t (GTR.Row k a) -- ^ dataframe
-          -> k -- ^ column key
-          -> Box
-columnBox rows k = foldl ins nullBox rows
-  where
-    ins acc row = acc // maybe (emptyBox 1 0) (text . show) (GTR.lookup k row)
-
-
-
-
-
-
--- | union of the set of keys across all rows
-allKeys :: (GT.TrieKey k, Foldable f) => f (GTR.Row k v) -> [k]
-allKeys = GTR.keys . GTR.keysOnly
-
+-- -- | union of the set of keys across all rows
+-- allKeys :: (GT.TrieKey k, Foldable f) => f (GTR.Row k v) -> [k]
+-- allKeys = GTR.keys . GTR.keysOnly
 
 
 

@@ -1,5 +1,6 @@
 {-# language
     DeriveGeneric
+  , DeriveAnyClass
   , DeriveDataTypeable
   , FlexibleContexts
   , GADTs
@@ -12,7 +13,8 @@
 #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -Wno-type-defaults #-}
--- {-# OPTIONS_GHC -Wno-unused-top-binds #-}
+{-# options_ghc -Wno-unused-imports #-}
+{-# OPTIONS_GHC -Wno-unused-top-binds #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Generics.Encode.Internal
@@ -41,17 +43,20 @@ module Data.Generics.Encode.Internal (gflattenHM, gflattenGT,
                                      -- * TC (Type and Constructor annotation)
                                      TC(..), tcTyN, tcTyCon, mkTyN, mkTyCon, 
                                      -- * Heidi (generic ADT encoding)
-                                     Heidi) where
+                                     Heidi, toVal, Val(..)) where
 
 import qualified GHC.Generics as G
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Word (Word, Word8, Word16, Word32, Word64)
+import Data.Proxy
 import Data.Typeable (Typeable)
 
+-- containers
+import qualified Data.Map as M (Map, fromList, insert, lookup)
 -- exceptions
 import Control.Monad.Catch(Exception(..), MonadThrow(..))
 -- generics-sop
-import Generics.SOP (All, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), FieldName, ConstructorInfo(..), constructorInfo, All, All2, hcliftA2, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse)
+import Generics.SOP (All, HasDatatypeInfo(..), datatypeInfo, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), FieldName, ConstructorInfo(..), constructorInfo, All, All2, hcliftA2, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse)
 -- import Generics.SOP.NP (cpure_NP)
 -- import Generics.SOP.Constraint (SListIN)
 import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
@@ -186,18 +191,6 @@ flatten z insf = go ([], z) where
 
 
 
--- flatten' z insf = go ([], z) where
---   insRev ks = insf (reverse ks)
---   go (ks, hmacc) = \case
---     VRec ty hm     -> HM.foldlWithKey' (\hm' k t -> go (TC ty k : ks, hm') t) hmacc hm
---     -- VEnum ty cn oh -> insRev (TC ty cn : ks) (VPOH oh) hmacc
---     -- VPrim vp       -> insRev ks vp hmacc
-
-
-
-
-
-
 
 
 -- | Internal representation of encoded ADTs values
@@ -224,7 +217,13 @@ class Heidi a where
   toVal :: a -> Val
   default toVal ::
     (G.Generic a, All2 Heidi (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
-  toVal x = sopHeidi (gdatatypeInfo (Proxy :: Proxy a)) (gfrom x)  
+  toVal x = sopHeidi (gdatatypeInfo (Proxy :: Proxy a)) (gfrom x)
+
+
+-- data Header =
+--   HeaderR (M.Map String Header)
+--   | HeaderL
+
 
 
 sopHeidi :: All2 Heidi xss => DatatypeInfo xss -> SOP I xss -> Val
@@ -289,7 +288,7 @@ instance Heidi a => Heidi (Maybe a) where
   toVal = \case
     Nothing -> VRec "Maybe" HM.empty
     Just x  -> VRec "Maybe" $ HM.singleton "Just" $ toVal x
-  
+
 instance (Heidi a, Heidi b) => Heidi (Either a b) where
   toVal = \case
     Left  l -> VRec "Either" $ HM.singleton "Left" $ toVal l
@@ -433,22 +432,16 @@ instance Exception TypeError
 
 -- -- examples
 
--- data A0 = A0 deriving (Eq, Show, G.Generic)
--- instance Heidi A0
--- newtype A = A Int deriving (Eq, Show, G.Generic)
--- instance Heidi A
--- newtype A2 = A2 { a2 :: Int } deriving (Eq, Show, G.Generic)
--- instance Heidi A2
--- data B = B Int Char deriving (Eq, Show, G.Generic)
--- instance Heidi B
--- data B2 = B2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, G.Generic)
--- instance Heidi B2
--- data C = C1 | C2 | C3 deriving (Eq, Show, G.Generic)
--- instance Heidi C
--- data D = D (Maybe Int) (Either Int String) deriving (Eq, Show, G.Generic)
--- instance Heidi D
--- data E = E (Maybe Int) (Maybe Char) deriving (Eq, Show, G.Generic)
--- instance Heidi E
+data A0 = A0 deriving (Eq, Show, G.Generic, Heidi)
+newtype A = A Int deriving (Eq, Show, G.Generic, Heidi)
+newtype A2 = A2 { a2 :: Int } deriving (Eq, Show, G.Generic, Heidi)
+data B = B Int Char deriving (Eq, Show, G.Generic, Heidi)
+data B2 = B2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, G.Generic, Heidi)
+data C = C1 | C2 | C3 deriving (Eq, Show, G.Generic, Heidi)
+data D = D (Maybe Int) (Either Int String) deriving (Eq, Show, G.Generic, Heidi)
+data E = E (Maybe Int) (Maybe Char) deriving (Eq, Show, G.Generic, Heidi)
+data R = R { r1 :: B, r2 :: C } deriving (Eq, Show, G.Generic, Heidi)
+
 -- newtype F = F (Int, Char) deriving (Eq, Show, G.Generic)
 -- instance Heidi F
 
