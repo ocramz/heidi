@@ -62,7 +62,9 @@ header = \case
   VRec ty hm ->
     let
       bxs = values $ HM.mapWithKey (\k v -> text k /|/ header v) hm
-    in text ty /|/ dashesP bxs /|/ hSepList bxs
+    in
+      -- dashesP bxs /|/ hSepList bxs
+      text ty /|/ dashesP bxs /|/ hSepList bxs
   VPrim _ -> text "()"
   _ -> undefined -- TODO
 

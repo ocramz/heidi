@@ -56,7 +56,7 @@ import qualified Data.Map as M (Map, fromList, insert, lookup)
 -- exceptions
 import Control.Monad.Catch(Exception(..), MonadThrow(..))
 -- generics-sop
-import Generics.SOP (All, HasDatatypeInfo(..), datatypeInfo, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), FieldName, ConstructorInfo(..), constructorInfo, All, All2, hcliftA2, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse)
+import Generics.SOP (All, HasDatatypeInfo(..), datatypeInfo, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), FieldName, ConstructorInfo(..), constructorInfo, All, All2, AllN, Prod, HAp, hmap, hcliftA, hcliftA2, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse)
 -- import Generics.SOP.NP (cpure_NP)
 -- import Generics.SOP.Constraint (SListIN)
 import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
@@ -73,11 +73,11 @@ import Data.Text (Text, unpack)
 
 -- import Data.Time (Day, LocalTime, TimeOfDay)
 -- import qualified Data.Vector as V
--- import qualified Data.Map as M
 import qualified Data.HashMap.Strict as HM
 -- import qualified Data.GenericTrie as GT
 
 import Data.Generics.Encode.OneHot (OneHot, mkOH)
+import Data.Generics.Encode.Internal.Prim (VP(..), vpInt, vpScientific, vpFloat, vpDouble, vpString, vpChar, vpText, vpBool, vpOneHot)
 -- import Data.List (unfoldr)
 -- import qualified Data.Foldable as F
 -- import qualified Data.Sequence as S (Seq(..), empty)
@@ -89,52 +89,7 @@ import Prelude hiding (getChar)
 -- >>> :set -XDeriveGeneric
 -- >>> import qualified GHC.Generics as G
 
--- | Primitive types
---
--- NB : this is just a convenience for unityping the dataframe contents, but it should not be exposed to the library users 
-data VP =
-     VPInt    { _vpInt :: Int }    -- ^ 'Int'
-   | VPInt8   Int8  -- ^ 'Int8'
-   | VPInt16   Int16  -- ^ 'Int16'
-   | VPInt32   Int32 -- ^ 'Int32'
-   | VPInt64   Int64 -- ^ 'Int64'
-   | VPWord   Word   -- ^ 'Word'
-   | VPWord8   Word8  -- ^ 'Word8'
-   | VPWord16   Word16 -- ^ 'Word16'
-   | VPWord32   Word32 -- ^ 'Word32'
-   | VPWord64   Word64   -- ^ 'Word64'
-   | VPBool   { _vpBool :: Bool } -- ^ 'Bool'
-   | VPFloat  { _vpFloat :: Float } -- ^ 'Float'
-   | VPDouble { _vpDouble :: Double } -- ^ 'Double'
-   | VPScientific { _vpScientific :: Scientific } -- ^ 'Scientific'
-   | VPChar   { _vpChar :: Char } -- ^ 'Char'
-   | VPString { _vpString :: String } -- ^ 'String'
-   | VPText   { _vpText :: Text } -- ^ 'Text'
-   | VPOH     { _vpOneHot :: OneHot Int }  -- ^ 1-hot encoding of an enum value
-   deriving (Eq, Ord, G.Generic)
-instance Hashable VP
-makeLenses ''VP
 
-instance Show VP where
-  show = \case
-    VPInt x -> show x
-    VPInt8 x -> show x
-    VPInt16 x -> show x
-    VPInt32 x -> show x
-    VPInt64 x -> show x
-    VPWord x -> show x
-    VPWord8 x -> show x
-    VPWord16 x -> show x
-    VPWord32 x -> show x
-    VPWord64 x -> show x
-    VPBool b   -> show b
-    VPFloat f -> show f
-    VPDouble d -> show d
-    VPScientific s -> show s
-    VPChar d -> pure d
-    VPString s -> s
-    VPText t -> unpack t
-    VPOH oh -> show oh
 
 
 -- | Flatten a value into a 1-layer hashmap, via the value's generic encoding
@@ -192,7 +147,6 @@ flatten z insf = go ([], z) where
 
 
 
-
 -- | Internal representation of encoded ADTs values
 --
 -- The first String parameter contains the type name at the given level, the second contains the type constructor name
@@ -217,18 +171,11 @@ class Heidi a where
   toVal :: a -> Val
   default toVal ::
     (G.Generic a, All2 Heidi (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
-  toVal x = sopHeidi (gdatatypeInfo (Proxy :: Proxy a)) (gfrom x)
+  toVal x = toVal' (gdatatypeInfo (Proxy :: Proxy a)) (gfrom x)
 
-
--- data Header =
---   HeaderR (M.Map String Header)
---   | HeaderL
-
-
-
-sopHeidi :: All2 Heidi xss => DatatypeInfo xss -> SOP I xss -> Val
-sopHeidi di sop@(SOP xss) = hcollapse $ hcliftA2
-    (Proxy :: Proxy (All Heidi))
+toVal' :: All2 Heidi xss => DatatypeInfo xss -> SOP I xss -> Val
+toVal' di sop@(SOP xss) = hcollapse $ hcliftA2
+    allph
     (\ci xs -> K (mkVal ci xs tyName oneHot))
     (constructorInfo di)
     xss
@@ -237,7 +184,9 @@ sopHeidi di sop@(SOP xss) = hcollapse $ hcliftA2
      oneHot = mkOH di sop
 
 mkVal :: All Heidi xs =>
-         ConstructorInfo xs -> NP I xs -> DatatypeName -> OneHot Int -> Val
+         ConstructorInfo xs
+      -> NP I xs
+      -> DatatypeName -> OneHot Int -> Val
 mkVal cinfo xs tyn oh = case cinfo of
     Infix cn _ _  -> VRec cn $ mkAnonProd xs
     Constructor cn
@@ -246,19 +195,27 @@ mkVal cinfo xs tyn oh = case cinfo of
     Record _ fi   -> VRec tyn $ mkProd fi xs
   where
     cns :: [Val]
-    cns = npHeidis xs
+    cns = npToVals xs
 
 mkProd :: All Heidi xs => NP FieldInfo xs -> NP I xs -> HM.HashMap String Val
-mkProd fi xs = HM.fromList $ hcollapse $ hcliftA2 (Proxy :: Proxy Heidi) mk fi xs where
-  mk :: Heidi v => FieldInfo v -> I v -> K (FieldName, Val) v
-  mk (FieldInfo n) (I x) = K (n, toVal x)
+mkProd finfo xs = HM.fromList $
+  hcollapse $ hcliftA2 ph mk finfo xs
+  where
+    mk :: Heidi v => FieldInfo v -> I v -> K (FieldName, Val) v
+    mk (FieldInfo n) (I x) = K (n, toVal x)
 
 mkAnonProd :: All Heidi xs => NP I xs -> HM.HashMap String Val
 mkAnonProd xs = HM.fromList $ zip labels cns where
-  cns = npHeidis xs
+  cns = npToVals xs
 
-npHeidis :: All Heidi xs => NP I xs -> [Val]
-npHeidis xs = hcollapse $ hcmap (Proxy :: Proxy Heidi) (mapIK toVal) xs
+npToVals :: All Heidi xs => NP I xs -> [Val]
+npToVals xs = hcollapse $ hcmap ph (mapIK toVal) xs
+
+allph :: Proxy (All Heidi)
+allph = Proxy
+
+ph :: Proxy Heidi
+ph = Proxy
 
 -- | >>> take 3 labels
 -- ["_0","_1","_2"]

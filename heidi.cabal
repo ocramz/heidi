@@ -30,17 +30,18 @@ library
 
   other-modules:
                   Heidi.Data.Row.GenericTrie
-                  
                   Heidi.Data.Frame.Algorithms.GenericTrie.Generic                  
                   Data.Generics.Codec
                   Data.Generics.Encode.OneHot                
-                Data.Generics.Encode.Internal
-                Data.Generics.Decode
-                Core.Data.Frame
-                Core.Data.Frame.List                
-                Core.Data.Frame.PrettyPrint
-                Core.Data.Frame.Generic
-                Core.Data.Row.Internal
+                  Data.Generics.Encode.Internal
+                  Data.Generics.Encode.Internal.Prim
+                  Data.Generics.Encode.Internal.Simple
+                  Data.Generics.Decode
+                  Core.Data.Frame
+                  Core.Data.Frame.List                
+                  Core.Data.Frame.PrettyPrint
+                  Core.Data.Frame.Generic
+                  Core.Data.Row.Internal
   hs-source-dirs:
       src
   ghc-options: -Wall

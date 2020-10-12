@@ -3,7 +3,7 @@
 -- |
 -- Module      :  Data.Generics.Encode.OneHot
 -- Description :  Generic 1-hot encoding of enumeration types 
--- Copyright   :  (c) Marco Zocca (2019)
+-- Copyright   :  (c) Marco Zocca (2019-2020)
 -- License     :  MIT
 -- Maintainer  :  ocramz fripost org
 -- Stability   :  experimental
