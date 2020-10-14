@@ -27,18 +27,22 @@ What about Haskell?
 
 The `Frames` [1] library offers rigorous type safety and good runtime performance, at the cost of some setup overhead. `Heidi`'s  main design goal instead is to have minimal overhead and possibly very low cognitive load to data science practitioners, at the cost of some type safety. 
 
-## TL;DR
+## Quickstart
+
+The following snippet demonstrates the setup necessary to use `heidi`
 
 ```
-{-# language DeriveGenerics, DeriveAnyClass #-}
+{-# language DeriveGenerics, DeriveAnyClass #-}   (1)
 module MyDataScienceTask where
+import GHC.Generics    (2)
 
-import Heidi
+import Heidi      (3)
 
-data Sales = Row String Int deriving (Eq, Show, Generic, Heidi)
+data Sales = Row String Int deriving (Eq, Show, Generic, Heidi)     (4)
 ```
 
-and off you go.
+1. 
+
 
 ## Rationale
 

@@ -39,23 +39,23 @@ module Heidi (
   , spreadWith, gatherWith
   -- * Relational operations
   , groupBy, innerJoin, leftOuterJoin
-  -- ** Vector-related
+  -- * Vector-related
   , toVector, fromVector
 
   -- * Row
   , Row
-  -- * Construction
+  -- ** Construction
   , rowFromList
   -- ** Access
   , toList, keys
-  -- * Filtering
+  -- ** Filtering
   , delete, filterWithKey, filterWithKeyPrefix, filterWithKeyAny
   , deleteMany
-  -- * Partitioning
+  -- ** Partitioning
   , partitionWithKey, partitionWithKeyPrefix
   -- -- ** Decoders
   -- , real, scientific, text, string, oneHot
-  -- * Lookup
+  -- ** Lookup
   , lookup
   -- , lookupThrowM
   , (!:), elemSatisfies
@@ -64,20 +64,23 @@ module Heidi (
   -- ** Comparison by lookup
   , eqByLookup, eqByLookups
   , compareByLookup
-  -- * Set operations
+  -- ** Set operations
   , union, unionWith
   , intersection, intersectionWith
-  -- * Maps
+  -- ** Maps
   , mapWithKey
-  -- * Folds
+  -- ** Folds
   , foldWithKey, keysOnly
-  -- * Traversals
+  -- ** Traversals
   , traverseWithKey
-  -- * Lenses
-  , int, bool, float, double, char, string, text, scientific, oneHot
   -- ** Lens combinators
+  -- *** Traversals
+  , int, bool, float, double, char, string, text, scientific, oneHot
+  -- *** Getters
+  , real, txt, flag
+  -- *** Combinators
   , at, keep
-  -- *** Combinators for list-indexed rows
+  -- **** Combinators for list-indexed rows
   , atPrefix, eachPrefixed, foldPrefixed
   -- ** Encode internals
   , tcTyN, tcTyCon, mkTyN, mkTyCon

@@ -55,20 +55,24 @@ module Heidi.Data.Row.GenericTrie (
   , foldWithKey, keysOnly
   -- * Traversals
   , traverseWithKey
-  -- * Lenses
+  -- * Lens combinators
+  -- ** Traversals
   , int, bool, float, double, char, string, text, scientific, oneHot
-  -- ** Lens combinators
+  -- ** Getters
+  , real, txt, flag
+  -- ** Combinators
   , at, keep
   -- *** Combinators for list-indexed rows
   , atPrefix, eachPrefixed, foldPrefixed
   ) where
 
--- import Control.Monad (foldM
+import qualified Control.Applicative as A (empty)
+import Control.Applicative ((<|>))
 import Data.Functor.Const (Const(..))
 import Data.Functor.Identity (Identity(..))
 import Data.List (isPrefixOf)
 import Data.Maybe (fromMaybe)
-import Data.Monoid (Any(..), All(..))
+import Data.Monoid (Any(..), All(..), First(..))
 -- import Data.Semigroup (Endo)
 -- import Data.Typeable (Typeable)
 -- import Control.Applicative (Alternative(..))
@@ -79,13 +83,14 @@ import qualified Data.GenericTrie as GT
 -- exceptions
 -- import Control.Monad.Catch (MonadThrow(..))
 -- microlens
-import Lens.Micro (Lens', Traversal', Getting, (^.), (^?), (<&>), _Just, Getting, traversed, folded, to, has, (.~))
+import Lens.Micro (Lens', Traversal', Getting, (^.), (^?), (<&>), _Just, Getting, traversed, folded, to, has, (.~), failing)
 -- -- microlens-th
 -- import Lens.Micro.TH (makeLenses)
 -- scientific
 import Data.Scientific (Scientific)
 -- text
 import Data.Text (Text)
+import qualified Data.Text as T (pack, unpack)
 
 
 -- import qualified Data.Generics.Decode as D (Decode, mkDecode)
@@ -179,6 +184,30 @@ keep l f = has (l . to f)
 
 -- keep :: (Eq a) => Getting Any row a -> a -> row -> Bool
 -- keep l v = has (l . to (== v))
+
+
+-- ** Getters
+
+real :: GT.TrieKey k => k -> Row k VP -> Maybe Double
+real k r = g1 <|> g2 <|> g3 <|> g4
+  where
+    g1 = r ^? int k . to fromIntegral
+    g2 = r ^? double k
+    g3 = r ^? float k . to (fromRational . toRational)
+    g4 = r ^? scientific k . to (fromRational . toRational)
+
+txt :: GT.TrieKey k => k -> Row k VP -> Maybe Text
+txt k r = g1 <|> g2
+  where
+    g1 = r ^? string k . to T.pack
+    g2 = r ^? text k
+
+flag :: GT.TrieKey k => k -> Row k VP -> Maybe Bool
+flag k r = g1 <|> g2
+  where
+    g1 = r ^? bool k
+    g2 = r ^? char k . to f
+    f c = elem c ['y', 'Y']
 
 -- ** Lenses
 
