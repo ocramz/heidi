@@ -29,19 +29,31 @@ The `Frames` [1] library offers rigorous type safety and good runtime performanc
 
 ## Quickstart
 
-The following snippet demonstrates the setup necessary to use `heidi`
+The following snippet demonstrates the minimal setup necessary to use `heidi` :
 
 ```
-{-# language DeriveGenerics, DeriveAnyClass #-}   (1)
+{-# language DeriveGenerics #-}   (1)
 module MyDataScienceTask where
 import GHC.Generics    (2)
 
-import Heidi      (3)
+import Heidi
 
-data Sales = Row String Int deriving (Eq, Show, Generic, Heidi)     (4)
+data Sales = Sales { item :: String, amount :: Int } deriving (Eq, Show, Generic)     (3)
+instance Heidi Sales     (4)
 ```
 
-1. 
+All datatypes that are meant to be used within dataframes must be in the `Heidi` typeclass, which in turn requires a `Generic` instance.
+
+The `DeriveGenerics` language extension (1) enables the compiler to automatically write the correct incantations (3), as long as the user also imports the `GHC.Generics` module (2) from `base`.
+
+The automatic dataframe encoding mechanism is made possible by the empty `Heidi` instance (4).
+
+It is also convenient to use `DeriveAnyClass` extension to avoid writing the empty typeclass instance :
+
+```
+{-# language DeriveGenerics, DeriveAnyClass #-}
+data Foo = Foo Int String deriving (Generic, Heidi)
+```
 
 
 ## Rationale
