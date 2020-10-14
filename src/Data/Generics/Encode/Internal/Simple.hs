@@ -43,17 +43,14 @@ instance HasHeader Char where hasHeader _ = undefined -- HPrim . VPChar
 instance HasHeader a => HasHeader [a]
 
 data Header =
-     HSum  String (HM.HashMap String Header) -- ^ sums (all constructors)
-   | HProd String (HM.HashMap String Header) -- ^ products ("")
+     HProd [String] (HM.HashMap String Header) -- ^ products
    -- | HPrim VP
    deriving (Eq, Show)
 
 instance Semigroup Header where
-  HSum a hma <> HSum b hmb = undefined
-  HProd a hma <> HProd b hmb = undefined
-  _ <> _ = undefined
+  HProd a hma <> HProd b hmb = HProd (a <> b) $ HM.union hma hmb
 instance Monoid Header where
-  mempty = HSum "" mempty
+  mempty = HProd [] mempty
 
 class HasHeader a where
   hasHeader :: Proxy a -> Header
@@ -66,10 +63,11 @@ hasHeader' cs = mconcat $ hcollapse $ hcliftA allp goConstructor cs
 
 goConstructor :: All HasHeader xs => ConstructorInfo xs -> K Header xs
 goConstructor = \case
-  Record n ns -> K $ HProd n (mkProd ns)
+  Record n ns -> K $ HProd [n] (mkProd ns)
   -- Constructor n -> K $ HProd n mkAnonProd-- (mkProd)
 
--- mkAnonProd = HM.fromList $ zip labels (hcollapse $ hcmap p (mapIK hasHeader) xs)
+-- mkAnonProd :: HasHeader a => Proxy a -> HM.HashMap String Header
+-- mkAnonProd px = HM.fromList $ zip labels (hcollapse (K (hasHeader px)))
 --   where
 --     labels = map (('_' :) . show) [0 ..]
 
