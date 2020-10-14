@@ -25,7 +25,7 @@ import qualified Data.GenericTrie as GT
 import qualified Data.HashMap.Strict as HM (HashMap, toList, keys, mapWithKey)
 
 import qualified Core.Data.Frame as CDF
-import qualified Core.Data.Frame.Generic as CDF (encode, gToRowGT)
+import qualified Core.Data.Frame.Generic as CDF (encode)
 import Data.Generics.Encode.Internal (Heidi, toVal, Val(..), VP(..))
 import qualified Data.Generics.Encode.OneHot as OH (OneHot)
 

@@ -17,8 +17,7 @@
 --
 -----------------------------------------------------------------------------
 module Core.Data.Frame.Generic (
-    -- * GenericTrie-based rows
-    gToRowGT, encode,
+    encode,
     -- -- * Exceptions
     -- DataException(..)
   ) where

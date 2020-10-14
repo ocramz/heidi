@@ -1,5 +1,5 @@
 name:           heidi
-version:        0.0.0
+version:        0.1.0
 synopsis:       Tidy data in Haskell
 description:    Tidy data in Haskell, via generics.
 homepage:       https://github.com/ocramz/heidi#readme
@@ -27,26 +27,24 @@ library
   exposed-modules:
                   Heidi
                   Heidi.Data.Frame.Algorithms.GenericTrie
+                  Heidi.Data.Row.GenericTrie
+                  Core.Data.Frame.Generic
+                  Core.Data.Frame.List
+                  Data.Generics.Encode.Internal
+                  Data.Generics.Encode.OneHot
 
   other-modules:
-                  Heidi.Data.Row.GenericTrie
                   Heidi.Data.Frame.Algorithms.GenericTrie.Generic                  
-                  Data.Generics.Codec
-                  Data.Generics.Encode.OneHot                
-                  Data.Generics.Encode.Internal
                   Data.Generics.Encode.Internal.Prim
                   Data.Generics.Encode.Internal.Simple
-                  Data.Generics.Decode
                   Core.Data.Frame
-                  Core.Data.Frame.List                
                   Core.Data.Frame.PrettyPrint
-                  Core.Data.Frame.Generic
                   Core.Data.Row.Internal
   hs-source-dirs:
       src
   ghc-options: -Wall
   build-depends:
-                base > 4.9 && < 4.13
+                base > 4.9 && < 4.14
               , boxes >= 0.1.4
               -- , bytestring >= 0.10.8.1
               , containers >= 0.5.7.1

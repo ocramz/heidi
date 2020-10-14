@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
 {-# language TemplateHaskell #-}
+{-# options_ghc -Wno-unused-imports #-}
 module Data.Generics.Encode.Internal.Prim (VP(..), vpInt, vpBool, vpFloat, vpDouble, vpScientific, vpChar, vpString, vpText, vpOneHot) where
 
 import Data.Int (Int8, Int16, Int32, Int64)
