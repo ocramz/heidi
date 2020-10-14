@@ -27,19 +27,20 @@ library
   exposed-modules:
                   Heidi
                   Heidi.Data.Frame.Algorithms.GenericTrie
-                  Heidi.Data.Row.GenericTrie
-                  Core.Data.Frame.Generic
-                  Core.Data.Frame.List
-                  Data.Generics.Encode.Internal
-                  Data.Generics.Encode.OneHot
+
 
   other-modules:
-                  Heidi.Data.Frame.Algorithms.GenericTrie.Generic                  
-                  Data.Generics.Encode.Internal.Prim
-                  Data.Generics.Encode.Internal.Simple
                   Core.Data.Frame
+                  Core.Data.Frame.Generic
+                  Core.Data.Frame.List
                   Core.Data.Frame.PrettyPrint
                   Core.Data.Row.Internal
+                  Data.Generics.Encode.Internal
+                  Data.Generics.Encode.Internal.Prim
+                  Data.Generics.Encode.Internal.Simple
+                  Data.Generics.Encode.OneHot
+                  Heidi.Data.Frame.Algorithms.GenericTrie.Generic                  
+                  Heidi.Data.Row.GenericTrie
   hs-source-dirs:
       src
   ghc-options: -Wall
@@ -84,17 +85,17 @@ test-suite unit
               -- , hspec-expectations
   default-language: Haskell2010
 
-test-suite doctest
-  default-language:    Haskell2010           
-  type: exitcode-stdio-1.0
-  main-is: DocTest.hs
-  hs-source-dirs:
-        test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-                heidi
-              , base 
-              , doctest 
+-- test-suite doctest
+--   default-language:    Haskell2010           
+--   type: exitcode-stdio-1.0
+--   main-is: DocTest.hs
+--   hs-source-dirs:
+--         test
+--   ghc-options: -threaded -rtsopts -with-rtsopts=-N
+--   build-depends:
+--                 heidi
+--               , base 
+--               , doctest 
 
 benchmark bench-space
   type: exitcode-stdio-1.0

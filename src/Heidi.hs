@@ -77,7 +77,8 @@ module Heidi (
   -- *** Traversals
   , int, bool, float, double, char, string, text, scientific, oneHot
   -- *** Getters
-  , real, txt, flag
+  , real, txt
+  -- , flag
   -- *** Combinators
   , at, keep
   -- **** Combinators for list-indexed rows

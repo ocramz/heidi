@@ -48,7 +48,7 @@ The `DeriveGenerics` language extension (1) enables the compiler to automaticall
 
 The automatic dataframe encoding mechanism is made possible by the empty `Heidi` instance (4).
 
-It is also convenient to use `DeriveAnyClass` extension to avoid writing the empty typeclass instance :
+It is also convenient to use `DeriveAnyClass` to avoid writing the empty typeclass instance :
 
 ```
 {-# language DeriveGenerics, DeriveAnyClass #-}

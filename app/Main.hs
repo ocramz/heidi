@@ -13,11 +13,7 @@ import Control.Monad.Catch
 -- import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as T
 
--- import Core.Data.Frame
--- import Core.Data.Frame.Generic
--- import qualified Heidi.Data.Row.GenericTrie as GTR
--- import Data.Generics.Encode.Internal (HasGE, TC, VP)
-import Heidi -- (Heidi, Frame, TC, VP, gToFrameGT, filterDecode, mkTyN, mkTyCon)
+import Heidi
 import Heidi.Data.Frame.Algorithms.GenericTrie (innerJoin)
 
 -- import Lens.Micro ((^.), (%~), to, has)

@@ -59,7 +59,8 @@ module Heidi.Data.Row.GenericTrie (
   -- ** Traversals
   , int, bool, float, double, char, string, text, scientific, oneHot
   -- ** Getters
-  , real, txt, flag
+  , real, txt
+  -- , flag
   -- ** Combinators
   , at, keep
   -- *** Combinators for list-indexed rows
@@ -126,7 +127,11 @@ instance (GT.TrieKey k, Eq k, Eq v, Ord k, Ord v) => Ord (Row k v) where
   r1 <= r2 = F.toList r1 <= F.toList r2
 
 -- | Focus on a given column
-at :: GT.TrieKey k => k -> Lens' (Row k a) (Maybe a)
+--
+-- NB : setting a 'Nothing' value removes the entry
+at :: GT.TrieKey k =>
+      k -- ^ column index
+   -> Lens' (Row k a) (Maybe a)
 at k f m = f mv <&> \case
     Nothing -> maybe m (const (delete k m)) mv
     Just v' -> insert k v' m
@@ -188,6 +193,9 @@ keep l f = has (l . to f)
 
 -- ** Getters
 
+-- | Lookup a real number at the given index.
+--
+-- Matches `Double`, `Float`, `Int` and `Scientific` values.
 real :: GT.TrieKey k => k -> Row k VP -> Maybe Double
 real k r = g1 <|> g2 <|> g3 <|> g4
   where
@@ -196,18 +204,36 @@ real k r = g1 <|> g2 <|> g3 <|> g4
     g3 = r ^? float k . to (fromRational . toRational)
     g4 = r ^? scientific k . to (fromRational . toRational)
 
+-- | Look up a text string at the given index.
+--
+-- Matches `String` and `Text` values.
 txt :: GT.TrieKey k => k -> Row k VP -> Maybe Text
 txt k r = g1 <|> g2
   where
     g1 = r ^? string k . to T.pack
     g2 = r ^? text k
 
-flag :: GT.TrieKey k => k -> Row k VP -> Maybe Bool
-flag k r = g1 <|> g2
-  where
-    g1 = r ^? bool k
-    g2 = r ^? char k . to f
-    f c = elem c ['y', 'Y']
+-- -- | Lookup a "flag" at the given index.
+-- --
+-- -- `Bool`ean values and 
+-- flag :: GT.TrieKey k => k -> Row k VP -> Maybe Bool
+-- flag k r = g1 <|> g2
+--   where
+--     g1 = r ^? bool k
+--     g2 = r ^? char k . to f
+--     f c = elem c ['y', 'Y']
+
+-- class Contains a where
+--   contains_ :: GT.TrieKey k => k -> Traversal' (Row k VP) a
+
+-- instance Contains Int where contains_ = int
+-- instance Contains Char where contains_ = char
+
+-- contains :: (Contains a, Eq a, GT.TrieKey k, Monoid r, Foldable t) =>
+--             k
+--          -> t a
+--          -> Getting r (Row k VP) Bool
+-- contains k xs = contains_ k . to (`elem` xs)
 
 -- ** Lenses
 
