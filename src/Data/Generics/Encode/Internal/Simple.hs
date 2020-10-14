@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DefaultSignatures #-}
+{-# language DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# language LambdaCase #-}
 {-# language ScopedTypeVariables #-}
@@ -30,32 +31,47 @@ import Data.Generics.Encode.Internal.Prim (VP(..))
 data A0 = A0 deriving (Eq, Show, G.Generic)
 newtype A = A Int deriving (Eq, Show, G.Generic)
 newtype A2 = A2 { a2 :: Int } deriving (Eq, Show, G.Generic)
-data B = B Int Char deriving (Eq, Show, G.Generic)
+data B = B Int Char deriving (Eq, Show, G.Generic, HasHeader)
 data B2 = B2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, G.Generic)
-data C = C1 Int | C2 Char | C3 String deriving (Eq, Show, G.Generic)
+data C = C1 Int | C2 Char | C3 String deriving (Eq, Show, G.Generic, HasHeader)
 data D = D (Maybe Int) (Either Int String) deriving (Eq, Show, G.Generic)
 data E = E (Maybe Int) (Maybe Char) deriving (Eq, Show, G.Generic)
-data R = R { r1 :: B, r2 :: C } deriving (Eq, Show, G.Generic)
+data R = R { r1 :: B, r2 :: C } deriving (Eq, Show, G.Generic, HasHeader)
+
+instance HasHeader Int where hasHeader _ = undefined -- HPrim . VPInt
+instance HasHeader Char where hasHeader _ = undefined -- HPrim . VPChar
+instance HasHeader a => HasHeader [a]
 
 data Header =
      HSum  String (HM.HashMap String Header) -- ^ sums (all constructors)
    | HProd String (HM.HashMap String Header) -- ^ products ("")
-   | HPrim VP
+   -- | HPrim VP
    deriving (Eq, Show)
+
+instance Semigroup Header where
+  HSum a hma <> HSum b hmb = undefined
+  HProd a hma <> HProd b hmb = undefined
+  _ <> _ = undefined
+instance Monoid Header where
+  mempty = HSum "" mempty
 
 class HasHeader a where
   hasHeader :: Proxy a -> Header
-  -- default hasHeader ::
-  --   (G.Generic a, All2 HasHeader (GCode a), GDatatypeInfo a) => Proxy a -> Header
-  -- hasHeader _ = hasHeader' (constructorInfo $ gdatatypeInfo (Proxy :: Proxy a))
+  default hasHeader ::
+    (G.Generic a, All2 HasHeader (GCode a), GDatatypeInfo a) => Proxy a -> Header
+  hasHeader _ = hasHeader' (constructorInfo $ gdatatypeInfo (Proxy :: Proxy a))
 
-hasHeader' :: (All2 HasHeader xs, SListI xs) => NP ConstructorInfo xs -> [Header]
-hasHeader' cs = hcollapse $ hcliftA allp goConstructor cs where
+hasHeader' :: (All2 HasHeader xs, SListI xs) => NP ConstructorInfo xs -> Header
+hasHeader' cs = mconcat $ hcollapse $ hcliftA allp goConstructor cs 
 
 goConstructor :: All HasHeader xs => ConstructorInfo xs -> K Header xs
 goConstructor = \case
   Record n ns -> K $ HProd n (mkProd ns)
-  -- Constructor n -> K $ HSum n -- (mkProd)
+  -- Constructor n -> K $ HProd n mkAnonProd-- (mkProd)
+
+-- mkAnonProd = HM.fromList $ zip labels (hcollapse $ hcmap p (mapIK hasHeader) xs)
+--   where
+--     labels = map (('_' :) . show) [0 ..]
 
 mkProd :: All HasHeader xs => NP FieldInfo xs -> HM.HashMap String Header
 mkProd finfo = HM.fromList $ hcollapse $ hcliftA p goField finfo
