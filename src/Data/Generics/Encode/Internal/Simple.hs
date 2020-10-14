@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# language DeriveAnyClass #-}
@@ -38,19 +39,23 @@ data D = D (Maybe Int) (Either Int String) deriving (Eq, Show, G.Generic)
 data E = E (Maybe Int) (Maybe Char) deriving (Eq, Show, G.Generic)
 data R = R { r1 :: B, r2 :: C } deriving (Eq, Show, G.Generic, HasHeader)
 
-instance HasHeader Int where hasHeader _ = undefined -- HPrim . VPInt
-instance HasHeader Char where hasHeader _ = undefined -- HPrim . VPChar
+instance HasHeader Int where hasHeader _ = z
+instance HasHeader Char where hasHeader _ = z
+instance HasHeader () where hasHeader _ = z
 instance HasHeader a => HasHeader [a]
 
 data Header =
      HProd [String] (HM.HashMap String Header) -- ^ products
-   -- | HPrim VP
+   -- | HPrim
    deriving (Eq, Show)
 
 instance Semigroup Header where
   HProd a hma <> HProd b hmb = HProd (a <> b) $ HM.union hma hmb
 instance Monoid Header where
-  mempty = HProd [] mempty
+  mempty = z
+
+z :: Header
+z = HProd [] mempty
 
 class HasHeader a where
   hasHeader :: Proxy a -> Header
@@ -64,18 +69,26 @@ hasHeader' cs = mconcat $ hcollapse $ hcliftA allp goConstructor cs
 goConstructor :: All HasHeader xs => ConstructorInfo xs -> K Header xs
 goConstructor = \case
   Record n ns -> K $ HProd [n] (mkProd ns)
-  -- Constructor n -> K $ HProd n mkAnonProd-- (mkProd)
+  Constructor n -> K $ HProd [n] mkAnonProd-- (mkProd)
 
--- mkAnonProd :: HasHeader a => Proxy a -> HM.HashMap String Header
--- mkAnonProd px = HM.fromList $ zip labels (hcollapse (K (hasHeader px)))
---   where
---     labels = map (('_' :) . show) [0 ..]
+-- hlistK :: a -> NP (K a) '[x]
+hlistK x@(K _) = x :* Nil
+
+mkAnonProd :: HM.HashMap String Header
+mkAnonProd = HM.fromList (hcollapse $ hlistK anon)
+  where
+    -- labels = map (('_' :) . show) [0 ..]
+    anon :: K (String, Header) ()
+    anon = goFieldAnon "_"
 
 mkProd :: All HasHeader xs => NP FieldInfo xs -> HM.HashMap String Header
 mkProd finfo = HM.fromList $ hcollapse $ hcliftA p goField finfo
 
 goField :: forall a . (HasHeader a) => FieldInfo a -> K (String, Header) a
-goField (FieldInfo n) = K (n, hasHeader (Proxy :: Proxy a))
+goField (FieldInfo n) = goFieldAnon n -- K (n, hasHeader (Proxy :: Proxy a))
+
+goFieldAnon :: forall a . HasHeader a => String -> K (String, Header) a
+goFieldAnon n = K (n, hasHeader (Proxy :: Proxy a))
 
 allp :: Proxy (All HasHeader)
 allp = Proxy
