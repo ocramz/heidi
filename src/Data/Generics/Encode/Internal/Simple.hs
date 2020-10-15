@@ -72,30 +72,44 @@ class HasHeader a where
   hasHeader _ = hasHeader' (constructorInfo $ gdatatypeInfo (Proxy :: Proxy a))
 
 hasHeader' :: (All2 HasHeader xs, SListI xs) => NP ConstructorInfo xs -> Header
-hasHeader' cs = mconcat $ hcollapse $ hcliftA allp goConstructor cs 
+hasHeader' cs = mconcat $ hcollapse $ hcliftA allp goConstructor cs
 
 goConstructor :: (All HasHeader xs) => ConstructorInfo xs -> K Header xs
 goConstructor = \case
   Record n ns -> K $ HProd [n] (mkProd ns)
   Constructor n -> K $ HProd [n] mkAnonProd
+
+
+
+-- λ> mkAnon (Proxy :: Proxy R)
+-- fromList [
+--   ("_",HProd ["R"] (
+--       fromList [("r1",HProd ["B"] (
+--                     fromList [("_",HUnit)])),
+--                  ("r2",HProd ["C1","C2","C3"] (fromList [
+--                                                   ("_",HUnit)]))]))]
+
+mkAnon :: forall a . (HasHeader a) => Proxy a -> HM.HashMap String Header
+mkAnon px = HM.fromList $ hcollapse $ singletonK (anon px)
   where
-    -- labels = map (('_' :) . show) [0 ..]
+    anon :: Proxy a -> K (String, Header) a
+    anon _ = goFieldAnon "_"
 
-
-hlistK :: K a x -> NP (K a) '[x]
-hlistK x@(K _) = x :* Nil
 
 mkAnonProd :: HM.HashMap String Header
-mkAnonProd = HM.fromList $ hcollapse $ hlistK anon
+mkAnonProd = HM.fromList $ hcollapse $ singletonK anon
   where
     anon :: K (String, Header) () -- FIXME should not be () but type from context
     anon = goFieldAnon "_"
+
+singletonK :: K a x -> NP (K a) '[x]
+singletonK x@(K _) = x :* Nil
 
 mkProd :: All HasHeader xs => NP FieldInfo xs -> HM.HashMap String Header
 mkProd finfo = HM.fromList $ hcollapse $ hcliftA p goField finfo
 
 goField :: forall a . (HasHeader a) => FieldInfo a -> K (String, Header) a
-goField (FieldInfo n) = K (n, hasHeader (Proxy :: Proxy a))
+goField (FieldInfo n) = goFieldAnon n -- K (n, hasHeader (Proxy :: Proxy a))
 
 goFieldAnon :: forall a . HasHeader a => String -> K (String, Header) a
 goFieldAnon n = K (n, hasHeader (Proxy :: Proxy a))
