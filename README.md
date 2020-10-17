@@ -44,7 +44,7 @@ instance Heidi Sales     (4)
 
 All datatypes that are meant to be used within dataframes must be in the `Heidi` typeclass, which in turn requires a `Generic` instance.
 
-The `DeriveGenerics` language extension (1) enables the compiler to automatically write the correct incantations (3), as long as the user also imports the `GHC.Generics` module (2) from `base`.
+The `DeriveGeneric` language extension (1) enables the compiler to automatically write the correct incantations (3), as long as the user also imports the `GHC.Generics` module (2) from `base`.
 
 The automatic dataframe encoding mechanism is made possible by the empty `Heidi` instance (4).
 
