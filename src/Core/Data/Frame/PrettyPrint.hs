@@ -1,15 +1,22 @@
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# language ConstraintKinds #-}
 {-# language DeriveAnyClass #-}
-{-# language DeriveFunctor #-}
-{-# language DeriveFoldable #-}
-{-# language DeriveGeneric #-}
-{-# language DeriveTraversable #-}
+{-# language GADTs #-}
 {-# language LambdaCase #-}
+{-# language ScopedTypeVariables #-}
+{-# language TypeApplications #-}
 {-# options_ghc -Wno-unused-imports #-}
 module Core.Data.Frame.PrettyPrint where
 
-import GHC.Generics (Generic(..))
+import Data.Proxy (Proxy)
+import qualified GHC.Generics as G
 import qualified Data.Foldable as F (foldl', foldlM)
--- import Data.
+
 import Data.Function (on)
 import Data.List (filter, sortBy, groupBy, intersperse)
 
@@ -21,15 +28,22 @@ import Text.PrettyPrint.Boxes (Box, Alignment, emptyBox, nullBox, vcat, hcat, vs
 import qualified Data.Map as M
 -- generic-trie
 import qualified Data.GenericTrie as GT
+-- generics-sop
+import Generics.SOP (All, HasDatatypeInfo(..), datatypeInfo, DatatypeName, datatypeName, DatatypeInfo(..), FieldInfo(..), FieldName, fieldName, ConstructorInfo(..), constructorInfo, All(..), All2, hcliftA, hcliftA2, hliftA, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), unK, mapIK, hcollapse, SListI, hcpure)
+import Generics.SOP.NP (cpure_NP)
+-- import Generics.SOP.Constraint (SListIN)
+import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
+-- hashable
+import Data.Hashable (Hashable(..))
 -- unordered-containers
-import qualified Data.HashMap.Strict as HM (HashMap, toList, keys, mapWithKey)
+import qualified Data.HashMap.Strict as HM (HashMap, fromList, toList, union, keys, mapWithKey)
 
 import qualified Core.Data.Frame as CDF
 import qualified Core.Data.Frame.Generic as CDF (encode)
 import Data.Generics.Encode.Internal (Heidi, toVal, Val(..), VP(..))
 import qualified Data.Generics.Encode.OneHot as OH (OneHot)
 
-import Prelude hiding ((<>))
+-- import Prelude hiding ((<>))
 
 {-
 +-------------+-----------------+
@@ -91,77 +105,147 @@ data Z = Z Int Int
 instance Show Z where
   show (Z a b) = unwords [show a, "\n", show b]
 
--- -- examples
+-- examples
 
-data A0 = A0 deriving (Eq, Show, Generic, Heidi)
-newtype A = A Int deriving (Eq, Show, Generic, Heidi)
-newtype A2 = A2 { a2 :: Int } deriving (Eq, Show, Generic, Heidi)
-data B = B Int Char deriving (Eq, Show, Generic, Heidi)
-data B2 = B2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, Generic, Heidi)
-data C = C1 Int | C2 Char | C3 String deriving (Eq, Show, Generic, Heidi)
-data D = D (Maybe Int) (Either Int String) deriving (Eq, Show, Generic, Heidi)
-data E = E (Maybe Int) (Maybe Char) deriving (Eq, Show, Generic, Heidi)
-data R = R { r1 :: B, r2 :: C } deriving (Eq, Show, Generic, Heidi)
+data A0 = A0 deriving (Eq, Show, G.Generic)
+data A = A Int deriving (Eq, Show, G.Generic, HasHeader)
+newtype A' = A' Int deriving (Eq, Show, G.Generic, HasHeader)
+newtype A2 = A2 { a2 :: Int } deriving (Eq, Show, G.Generic, HasHeader)
+data B = B Int Char deriving (Eq, Show, G.Generic, HasHeader)
+data B2 = B2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, G.Generic, HasHeader)
+data C = C1 Int | C2 A | C3 () deriving (Eq, Show, G.Generic, HasHeader)
+data C2 = C21 {c21 :: Int} | C22 {c22 :: A} | C23 () deriving (Eq, Show, G.Generic, HasHeader)
+data D = D (Maybe Int) (Either Int String) deriving (Eq, Show, G.Generic)
+data E = E (Maybe Int) (Maybe Char) deriving (Eq, Show, G.Generic)
+data R = R { r1 :: B2, r2 :: C , r3 :: B } deriving (Eq, Show, G.Generic, HasHeader)
+
+-- λ>  hasHeader (Proxy :: Proxy C2)
+-- HProd "C21" (fromList [
+--                 ("c21",HPrim "Int"),
+--                 ("_0",HUnit),
+--                 ("c22",HProd "A" (fromList [
+--                                      ("_0",HPrim "Int")]))])
+
+
+instance HasHeader Int where hasHeader _ = HPrim "Int"
+instance HasHeader Char where hasHeader _ = HPrim "Char"
+instance HasHeader () where hasHeader _ = HUnit
+-- instance HasHeader a => HasHeader [a]
+
+data Header =
+     HProd String (HM.HashMap String Header) -- ^ products
+   | HPrim String -- ^ primitive types
+   | HUnit
+   deriving (Eq, Show)
+
+instance Semigroup Header where
+  HProd a hma <> HProd _ hmb = HProd a $ HM.union hma hmb
+instance Monoid Header where
+  mempty = HProd [] mempty
 
 
 
+-- λ>  hasHeader (Proxy :: Proxy R)
+-- HProd "R" (fromList [
+--               ("r1",HProd "B2" (fromList [
+--                                    ("b21",HPrim "Int"),
+--                                    ("b22",HPrim "Char")])),
+--               ("r3",HProd "B" (fromList [
+--                                   ("_0",HPrim "Int"),
+--                                   ("_1",HPrim "Char")])),
+--               ("r2",HProd "C1" (fromList [
+--                                    ("_0",HPrim "Int")]))])  -- what about other C's?
 
+class HasHeader a where
+  hasHeader :: Proxy a -> Header
+  default hasHeader ::
+    (G.Generic a, All2 HasHeader (GCode a), GDatatypeInfo a) => Proxy a -> Header
+  hasHeader _ = hasHeader' (gdatatypeInfo (Proxy :: Proxy a))
 
-
-
-arr0, arr1 :: [Box]
-arr0 = [text "moo", text "123123123"]
-arr1 = [text "asdfasdfasdfasdf", text "z"]
-
--- justification is computed per-column by Box
-box1 :: Alignment -> Box
-box1 aln = hsep 2 top [c0, c1]
+hasHeader' :: (All2 HasHeader xs, SListI xs) => DatatypeInfo xs -> Header
+hasHeader' di = mconcat $ hcollapse $ hcliftA allp (goConstructor n) cinfo
   where
-    c0 = vsep 1 aln arr0
-    c1 = vsep 1 aln arr1
+    cinfo = constructorInfo di
+    n = datatypeName di
 
+goConstructor :: forall xs . (All HasHeader xs) => DatatypeName -> ConstructorInfo xs -> K Header xs
+goConstructor dtn = \case
+  Record n ns -> K $ HProd n (mkProd ns)
+  Constructor n -> K $ mkAnonProd n (Proxy @xs)
+  Infix _ _ _ -> K $ mkAnonProd dtn (Proxy @xs) -- why does C use this? FIXME
 
---   +-------------+-----------------+
---   | Person      | House           |
---   +-------+-----+-------+---------+
---   | Name  | Age | Color | Price   |
-
-box2 :: Box
-box2 = l <+> r
+-- | anonymous products
+mkAnonProd :: forall xs. (SListI xs, All HasHeader xs) => String -> Proxy xs -> Header
+mkAnonProd n _ =
+  HProd n $
+    HM.fromList $ zip labels $ hcollapse (hcpure p hasHeaderK :: NP (K Header) xs)
   where
-    l = text "Person" // (text "Name" <+> text "Age")
-    r = text "House" // (text "Color" <+> text "Price")
+    labels :: [String]
+    labels = map (('_' :) . show) ([0 ..] :: [Int])
+    hasHeaderK :: forall a. HasHeader a => K Header a
+    hasHeaderK = K (hasHeader (Proxy @a))
+
+-- solution provided on SO
+mkAnonProd' :: forall xs. (SListI xs, All HasHeader xs) => Proxy xs -> [Header]
+mkAnonProd' Proxy =
+  hcollapse (hcpure (Proxy :: Proxy HasHeader) hasHeaderK :: NP (K Header) xs)
+  where
+    hasHeaderK :: forall a. HasHeader a => K Header a
+    hasHeaderK = K (hasHeader (Proxy :: Proxy a))
+
+
+-- | products
+mkProd :: All HasHeader xs => NP FieldInfo xs -> HM.HashMap String Header
+mkProd finfo = HM.fromList $ hcollapse $ hcliftA p goField finfo
+
+goField :: forall a . (HasHeader a) => FieldInfo a -> K (String, Header) a
+goField (FieldInfo n) = goFieldAnon n
+
+goFieldAnon :: forall a . HasHeader a => String -> K (String, Header) a
+goFieldAnon n = K (n, hasHeader (Proxy @a))
+
+allp :: Proxy (All HasHeader)
+allp = Proxy
+
+p :: Proxy HasHeader
+p = Proxy
 
 
 
+{-
+gshow :: forall a. (Generic a, HasDatatypeInfo a, All2 Show (Code a))
+      => a -> String
+gshow a =
+  gshow' (constructorInfo (datatypeInfo (Proxy :: Proxy a))) (from a)
 
+gshow' :: (All2 Show xss, SListI xss) => NP ConstructorInfo xss -> SOP I xss -> String
+gshow' cs (SOP sop) = hcollapse $ hcliftA2 allp goConstructor cs sop
 
--- -- >>> groupSort ["aa", "ab", "cab", "xa", "cx"]
--- -- [["aa","ab"],["cab","cx"],["xa"]]
--- groupSort :: Ord a => [[a]] -> [[[a]]]
--- groupSort = groupSortBy head
+goConstructor :: All Show xs => ConstructorInfo xs -> NP I xs -> K String xs
+goConstructor (Constructor n) args =
+    K $ intercalate " " (n : args')
+  where
+    args' :: [String]
+    args' = hcollapse $ hcliftA p (K . show . unI) args
 
--- groupSortBy :: Ord a1 => (a2 -> a1) -> [a2] -> [[a2]]
--- groupSortBy f = groupBy ((==) `on` f) . sortBy (compare `on` f)
+goConstructor (Record n ns) args =
+    K $ n ++ " {" ++ intercalate ", " args' ++ "}"
+  where
+    args' :: [String]
+    args' = hcollapse $ hcliftA2 p goField ns args
 
--- -- render a column of a frame
--- columnBox :: (Foldable t, Show a, GT.TrieKey k) =>
---              t (GTR.Row k a) -- ^ dataframe
---           -> k -- ^ column key
---           -> Box
--- columnBox rows k = foldl ins nullBox rows
---   where
---     ins acc row = acc // maybe (emptyBox 1 0) (text . show) (GTR.lookup k row)
+goConstructor (Infix n _ _) (arg1 :* arg2 :* Nil) =
+    K $ show arg1 ++ " " ++ show n ++ " " ++ show arg2
+#if __GLASGOW_HASKELL__ < 800
+goConstructor (Infix _ _ _) _ = error "inaccessible"
+#endif
 
+goField :: Show a => FieldInfo a -> I a -> K String a
+goField (FieldInfo field) (I a) = K $ field ++ " = " ++ show a
 
+p :: Proxy Show
+p = Proxy
 
--- -- | union of the set of keys across all rows
--- allKeys :: (GT.TrieKey k, Foldable f) => f (GTR.Row k v) -> [k]
--- allKeys = GTR.keys . GTR.keysOnly
-
-
-
--- data Sized a = Sized !Int a
-
--- annotateWithDepth :: (GT.TrieKey k) => GTR.Row [k] a -> GTR.Row [k] (Sized a)
--- annotateWithDepth = GTR.mapWithKey (\k v -> Sized (length k) v)
+allp :: Proxy (All Show)
+allp = Proxy
+-}

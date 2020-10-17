@@ -32,7 +32,7 @@ The `Frames` [1] library offers rigorous type safety and good runtime performanc
 The following snippet demonstrates the minimal setup necessary to use `heidi` :
 
 ```
-{-# language DeriveGenerics #-}   (1)
+{-# language DeriveGeneric #-}   (1)
 module MyDataScienceTask where
 import GHC.Generics    (2)
 
@@ -51,7 +51,7 @@ The automatic dataframe encoding mechanism is made possible by the empty `Heidi`
 It is also convenient to use `DeriveAnyClass` to avoid writing the empty typeclass instance :
 
 ```
-{-# language DeriveGenerics, DeriveAnyClass #-}
+{-# language DeriveGeneric, DeriveAnyClass #-}
 data Foo = Foo Int String deriving (Generic, Heidi)
 ```
 

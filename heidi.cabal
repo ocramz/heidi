@@ -37,7 +37,6 @@ library
                   Core.Data.Row.Internal
                   Data.Generics.Encode.Internal
                   Data.Generics.Encode.Internal.Prim
-                  Data.Generics.Encode.Internal.Simple
                   Data.Generics.Encode.OneHot
                   Heidi.Data.Frame.Algorithms.GenericTrie.Generic                  
                   Heidi.Data.Row.GenericTrie
@@ -45,8 +44,8 @@ library
       src
   ghc-options: -Wall
   build-depends:
-                base > 4.9 && < 4.14
-              , boxes >= 0.1.4
+                    base > 4.9 && < 4.14
+                , boxes >= 0.1.4
               -- , bytestring >= 0.10.8.1
               , containers >= 0.5.7.1
               , exceptions >= 0.8.3
