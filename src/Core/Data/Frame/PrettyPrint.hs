@@ -1,3 +1,6 @@
+{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE KindSignatures #-}
@@ -13,7 +16,7 @@
 {-# language ScopedTypeVariables #-}
 {-# language TypeApplications #-}
 {-# options_ghc -Wno-unused-imports #-}
-module Core.Data.Frame.PrettyPrint where
+module Core.Data.Frame.PrettyPrint (HasHeader(..), Header(..))where
 
 import Data.Proxy (Proxy)
 import qualified GHC.Generics as G
@@ -64,7 +67,7 @@ import qualified Data.Generics.Encode.OneHot as OH (OneHot)
 
 -- render the frame header
 --
--- λ> printBox $ header $ toVal (E (Just 32) Nothing)
+-- λ> printBox $ valBox $ toVal (E (Just 32) Nothing)
 --       E
 -- -------------
 --   _0  |   _1
@@ -73,16 +76,29 @@ import qualified Data.Generics.Encode.OneHot as OH (OneHot)
 --  Just
 --   ()
 -- λ>
-header :: Val -> Box
-header = \case
+valBox :: Val -> Box
+valBox = \case
   VRec ty hm ->
     let
-      bxs = values $ HM.mapWithKey (\k v -> text k /|/ header v) hm
+      bxs = values $ HM.mapWithKey (\k v -> text k /|/ valBox v) hm
     in
       -- dashesP bxs /|/ hSepList bxs
       text ty /|/ dashesP bxs /|/ hSepList bxs
   VPrim _ -> text "()"
   _ -> undefined -- TODO
+
+headerBox :: Header String -> Box
+headerBox h =
+  let
+    withHM ty hm = text ty /|/ dashesP bxs /|/ hSepList bxs
+      where
+        bxs = values $ HM.mapWithKey (\k v -> text k /|/ headerBox v) hm
+  in
+    case h of
+      HSum ty hm -> withHM ty hm
+      HProd ty hm -> withHM ty hm
+      HLeaf l -> text l
+
 
 values :: HM.HashMap k v -> [v]
 values = map snd . HM.toList
@@ -105,48 +121,38 @@ b1 /|/ b2 = vcat center1 [b1, b2]
 
 
 
-
-
-
-
--- λ>  hasHeader (Proxy :: Proxy R)
--- HProd "R" (fromList [
---               ("r1",HProd "B2" (fromList [
---                                    ("b21",HLeaf "Int"),
---                                    ("b22",HLeaf "Char")])),
---               ("r3",HProd "B" (fromList [
---                                   ("_0",HLeaf "Int"),
---                                   ("_1",HLeaf "Char")])),
---               ("r2",HSum "C" (fromList [
---                                  ("C1",HLeaf "Int"),
---                                  ("C3",HLeaf "()"),
---                                  ("C2",HLeaf "Int")]))])
-
-
-
 -- the type param 't' can store information at the leaves, e.g. list-shaped keys for lookup
 data Header t =
      HSum String (HM.HashMap String (Header t)) -- ^ sums
    | HProd String (HM.HashMap String (Header t)) -- ^ products
    | HLeaf t -- ^ primitive types
-   deriving (Eq, Show)
+   deriving (Eq, Show, Functor, Foldable, Traversable)
 
-instance HasHeader Int where hasHeader _ = HLeaf "Int"
-instance HasHeader Char where hasHeader _ = HLeaf "Char"
-instance HasHeader () where hasHeader _ = HLeaf "()"
-instance HasHeader String where hasHeader _ = HLeaf "String"
-
+instance HasHeader Int where header _ = HLeaf "Int"
+instance HasHeader Char where header _ = HLeaf "Char"
+instance HasHeader () where header _ = HLeaf "()"
+instance HasHeader String where header _ = HLeaf "String"
+instance (HasHeader a) => HasHeader (Maybe a) where
+  header _ = HSum "Maybe" $ HM.fromList [
+    ("Nothing", HLeaf "_") ,
+    ("Just", header (Proxy @a))
+                                           ]
+instance (HasHeader e, HasHeader a) => HasHeader (Either e a) where
+  header _ = HSum "Either" $ HM.fromList [
+    ("Left", header (Proxy @e)) ,
+    ("Right", header (Proxy @a))
+    ]
 
 class HasHeader a where
-  hasHeader :: Proxy a -> Header String
-  default hasHeader ::
+  header :: Proxy a -> Header String
+  default header ::
     (G.Generic a, All2 HasHeader (GCode a), GDatatypeInfo a) => Proxy a -> Header String
-  hasHeader _ = hasHeader' (gdatatypeInfo (Proxy :: Proxy a))
+  header _ = header' (gdatatypeInfo (Proxy :: Proxy a))
 
 
-hasHeader' :: (All2 HasHeader xs, SListI xs) => DatatypeInfo xs -> Header String
-hasHeader' di
-  | single hs = snd (head hs) -- HProd dtn $ HM.singleton dtn (snd $ head hs)
+header' :: (All2 HasHeader xs, SListI xs) => DatatypeInfo xs -> Header String
+header' di
+  | single hs = snd (head hs)
   | otherwise = HSum dtn $ HM.fromList hs
   where
     hs :: [(String, Header String)]
@@ -169,9 +175,9 @@ mkAnonProd dtn _
   where
     labels :: [String]
     labels = map (('_' :) . show) ([0 ..] :: [Int])
-    hs = hcollapse (hcpure p hasHeaderK :: NP (K (Header String)) xs)
-    hasHeaderK :: forall a. HasHeader a => K (Header String) a
-    hasHeaderK = K (hasHeader (Proxy @a))
+    hs = hcollapse (hcpure p headerK :: NP (K (Header String)) xs)
+    headerK :: forall a. HasHeader a => K (Header String) a
+    headerK = K (header (Proxy @a))
 
 -- | products
 mkProd :: All HasHeader xs => String -> NP FieldInfo xs -> Header String
@@ -185,7 +191,7 @@ goField :: forall a . (HasHeader a) => FieldInfo a -> K (String, Header String) 
 goField (FieldInfo n) = goFieldAnon n
 
 goFieldAnon :: forall a . HasHeader a => String -> K (String, Header String) a
-goFieldAnon n = K (n, hasHeader (Proxy @a))
+goFieldAnon n = K (n, header (Proxy @a))
 
 single :: [a] -> Bool
 single = (== 1) . length
@@ -210,7 +216,7 @@ data B2 = B2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, G.Generic, HasHeade
 data C = C1 Int | C2 A | C3 () deriving (Eq, Show, G.Generic, HasHeader)
 data C2 = C21 {c21a :: Int, c21b :: ()} | C22 {c22 :: A} | C23 () deriving (Eq, Show, G.Generic, HasHeader)
 data D = D (Maybe Int) (Either Int String) deriving (Eq, Show, G.Generic)
-data E = E (Maybe Int) (Maybe Char) deriving (Eq, Show, G.Generic)
+data E = E (Maybe Int) (Maybe Char) deriving (Eq, Show, G.Generic, Heidi)
 data R = R { r1 :: B2, r2 :: C , r3 :: B } deriving (Eq, Show, G.Generic, HasHeader)
 
 
