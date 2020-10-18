@@ -103,23 +103,7 @@ seph = text " | "
 b1 /|/ b2 = vcat center1 [b1, b2]
 
 
-data Z = Z Int Int
-instance Show Z where
-  show (Z a b) = unwords [show a, "\n", show b]
 
--- examples
-
-data A0 = A0 deriving (Eq, Show, G.Generic)
-data A = A Int deriving (Eq, Show, G.Generic, HasHeader)
-newtype A' = A' Int deriving (Eq, Show, G.Generic, HasHeader)
-newtype A2 = A2 { a2 :: Int } deriving (Eq, Show, G.Generic, HasHeader)
-data B = B Int Char deriving (Eq, Show, G.Generic, HasHeader)
-data B2 = B2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, G.Generic, HasHeader)
-data C = C1 Int | C2 A | C3 () deriving (Eq, Show, G.Generic, HasHeader)
-data C2 = C21 {c21a :: Int, c21b :: ()} | C22 {c22 :: A} | C23 () deriving (Eq, Show, G.Generic, HasHeader)
-data D = D (Maybe Int) (Either Int String) deriving (Eq, Show, G.Generic)
-data E = E (Maybe Int) (Maybe Char) deriving (Eq, Show, G.Generic)
-data R = R { r1 :: B2, r2 :: C , r3 :: B } deriving (Eq, Show, G.Generic, HasHeader)
 
 
 instance HasHeader Int where hasHeader _ = HPrim "Int"
@@ -127,10 +111,34 @@ instance HasHeader Char where hasHeader _ = HPrim "Char"
 instance HasHeader () where hasHeader _ = HUnit
 instance HasHeader String where hasHeader _ = HPrim "String"
 
-newtype HProduct = HProduct {
-  getHProduct :: HM.HashMap String Header
-  } deriving (Eq)
-instance Show HProduct where show = show . getHProduct
+
+-- λ>  hasHeader (Proxy :: Proxy C)
+-- HSum "C" (fromList [
+--              ("C1",HProd (fromList [
+--                              ("_0",HPrim "Int")])),
+--              ("C3",HProd (fromList [
+--                              ("_0",HUnit)])),
+--              ("C2",HProd (fromList [
+--                              ("_0",HSum "A" (fromList [
+--                                                 ("A",HProd (fromList [
+--                                                                ("_0",HPrim "Int")]))]))]))])
+
+
+
+-- λ>  hasHeader (Proxy :: Proxy C2)
+-- HSum "C2" (fromList [
+--               ("C21",HProd (fromList [
+--                                ("c21b",HUnit),
+--                                ("c21a",HPrim "Int")])),
+--               ("C23",HProd (fromList [
+--                                ("_0",HUnit)])),
+--               ("C22",HProd (fromList [
+--                                ("c22",HSum "A" (fromList [
+--                                                    ("A",HProd (fromList [
+--                                                                   ("_0",HPrim "Int")]))]))]))])
+
+
+newtype HProduct = HProd (HM.HashMap String Header) deriving (Eq, Show)
 
 data Header =
      HSum String (HM.HashMap String HProduct) -- ^ products
@@ -138,17 +146,7 @@ data Header =
    | HUnit
    deriving (Eq, Show)
 
--- λ>  hasHeader (Proxy :: Proxy C2)
--- HSum "C2" (fromList [
---               ("C21",fromList [
---                   ("c21b",HUnit),
---                   ("c21a",HPrim "Int")]),
---               ("C23",fromList [
---                   ("_0",HUnit)]),
---               ("C22",fromList [
---                   ("c22",HSum "A" (fromList [
---                                       ("A",fromList [
---                                           ("_0",HPrim "Int")])]))])])
+
 
 class HasHeader a where
   hasHeader :: Proxy a -> Header
@@ -173,7 +171,7 @@ goConstructor = \case
 -- | anonymous products
 mkAnonProd :: forall xs. (SListI xs, All HasHeader xs) => Proxy xs -> HProduct
 mkAnonProd _ =
-  HProduct $ HM.fromList $ zip labels $ hcollapse (hcpure p hasHeaderK :: NP (K Header) xs)
+  HProd $ HM.fromList $ zip labels $ hcollapse (hcpure p hasHeaderK :: NP (K Header) xs)
   where
     labels :: [String]
     labels = map (('_' :) . show) ([0 ..] :: [Int])
@@ -182,7 +180,7 @@ mkAnonProd _ =
 
 -- | products
 mkProd :: All HasHeader xs => NP FieldInfo xs -> HProduct
-mkProd finfo = HProduct $ HM.fromList $ hcollapse $ hcliftA p goField finfo
+mkProd finfo = HProd $ HM.fromList $ hcollapse $ hcliftA p goField finfo
 
 goField :: forall a . (HasHeader a) => FieldInfo a -> K (String, Header) a
 goField (FieldInfo n) = goFieldAnon n
@@ -195,6 +193,26 @@ allp = Proxy
 
 p :: Proxy HasHeader
 p = Proxy
+
+
+
+
+-- examples
+
+data A0 = A0 deriving (Eq, Show, G.Generic)
+data A = A Int deriving (Eq, Show, G.Generic, HasHeader)
+newtype A' = A' Int deriving (Eq, Show, G.Generic, HasHeader)
+newtype A2 = A2 { a2 :: Int } deriving (Eq, Show, G.Generic, HasHeader)
+data B = B Int Char deriving (Eq, Show, G.Generic, HasHeader)
+data B2 = B2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, G.Generic, HasHeader)
+data C = C1 Int | C2 A | C3 () deriving (Eq, Show, G.Generic, HasHeader)
+data C2 = C21 {c21a :: Int, c21b :: ()} | C22 {c22 :: A} | C23 () deriving (Eq, Show, G.Generic, HasHeader)
+data D = D (Maybe Int) (Either Int String) deriving (Eq, Show, G.Generic)
+data E = E (Maybe Int) (Maybe Char) deriving (Eq, Show, G.Generic)
+data R = R { r1 :: B2, r2 :: C , r3 :: B } deriving (Eq, Show, G.Generic, HasHeader)
+
+
+
 
 
 
