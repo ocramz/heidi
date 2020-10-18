@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE DataKinds #-}
@@ -29,7 +31,7 @@ import qualified Data.Map as M
 -- generic-trie
 import qualified Data.GenericTrie as GT
 -- generics-sop
-import Generics.SOP (All, HasDatatypeInfo(..), datatypeInfo, DatatypeName, datatypeName, DatatypeInfo(..), FieldInfo(..), FieldName, fieldName, ConstructorInfo(..), constructorInfo, All(..), All2, hcliftA, hcliftA2, hliftA, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), unK, mapIK, hcollapse, SListI, hcpure)
+import Generics.SOP (All, HasDatatypeInfo(..), datatypeInfo, DatatypeName, datatypeName, DatatypeInfo(..), FieldInfo(..), FieldName, fieldName, ConstructorInfo(..), constructorInfo, ConstructorName, constructorName, All(..), All2, hcliftA, hcliftA2, hliftA, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), unK, mapIK, hcollapse, SListI, hcpure)
 import Generics.SOP.NP (cpure_NP)
 -- import Generics.SOP.Constraint (SListIN)
 import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
@@ -114,47 +116,39 @@ newtype A2 = A2 { a2 :: Int } deriving (Eq, Show, G.Generic, HasHeader)
 data B = B Int Char deriving (Eq, Show, G.Generic, HasHeader)
 data B2 = B2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, G.Generic, HasHeader)
 data C = C1 Int | C2 A | C3 () deriving (Eq, Show, G.Generic, HasHeader)
-data C2 = C21 {c21 :: Int} | C22 {c22 :: A} | C23 () deriving (Eq, Show, G.Generic, HasHeader)
+data C2 = C21 {c21a :: Int, c21b :: ()} | C22 {c22 :: A} | C23 () deriving (Eq, Show, G.Generic, HasHeader)
 data D = D (Maybe Int) (Either Int String) deriving (Eq, Show, G.Generic)
 data E = E (Maybe Int) (Maybe Char) deriving (Eq, Show, G.Generic)
 data R = R { r1 :: B2, r2 :: C , r3 :: B } deriving (Eq, Show, G.Generic, HasHeader)
-
--- λ>  hasHeader (Proxy :: Proxy C2)
--- HProd "C21" (fromList [
---                 ("c21",HPrim "Int"),
---                 ("_0",HUnit),
---                 ("c22",HProd "A" (fromList [
---                                      ("_0",HPrim "Int")]))])
 
 
 instance HasHeader Int where hasHeader _ = HPrim "Int"
 instance HasHeader Char where hasHeader _ = HPrim "Char"
 instance HasHeader () where hasHeader _ = HUnit
--- instance HasHeader a => HasHeader [a]
+instance HasHeader String where hasHeader _ = HPrim "String"
+
+newtype HProduct = HProduct {
+  getHProduct :: HM.HashMap String Header
+  } deriving (Eq)
+instance Show HProduct where show = show . getHProduct
 
 data Header =
-     HProd String (HM.HashMap String Header) -- ^ products
+     HSum String (HM.HashMap String HProduct) -- ^ products
    | HPrim String -- ^ primitive types
    | HUnit
    deriving (Eq, Show)
 
-instance Semigroup Header where
-  HProd a hma <> HProd _ hmb = HProd a $ HM.union hma hmb
-instance Monoid Header where
-  mempty = HProd [] mempty
-
-
-
--- λ>  hasHeader (Proxy :: Proxy R)
--- HProd "R" (fromList [
---               ("r1",HProd "B2" (fromList [
---                                    ("b21",HPrim "Int"),
---                                    ("b22",HPrim "Char")])),
---               ("r3",HProd "B" (fromList [
---                                   ("_0",HPrim "Int"),
---                                   ("_1",HPrim "Char")])),
---               ("r2",HProd "C1" (fromList [
---                                    ("_0",HPrim "Int")]))])  -- what about other C's?
+-- λ>  hasHeader (Proxy :: Proxy C2)
+-- HSum "C2" (fromList [
+--               ("C21",fromList [
+--                   ("c21b",HUnit),
+--                   ("c21a",HPrim "Int")]),
+--               ("C23",fromList [
+--                   ("_0",HUnit)]),
+--               ("C22",fromList [
+--                   ("c22",HSum "A" (fromList [
+--                                       ("A",fromList [
+--                                           ("_0",HPrim "Int")])]))])])
 
 class HasHeader a where
   hasHeader :: Proxy a -> Header
@@ -162,41 +156,33 @@ class HasHeader a where
     (G.Generic a, All2 HasHeader (GCode a), GDatatypeInfo a) => Proxy a -> Header
   hasHeader _ = hasHeader' (gdatatypeInfo (Proxy :: Proxy a))
 
+
 hasHeader' :: (All2 HasHeader xs, SListI xs) => DatatypeInfo xs -> Header
-hasHeader' di = mconcat $ hcollapse $ hcliftA allp (goConstructor n) cinfo
+hasHeader' di = HSum dtn $ HM.fromList $ hcollapse $ hcliftA allp goConstructor cinfo
   where
     cinfo = constructorInfo di
-    n = datatypeName di
+    dtn = datatypeName di
 
-goConstructor :: forall xs . (All HasHeader xs) => DatatypeName -> ConstructorInfo xs -> K Header xs
-goConstructor dtn = \case
-  Record n ns -> K $ HProd n (mkProd ns)
-  Constructor n -> K $ mkAnonProd n (Proxy @xs)
-  Infix _ _ _ -> K $ mkAnonProd dtn (Proxy @xs) -- why does C use this? FIXME
+goConstructor :: forall xs . (All HasHeader xs) => ConstructorInfo xs -> K (String, HProduct) xs
+goConstructor = \case
+  Record n ns -> K (n, mkProd ns)
+  Constructor n -> K (n, mkAnonProd (Proxy @xs) )
+  Infix n _ _ -> K (n, mkAnonProd (Proxy @xs) )
+
 
 -- | anonymous products
-mkAnonProd :: forall xs. (SListI xs, All HasHeader xs) => String -> Proxy xs -> Header
-mkAnonProd n _ =
-  HProd n $
-    HM.fromList $ zip labels $ hcollapse (hcpure p hasHeaderK :: NP (K Header) xs)
+mkAnonProd :: forall xs. (SListI xs, All HasHeader xs) => Proxy xs -> HProduct
+mkAnonProd _ =
+  HProduct $ HM.fromList $ zip labels $ hcollapse (hcpure p hasHeaderK :: NP (K Header) xs)
   where
     labels :: [String]
     labels = map (('_' :) . show) ([0 ..] :: [Int])
     hasHeaderK :: forall a. HasHeader a => K Header a
     hasHeaderK = K (hasHeader (Proxy @a))
 
--- solution provided on SO
-mkAnonProd' :: forall xs. (SListI xs, All HasHeader xs) => Proxy xs -> [Header]
-mkAnonProd' Proxy =
-  hcollapse (hcpure (Proxy :: Proxy HasHeader) hasHeaderK :: NP (K Header) xs)
-  where
-    hasHeaderK :: forall a. HasHeader a => K Header a
-    hasHeaderK = K (hasHeader (Proxy :: Proxy a))
-
-
 -- | products
-mkProd :: All HasHeader xs => NP FieldInfo xs -> HM.HashMap String Header
-mkProd finfo = HM.fromList $ hcollapse $ hcliftA p goField finfo
+mkProd :: All HasHeader xs => NP FieldInfo xs -> HProduct
+mkProd finfo = HProduct $ HM.fromList $ hcollapse $ hcliftA p goField finfo
 
 goField :: forall a . (HasHeader a) => FieldInfo a -> K (String, Header) a
 goField (FieldInfo n) = goFieldAnon n
