@@ -106,46 +106,57 @@ b1 /|/ b2 = vcat center1 [b1, b2]
 
 
 
-instance HasHeader Int where hasHeader _ = HPrim "Int"
-instance HasHeader Char where hasHeader _ = HPrim "Char"
-instance HasHeader () where hasHeader _ = HUnit
-instance HasHeader String where hasHeader _ = HPrim "String"
+
+
+
+
 
 
 -- λ>  hasHeader (Proxy :: Proxy C)
 -- HSum "C" (fromList [
---              ("C1",HProd (fromList [
---                              ("_0",HPrim "Int")])),
---              ("C3",HProd (fromList [
---                              ("_0",HUnit)])),
---              ("C2",HProd (fromList [
---                              ("_0",HSum "A" (fromList [
---                                                 ("A",HProd (fromList [
---                                                                ("_0",HPrim "Int")]))]))]))])
-
-
+--              ("C1",HPrim "Int"),
+--              ("C3",HUnit),
+--              ("C2",HSum "A" (fromList [("A",HPrim "Int")]))])
 
 -- λ>  hasHeader (Proxy :: Proxy C2)
 -- HSum "C2" (fromList [
 --               ("C21",HProd (fromList [
 --                                ("c21b",HUnit),
 --                                ("c21a",HPrim "Int")])),
---               ("C23",HProd (fromList [
---                                ("_0",HUnit)])),
---               ("C22",HProd (fromList [
---                                ("c22",HSum "A" (fromList [
---                                                    ("A",HProd (fromList [
---                                                                   ("_0",HPrim "Int")]))]))]))])
+--               ("C23",HUnit),
+--               ("C22",HSum "A" (fromList [
+--                                   ("A",HPrim "Int")]))])
 
 
-newtype HProduct = HProd (HM.HashMap String Header) deriving (Eq, Show)
+-- λ>  hasHeader (Proxy :: Proxy R)
+-- HSum "R" (fromList [
+--              ("R",HProd (fromList [
+--                             ("r1",HSum "B2" (fromList [
+--                                                 ("B2",HProd (fromList [
+--                                                                 ("b21",HPrim "Int"),
+--                                                                 ("b22",HPrim "Char")]))])),
+--                             ("r3",HSum "B" (fromList [
+--                                                 ("B",HProd (fromList [
+--                                                                ("_0",HPrim "Int"),
+--                                                                ("_1",HPrim "Char")]))])),
+--                             ("r2",HSum "C" (fromList [
+--                                                 ("C1",HPrim "Int"),
+--                                                 ("C3",HUnit),
+--                                                 ("C2",HSum "A" (fromList [
+--                                                                    ("A",HPrim "Int")]))]))]))])
+
 
 data Header =
-     HSum String (HM.HashMap String HProduct) -- ^ products
+     HSum String (HM.HashMap String Header) -- ^ sums
+   | HProd (HM.HashMap String Header) -- ^ products
    | HPrim String -- ^ primitive types
    | HUnit
    deriving (Eq, Show)
 
+instance HasHeader Int where hasHeader _ = HPrim "Int"
+instance HasHeader Char where hasHeader _ = HPrim "Char"
+instance HasHeader () where hasHeader _ = HUnit
+instance HasHeader String where hasHeader _ = HPrim "String"
 
 
 class HasHeader a where
@@ -161,7 +172,7 @@ hasHeader' di = HSum dtn $ HM.fromList $ hcollapse $ hcliftA allp goConstructor 
     cinfo = constructorInfo di
     dtn = datatypeName di
 
-goConstructor :: forall xs . (All HasHeader xs) => ConstructorInfo xs -> K (String, HProduct) xs
+goConstructor :: forall xs . (All HasHeader xs) => ConstructorInfo xs -> K (String, Header) xs
 goConstructor = \case
   Record n ns -> K (n, mkProd ns)
   Constructor n -> K (n, mkAnonProd (Proxy @xs) )
@@ -169,18 +180,24 @@ goConstructor = \case
 
 
 -- | anonymous products
-mkAnonProd :: forall xs. (SListI xs, All HasHeader xs) => Proxy xs -> HProduct
-mkAnonProd _ =
-  HProd $ HM.fromList $ zip labels $ hcollapse (hcpure p hasHeaderK :: NP (K Header) xs)
+mkAnonProd :: forall xs. (SListI xs, All HasHeader xs) => Proxy xs -> Header
+mkAnonProd _
+  | length hs == 1 = head hs
+  | otherwise = HProd $ HM.fromList $ zip labels hs
   where
     labels :: [String]
     labels = map (('_' :) . show) ([0 ..] :: [Int])
+    hs = hcollapse (hcpure p hasHeaderK :: NP (K Header) xs)
     hasHeaderK :: forall a. HasHeader a => K Header a
     hasHeaderK = K (hasHeader (Proxy @a))
 
 -- | products
-mkProd :: All HasHeader xs => NP FieldInfo xs -> HProduct
-mkProd finfo = HProd $ HM.fromList $ hcollapse $ hcliftA p goField finfo
+mkProd :: All HasHeader xs => NP FieldInfo xs -> Header
+mkProd finfo
+  | length hs == 1 = snd $ head hs
+  | otherwise = HProd $ HM.fromList hs
+  where
+    hs = hcollapse $ hcliftA p goField finfo
 
 goField :: forall a . (HasHeader a) => FieldInfo a -> K (String, Header) a
 goField (FieldInfo n) = goFieldAnon n
