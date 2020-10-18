@@ -38,7 +38,7 @@ import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
 -- hashable
 import Data.Hashable (Hashable(..))
 -- unordered-containers
-import qualified Data.HashMap.Strict as HM (HashMap, fromList, toList, union, keys, mapWithKey)
+import qualified Data.HashMap.Strict as HM (HashMap, singleton, fromList, toList, union, keys, mapWithKey)
 
 import qualified Core.Data.Frame as CDF
 import qualified Core.Data.Frame.Generic as CDF (encode)
@@ -107,36 +107,27 @@ b1 /|/ b2 = vcat center1 [b1, b2]
 
 
 
--- HSum "C" (fromList [
---              ("C1",HLeaf "Int"),
---              ("C3",HLeaf "()"),
---              ("C2",HLeaf "Int")])
 
--- λ>  hasHeader (Proxy :: Proxy C2)
--- HSum "C2" (fromList [
---               ("C21",HProd (fromList [
---                                ("c21b",HLeaf "()"),
---                                ("c21a",HLeaf "Int")])),
---               ("C23",HLeaf "()"),
---               ("C22",HLeaf "Int")])
 
 -- λ>  hasHeader (Proxy :: Proxy R)
--- HProd (fromList [
---           ("r1",HProd (fromList [
---                           ("b21",HLeaf "Int"),
---                           ("b22",HLeaf "Char")])),
---           ("r3",HProd (fromList [
---                           ("_0",HLeaf "Int"),
---                           ("_1",HLeaf "Char")])),
---           ("r2",HSum "C" (fromList [
---                              ("C1",HLeaf "Int"),
---                              ("C3",HLeaf "()"),
---                              ("C2",HLeaf "Int")]))])
+-- HProd "R" (fromList [
+--               ("r1",HProd "B2" (fromList [
+--                                    ("b21",HLeaf "Int"),
+--                                    ("b22",HLeaf "Char")])),
+--               ("r3",HProd "B" (fromList [
+--                                   ("_0",HLeaf "Int"),
+--                                   ("_1",HLeaf "Char")])),
+--               ("r2",HSum "C" (fromList [
+--                                  ("C1",HLeaf "Int"),
+--                                  ("C3",HLeaf "()"),
+--                                  ("C2",HLeaf "Int")]))])
+
+
 
 -- the type param 't' can store information at the leaves, e.g. list-shaped keys for lookup
 data Header t =
      HSum String (HM.HashMap String (Header t)) -- ^ sums
-   | HProd (HM.HashMap String (Header t)) -- ^ products
+   | HProd String (HM.HashMap String (Header t)) -- ^ products
    | HLeaf t -- ^ primitive types
    deriving (Eq, Show)
 
@@ -155,26 +146,26 @@ class HasHeader a where
 
 hasHeader' :: (All2 HasHeader xs, SListI xs) => DatatypeInfo xs -> Header String
 hasHeader' di
-  | length hs == 1 = snd $ head hs
+  | single hs = snd (head hs) -- HProd dtn $ HM.singleton dtn (snd $ head hs)
   | otherwise = HSum dtn $ HM.fromList hs
   where
     hs :: [(String, Header String)]
-    hs = hcollapse $ hcliftA allp goConstructor cinfo
+    hs = hcollapse $ hcliftA allp (goConstructor dtn) cinfo
     cinfo = constructorInfo di
     dtn = datatypeName di
 
-goConstructor :: forall xs . (All HasHeader xs) => ConstructorInfo xs -> K (String, Header String) xs
-goConstructor = \case
-  Record n ns -> K (n, mkProd ns)
-  Constructor n -> K (n, mkAnonProd (Proxy @xs) )
-  Infix n _ _ -> K (n, mkAnonProd (Proxy @xs) )
+goConstructor :: forall xs . (All HasHeader xs) => String -> ConstructorInfo xs -> K (String, Header String) xs
+goConstructor dtn = \case
+  Record n ns -> K (n, mkProd dtn ns)
+  Constructor n -> K (n, mkAnonProd dtn (Proxy @xs) )
+  Infix n _ _ -> K (n, mkAnonProd dtn (Proxy @xs) )
 
 
 -- | anonymous products
-mkAnonProd :: forall xs. (SListI xs, All HasHeader xs) => Proxy xs -> Header String
-mkAnonProd _
-  | length hs == 1 = head hs
-  | otherwise = HProd $ HM.fromList $ zip labels hs
+mkAnonProd :: forall xs. (SListI xs, All HasHeader xs) => String -> Proxy xs -> Header String
+mkAnonProd dtn _
+  | single hs = head hs
+  | otherwise = HProd dtn $ HM.fromList $ zip labels hs
   where
     labels :: [String]
     labels = map (('_' :) . show) ([0 ..] :: [Int])
@@ -183,10 +174,10 @@ mkAnonProd _
     hasHeaderK = K (hasHeader (Proxy @a))
 
 -- | products
-mkProd :: All HasHeader xs => NP FieldInfo xs -> Header String
-mkProd finfo
-  | length hs == 1 = snd $ head hs
-  | otherwise = HProd $ HM.fromList hs
+mkProd :: All HasHeader xs => String -> NP FieldInfo xs -> Header String
+mkProd dtn finfo
+  | single hs = snd $ head hs
+  | otherwise = HProd dtn $ HM.fromList hs
   where
     hs = hcollapse $ hcliftA p goField finfo
 
@@ -195,6 +186,9 @@ goField (FieldInfo n) = goFieldAnon n
 
 goFieldAnon :: forall a . HasHeader a => String -> K (String, Header String) a
 goFieldAnon n = K (n, hasHeader (Proxy @a))
+
+single :: [a] -> Bool
+single = (== 1) . length
 
 allp :: Proxy (All HasHeader)
 allp = Proxy
