@@ -107,72 +107,63 @@ b1 /|/ b2 = vcat center1 [b1, b2]
 
 
 
-
-
-
-
-
--- λ>  hasHeader (Proxy :: Proxy C)
 -- HSum "C" (fromList [
---              ("C1",HPrim "Int"),
---              ("C3",HUnit),
---              ("C2",HSum "A" (fromList [("A",HPrim "Int")]))])
+--              ("C1",HLeaf "Int"),
+--              ("C3",HLeaf "()"),
+--              ("C2",HLeaf "Int")])
 
 -- λ>  hasHeader (Proxy :: Proxy C2)
 -- HSum "C2" (fromList [
 --               ("C21",HProd (fromList [
---                                ("c21b",HUnit),
---                                ("c21a",HPrim "Int")])),
---               ("C23",HUnit),
---               ("C22",HSum "A" (fromList [
---                                   ("A",HPrim "Int")]))])
-
+--                                ("c21b",HLeaf "()"),
+--                                ("c21a",HLeaf "Int")])),
+--               ("C23",HLeaf "()"),
+--               ("C22",HLeaf "Int")])
 
 -- λ>  hasHeader (Proxy :: Proxy R)
--- HSum "R" (fromList [
---              ("R",HProd (fromList [
---                             ("r1",HSum "B2" (fromList [
---                                                 ("B2",HProd (fromList [
---                                                                 ("b21",HPrim "Int"),
---                                                                 ("b22",HPrim "Char")]))])),
---                             ("r3",HSum "B" (fromList [
---                                                 ("B",HProd (fromList [
---                                                                ("_0",HPrim "Int"),
---                                                                ("_1",HPrim "Char")]))])),
---                             ("r2",HSum "C" (fromList [
---                                                 ("C1",HPrim "Int"),
---                                                 ("C3",HUnit),
---                                                 ("C2",HSum "A" (fromList [
---                                                                    ("A",HPrim "Int")]))]))]))])
+-- HProd (fromList [
+--           ("r1",HProd (fromList [
+--                           ("b21",HLeaf "Int"),
+--                           ("b22",HLeaf "Char")])),
+--           ("r3",HProd (fromList [
+--                           ("_0",HLeaf "Int"),
+--                           ("_1",HLeaf "Char")])),
+--           ("r2",HSum "C" (fromList [
+--                              ("C1",HLeaf "Int"),
+--                              ("C3",HLeaf "()"),
+--                              ("C2",HLeaf "Int")]))])
 
-
-data Header =
-     HSum String (HM.HashMap String Header) -- ^ sums
-   | HProd (HM.HashMap String Header) -- ^ products
-   | HPrim String -- ^ primitive types
-   | HUnit
+-- the type param 't' can store information at the leaves, e.g. list-shaped keys for lookup
+data Header t =
+     HSum String (HM.HashMap String (Header t)) -- ^ sums
+   | HProd (HM.HashMap String (Header t)) -- ^ products
+   | HLeaf t -- ^ primitive types
    deriving (Eq, Show)
 
-instance HasHeader Int where hasHeader _ = HPrim "Int"
-instance HasHeader Char where hasHeader _ = HPrim "Char"
-instance HasHeader () where hasHeader _ = HUnit
-instance HasHeader String where hasHeader _ = HPrim "String"
+instance HasHeader Int where hasHeader _ = HLeaf "Int"
+instance HasHeader Char where hasHeader _ = HLeaf "Char"
+instance HasHeader () where hasHeader _ = HLeaf "()"
+instance HasHeader String where hasHeader _ = HLeaf "String"
 
 
 class HasHeader a where
-  hasHeader :: Proxy a -> Header
+  hasHeader :: Proxy a -> Header String
   default hasHeader ::
-    (G.Generic a, All2 HasHeader (GCode a), GDatatypeInfo a) => Proxy a -> Header
+    (G.Generic a, All2 HasHeader (GCode a), GDatatypeInfo a) => Proxy a -> Header String
   hasHeader _ = hasHeader' (gdatatypeInfo (Proxy :: Proxy a))
 
 
-hasHeader' :: (All2 HasHeader xs, SListI xs) => DatatypeInfo xs -> Header
-hasHeader' di = HSum dtn $ HM.fromList $ hcollapse $ hcliftA allp goConstructor cinfo
+hasHeader' :: (All2 HasHeader xs, SListI xs) => DatatypeInfo xs -> Header String
+hasHeader' di
+  | length hs == 1 = snd $ head hs
+  | otherwise = HSum dtn $ HM.fromList hs
   where
+    hs :: [(String, Header String)]
+    hs = hcollapse $ hcliftA allp goConstructor cinfo
     cinfo = constructorInfo di
     dtn = datatypeName di
 
-goConstructor :: forall xs . (All HasHeader xs) => ConstructorInfo xs -> K (String, Header) xs
+goConstructor :: forall xs . (All HasHeader xs) => ConstructorInfo xs -> K (String, Header String) xs
 goConstructor = \case
   Record n ns -> K (n, mkProd ns)
   Constructor n -> K (n, mkAnonProd (Proxy @xs) )
@@ -180,29 +171,29 @@ goConstructor = \case
 
 
 -- | anonymous products
-mkAnonProd :: forall xs. (SListI xs, All HasHeader xs) => Proxy xs -> Header
+mkAnonProd :: forall xs. (SListI xs, All HasHeader xs) => Proxy xs -> Header String
 mkAnonProd _
   | length hs == 1 = head hs
   | otherwise = HProd $ HM.fromList $ zip labels hs
   where
     labels :: [String]
     labels = map (('_' :) . show) ([0 ..] :: [Int])
-    hs = hcollapse (hcpure p hasHeaderK :: NP (K Header) xs)
-    hasHeaderK :: forall a. HasHeader a => K Header a
+    hs = hcollapse (hcpure p hasHeaderK :: NP (K (Header String)) xs)
+    hasHeaderK :: forall a. HasHeader a => K (Header String) a
     hasHeaderK = K (hasHeader (Proxy @a))
 
 -- | products
-mkProd :: All HasHeader xs => NP FieldInfo xs -> Header
+mkProd :: All HasHeader xs => NP FieldInfo xs -> Header String
 mkProd finfo
   | length hs == 1 = snd $ head hs
   | otherwise = HProd $ HM.fromList hs
   where
     hs = hcollapse $ hcliftA p goField finfo
 
-goField :: forall a . (HasHeader a) => FieldInfo a -> K (String, Header) a
+goField :: forall a . (HasHeader a) => FieldInfo a -> K (String, Header String) a
 goField (FieldInfo n) = goFieldAnon n
 
-goFieldAnon :: forall a . HasHeader a => String -> K (String, Header) a
+goFieldAnon :: forall a . HasHeader a => String -> K (String, Header String) a
 goFieldAnon n = K (n, hasHeader (Proxy @a))
 
 allp :: Proxy (All HasHeader)
