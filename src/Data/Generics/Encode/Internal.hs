@@ -1,3 +1,6 @@
+{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveFunctor #-}
 {-# language
     DeriveGeneric
   , DeriveAnyClass
@@ -10,6 +13,7 @@
   , FlexibleInstances
   , LambdaCase
   , TemplateHaskell
+  , TypeApplications
 #-}
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -Wno-type-defaults #-}
@@ -43,7 +47,7 @@ module Data.Generics.Encode.Internal (gflattenHM, gflattenGT,
                                      -- * TC (Type and Constructor annotation)
                                      TC(..), tcTyN, tcTyCon, mkTyN, mkTyCon, 
                                      -- * Heidi (generic ADT encoding)
-                                     Heidi, toVal, Val(..)) where
+                                     Heidi, toVal, Val(..), header, Header(..)) where
 
 import qualified GHC.Generics as G
 import Data.Int (Int8, Int16, Int32, Int64)
@@ -53,10 +57,11 @@ import Data.Typeable (Typeable)
 
 -- containers
 import qualified Data.Map as M (Map, fromList, insert, lookup)
+import Data.Sequence (Seq, (|>), (<|))
 -- exceptions
 import Control.Monad.Catch(Exception(..), MonadThrow(..))
 -- generics-sop
-import Generics.SOP (All, HasDatatypeInfo(..), datatypeInfo, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), FieldName, ConstructorInfo(..), constructorInfo, All, All2, AllN, Prod, HAp, hmap, hcliftA, hcliftA2, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse)
+import Generics.SOP (All, HasDatatypeInfo(..), datatypeInfo, DatatypeName, datatypeName, DatatypeInfo, FieldInfo(..), SListI, FieldName, ConstructorInfo(..), constructorInfo, All, All2, AllN, Prod, HAp, hcpure, hmap, hcliftA, hcliftA2, hcmap, Proxy(..), SOP(..), NP(..), I(..), K(..), mapIK, hcollapse)
 -- import Generics.SOP.NP (cpure_NP)
 -- import Generics.SOP.Constraint (SListIN)
 import Generics.SOP.GGP (GCode, GDatatypeInfo, GFrom, gdatatypeInfo, gfrom)
@@ -145,6 +150,14 @@ flatten z insf = go ([], z) where
     VPrim vp       -> insRev ks vp hmacc
 
 
+-- | Collect the hashmap keys at the leaves. The resulting lists at the leaf nodes can be used to look up values in the rows
+collectKeys :: Header String -> Header (Seq String)
+collectKeys = go mempty
+  where
+    go acc = \case
+      HLeaf x -> HLeaf (acc |> x)
+      HSum ty hm -> HSum ty $ HM.mapWithKey (\k v -> go (acc |> k) v) hm
+      HProd ty hm -> HProd ty $ HM.mapWithKey (\k v -> go (acc |> k)  v) hm
 
 
 -- | Internal representation of encoded ADTs values
@@ -156,6 +169,12 @@ data Val =
    | VPrim  VP                                    -- ^ primitive types
    deriving (Eq, Show)
 
+-- the type param 't' can store information at the leaves, e.g. list-shaped keys for lookup
+data Header t =
+     HSum String (HM.HashMap String (Header t)) -- ^ sums
+   | HProd String (HM.HashMap String (Header t)) -- ^ products
+   | HLeaf t -- ^ primitive types
+   deriving (Eq, Show, Functor, Foldable, Traversable)
 
 -- | Typeclass for types which have a generic encoding.
 --
@@ -172,10 +191,14 @@ class Heidi a where
   default toVal ::
     (G.Generic a, All2 Heidi (GCode a), GFrom a, GDatatypeInfo a) => a -> Val
   toVal x = toVal' (gdatatypeInfo (Proxy :: Proxy a)) (gfrom x)
+  header :: Proxy a -> Header String
+  default header ::
+    (G.Generic a, All2 Heidi (GCode a), GDatatypeInfo a) => Proxy a -> Header String
+  header _ = header' (gdatatypeInfo (Proxy :: Proxy a))
 
 toVal' :: All2 Heidi xss => DatatypeInfo xss -> SOP I xss -> Val
 toVal' di sop@(SOP xss) = hcollapse $ hcliftA2
-    allph
+    allp
     (\ci xs -> K (mkVal ci xs tyName oneHot))
     (constructorInfo di)
     xss
@@ -197,25 +220,80 @@ mkVal cinfo xs tyn oh = case cinfo of
     cns :: [Val]
     cns = npToVals xs
 
-mkProd :: All Heidi xs => NP FieldInfo xs -> NP I xs -> HM.HashMap String Val
-mkProd finfo xs = HM.fromList $
-  hcollapse $ hcliftA2 ph mk finfo xs
-  where
-    mk :: Heidi v => FieldInfo v -> I v -> K (FieldName, Val) v
-    mk (FieldInfo n) (I x) = K (n, toVal x)
+    mkProd :: All Heidi xs => NP FieldInfo xs -> NP I xs -> HM.HashMap String Val
+    mkProd finfo xss = HM.fromList $
+      hcollapse $ hcliftA2 p mk finfo xss
+      where
+        mk :: Heidi v => FieldInfo v -> I v -> K (FieldName, Val) v
+        mk (FieldInfo n) (I x) = K (n, toVal x)
 
-mkAnonProd :: All Heidi xs => NP I xs -> HM.HashMap String Val
-mkAnonProd xs = HM.fromList $ zip labels cns where
-  cns = npToVals xs
+    mkAnonProd :: All Heidi xs => NP I xs -> HM.HashMap String Val
+    mkAnonProd xss = HM.fromList $ zip labels cnss
+      where
+        cnss = npToVals xss
 
 npToVals :: All Heidi xs => NP I xs -> [Val]
-npToVals xs = hcollapse $ hcmap ph (mapIK toVal) xs
+npToVals xs = hcollapse $ hcmap p (mapIK toVal) xs
 
-allph :: Proxy (All Heidi)
-allph = Proxy
 
-ph :: Proxy Heidi
-ph = Proxy
+header' :: (All2 Heidi xs, SListI xs) => DatatypeInfo xs -> Header String
+header' di
+  | single hs = 
+      let (n, hdr) = head hs
+      in HProd dtn $ HM.singleton n hdr
+  | otherwise = HSum dtn $ HM.fromList hs
+  where
+    hs :: [(String, Header String)]
+    hs = hcollapse $ hcliftA allp (goConstructor dtn) cinfo
+    cinfo = constructorInfo di
+    dtn = datatypeName di
+
+goConstructor :: forall xs . (All Heidi xs) => String -> ConstructorInfo xs -> K (String, Header String) xs
+goConstructor dtn = \case
+  Record n ns -> K (n, mkProdH dtn ns)
+  Constructor n -> K (n, mkAnonProdH dtn (Proxy @xs) )
+  Infix n _ _ -> K (n, mkAnonProdH dtn (Proxy @xs) )
+
+
+-- | anonymous products
+mkAnonProdH ::
+  forall xs. (SListI xs, All Heidi xs) => String -> Proxy xs -> Header String
+mkAnonProdH dtn _  | single hs =
+                    let hdr = head hs
+                    in hdr
+                  | null hs = HLeaf dtn
+                  | otherwise = HProd dtn $ HM.fromList $ zip labels hs
+  where
+    hs :: [Header String]
+    hs = hcollapse (hcpure p headerK :: NP (K (Header String)) xs)
+    headerK :: forall a. Heidi a => K (Header String) a
+    headerK = K (header (Proxy @a))
+
+-- | products
+mkProdH :: All Heidi xs => String -> NP FieldInfo xs -> Header String
+mkProdH dtn finfo | single hs =
+                   let (n, hdr) = head hs
+                   in hdr
+                 | otherwise = HProd dtn $ HM.fromList hs
+  where
+    hs :: [(String, Header String)]
+    hs = hcollapse $ hcliftA p goFieldH finfo
+
+goFieldH :: forall a . (Heidi a) => FieldInfo a -> K (String, Header String) a
+goFieldH (FieldInfo n) = goFieldAnonH n
+
+goFieldAnonH :: forall a . Heidi a => String -> K (String, Header String) a
+goFieldAnonH n = K (n, header (Proxy @a))
+
+single :: [a] -> Bool
+single = (== 1) . length
+
+
+allp :: Proxy (All Heidi)
+allp = Proxy
+
+p :: Proxy Heidi
+p = Proxy
 
 -- | >>> take 3 labels
 -- ["_0","_1","_2"]
@@ -223,28 +301,31 @@ labels :: [String]
 labels = map (('_' :) . show) [0 ..]
 
 
--- instance Heidi () where toVal = VPrim VUnit
+instance Heidi () where {toVal _ = VPrim VPUnit ; header _ = HLeaf "()"}
 instance Heidi Bool where toVal = VPrim . VPBool
-instance Heidi Int where toVal = VPrim . VPInt
-instance Heidi Int8 where toVal = VPrim . VPInt8
-instance Heidi Int16 where toVal = VPrim . VPInt16
-instance Heidi Int32 where toVal = VPrim . VPInt32
-instance Heidi Int64 where toVal = VPrim . VPInt64
-instance Heidi Word8 where toVal = VPrim . VPWord8
-instance Heidi Word16 where toVal = VPrim . VPWord16
-instance Heidi Word32 where toVal = VPrim . VPWord32
-instance Heidi Word64 where toVal = VPrim . VPWord64
-instance Heidi Float where toVal = VPrim . VPFloat
-instance Heidi Double where toVal = VPrim . VPDouble
-instance Heidi Scientific where toVal = VPrim . VPScientific
-instance Heidi Char where toVal = VPrim . VPChar
-instance Heidi String where toVal = VPrim . VPString
-instance Heidi Text where toVal = VPrim . VPText
+instance Heidi Int where {toVal = VPrim . VPInt ; header _ = HLeaf "Int"}
+instance Heidi Int8 where {toVal = VPrim . VPInt8 ; header _ = HLeaf "Int8"}
+instance Heidi Int16 where {toVal = VPrim . VPInt16 ; header _ = HLeaf "Int16"}
+instance Heidi Int32 where {toVal = VPrim . VPInt32 ; header _ = HLeaf "Int32"}
+instance Heidi Int64 where {toVal = VPrim . VPInt64 ; header _ = HLeaf "Int64"}
+instance Heidi Word8 where {toVal = VPrim . VPWord8 ; header _ = HLeaf "Word8"}
+instance Heidi Word16 where {toVal = VPrim . VPWord16 ; header _ = HLeaf "Word16"}
+instance Heidi Word32 where {toVal = VPrim . VPWord32 ; header _ = HLeaf "Word32"}
+instance Heidi Word64 where {toVal = VPrim . VPWord64 ; header _ = HLeaf "Word64"}
+instance Heidi Float where {toVal = VPrim . VPFloat ; header _ = HLeaf "Float"}
+instance Heidi Double where {toVal = VPrim . VPDouble ; header _ = HLeaf "Double"}
+instance Heidi Scientific where {toVal = VPrim . VPScientific ; header _ = HLeaf "Scientific"}
+instance Heidi Char where {toVal = VPrim . VPChar ; header _ = HLeaf "Char"}
+instance Heidi String where {toVal = VPrim . VPString ; header _ = HLeaf "String"}
+instance Heidi Text where {toVal = VPrim . VPText ; header _ = HLeaf "Text"}
 
 instance Heidi a => Heidi (Maybe a) where
   toVal = \case
     Nothing -> VRec "Maybe" HM.empty
     Just x  -> VRec "Maybe" $ HM.singleton "Just" $ toVal x
+  header _ = HSum "Maybe" $ HM.fromList [
+    ("Nothing", HLeaf "_") ,
+    ("Just", header (Proxy @a))]
 
 instance (Heidi a, Heidi b) => Heidi (Either a b) where
   toVal = \case
@@ -389,15 +470,18 @@ instance Exception TypeError
 
 -- -- examples
 
-data A0 = A0 deriving (Eq, Show, G.Generic, Heidi)
-newtype A = A Int deriving (Eq, Show, G.Generic, Heidi)
+data A0 = MkA0 deriving (Eq, Show, G.Generic, Heidi)
+data A = MkA Int deriving (Eq, Show, G.Generic, Heidi)
+newtype A' = MkA' Int deriving (Eq, Show, G.Generic, Heidi)
 newtype A2 = A2 { a2 :: Int } deriving (Eq, Show, G.Generic, Heidi)
-data B = B Int Char deriving (Eq, Show, G.Generic, Heidi)
-data B2 = B2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, G.Generic, Heidi)
-data C = C1 | C2 | C3 deriving (Eq, Show, G.Generic, Heidi)
-data D = D (Maybe Int) (Either Int String) deriving (Eq, Show, G.Generic, Heidi)
+data B = MkB Int Char deriving (Eq, Show, G.Generic, Heidi)
+data B2 = MkB2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, G.Generic, Heidi)
+data C = MkC1 {c1 :: Int} | MkC2 A | MkC3 () deriving (Eq, Show, G.Generic, Heidi)
+data C2 = C21 {c21a :: Int, c21b :: ()} | C22 {c22 :: A} | C23 () deriving (Eq, Show, G.Generic, Heidi)
+data C3 a = C31 a a deriving (Eq, Show, G.Generic, Heidi)
+data D = D (Maybe Int) C deriving (Eq, Show, G.Generic, Heidi)
 data E = E (Maybe Int) (Maybe Char) deriving (Eq, Show, G.Generic, Heidi)
-data R = R { r1 :: B, r2 :: C } deriving (Eq, Show, G.Generic, Heidi)
+data R = MkR { r1 :: B2, r2 :: C , r3 :: B } deriving (Eq, Show, G.Generic, Heidi)
 
 -- newtype F = F (Int, Char) deriving (Eq, Show, G.Generic)
 -- instance Heidi F

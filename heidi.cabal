@@ -27,8 +27,6 @@ library
   exposed-modules:
                   Heidi
                   Heidi.Data.Frame.Algorithms.GenericTrie
-
-
   other-modules:
                   Core.Data.Frame
                   Core.Data.Frame.Generic

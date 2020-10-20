@@ -30,8 +30,6 @@ module Core.Data.Frame (
   head, take, drop, zipWith, numRows, 
   -- ** Filtering 
   filter, 
-  -- *** 'D.Decode'-based filtering
-  filterDecode, 
   -- **
   groupWith, 
   -- ** Scans (row-wise cumulative operations)
@@ -47,9 +45,6 @@ module Core.Data.Frame (
   -- insert, insertRowFun, insertRowFunM, 
   -- -- ** Access
   -- toList, keys, elems,
-  -- -- *** Decoders
-  -- D.Decode, D.mkDecode, D.runDecode, 
-  -- real, scientific, text, oneHot, 
   -- -- ** Lookup
   -- HMR.lookup, lookupThrowM, lookupDefault, (!:), elemSatisfies, 
   -- -- ** Set operations
@@ -67,28 +62,8 @@ module Core.Data.Frame (
 
 import qualified Control.Monad as CM (filterM)
 import Data.Maybe (fromMaybe)
--- import Control.Applicative (Alternative(..))
--- import qualified Data.Foldable as F
--- import Data.Foldable (foldl, foldr, foldlM, foldrM)
 import qualified Data.Vector as V
--- import qualified Data.Vector.Generic.Mutable as VGM
--- import qualified Data.Vector.Algorithms.Merge as V (sort, sortBy, Comparison)
--- import qualified Data.Text as T (pack)
--- import Data.Text (Text)
--- import qualified Data.Map as M
--- import qualified Data.HashMap.Strict as HM
 import qualified Data.List.NonEmpty as NE
-
--- import Control.Monad.Catch(Exception(..), MonadThrow(..))
--- import Data.Scientific (Scientific, toRealFloat)
--- import Data.Typeable (Typeable)
-
-import qualified Data.Generics.Decode as D (Decode, runDecode)
--- import Data.Generics.Decode ((>>>))
--- import qualified Data.GenericTrie as GT
--- import Data.Generics.Encode.Internal (VP, getIntM, getFloatM, getDoubleM, getScientificM, getStringM, getTextM, getOneHotM)
--- import Data.Generics.Encode.OneHot (OneHot)
-
 
 import Prelude hiding (filter, zipWith, lookup, foldl, foldr, scanl, scanr, head, take, drop)
 
@@ -175,18 +150,6 @@ filterA :: Applicative f =>
            (row -> f Bool) -> Frame row -> f (Maybe (Frame row))
 filterA fm t = fromNEList <$> CM.filterM fm (toList t)
 
-
-
--- | Filter a 'Frame' by decoding row values.
---
--- This is an intermediate function that doesn't require fixing the row type within the 'Frame'.
---
--- NB: a 'D.Decode' returning 'Bool' can be declared via its Functor, Applicative and Alternative instances.
-filterDecode :: Applicative f =>
-                D.Decode f row Bool   -- ^ Row decoder
-             -> Frame row
-             -> f (Maybe (Frame row))
-filterDecode dec = filterA (D.runDecode dec)
 
 
 -- filterInt2 k1 k2 =

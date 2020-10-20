@@ -41,6 +41,7 @@ data VP =
    | VPString { _vpString :: String } -- ^ 'String'
    | VPText   { _vpText :: Text } -- ^ 'Text'
    | VPOH     { _vpOneHot :: OneHot Int }  -- ^ 1-hot encoding of an enum value
+   | VPUnit
    deriving (Eq, Ord, G.Generic)
 instance Hashable VP
 makeLenses ''VP
@@ -65,3 +66,4 @@ instance Show VP where
     VPString s -> s
     VPText t -> unpack t
     VPOH oh -> show oh
+    VPUnit -> show ()
