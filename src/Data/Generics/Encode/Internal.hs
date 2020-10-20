@@ -238,7 +238,7 @@ npToVals xs = hcollapse $ hcmap p (mapIK toVal) xs
 
 header' :: (All2 Heidi xs, SListI xs) => DatatypeInfo xs -> Header String
 header' di
-  | single hs = 
+  | single hs =
       let (n, hdr) = head hs
       in HProd dtn $ HM.singleton n hdr
   | otherwise = HSum dtn $ HM.fromList hs
@@ -271,10 +271,10 @@ mkAnonProdH dtn _  | single hs =
 
 -- | products
 mkProdH :: All Heidi xs => String -> NP FieldInfo xs -> Header String
-mkProdH dtn finfo | single hs =
-                   let (n, hdr) = head hs
-                   in hdr
-                 | otherwise = HProd dtn $ HM.fromList hs
+mkProdH dtn finfo = HProd dtn $ HM.fromList hs -- | single hs =
+                 --   let (n, hdr) = head hs
+                 --   in hdr
+                 -- | otherwise = HProd dtn $ HM.fromList hs
   where
     hs :: [(String, Header String)]
     hs = hcollapse $ hcliftA p goFieldH finfo
