@@ -271,10 +271,10 @@ mkAnonProdH dtn _  | single hs =
 
 -- | products
 mkProdH :: All Heidi xs => String -> NP FieldInfo xs -> Header String
-mkProdH dtn finfo = HProd dtn $ HM.fromList hs -- | single hs =
-                 --   let (n, hdr) = head hs
-                 --   in hdr
-                 -- | otherwise = HProd dtn $ HM.fromList hs
+mkProdH dtn finfo | single hs =
+                    let (n, hdr) = head hs
+                    in hdr
+                 | otherwise = HProd dtn $ HM.fromList hs
   where
     hs :: [(String, Header String)]
     hs = hcollapse $ hcliftA p goFieldH finfo
