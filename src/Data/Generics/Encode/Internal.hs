@@ -176,15 +176,18 @@ data Header t =
    | HLeaf t -- ^ primitive types
    deriving (Eq, Show, Functor, Foldable, Traversable)
 
--- | Typeclass for types which have a generic encoding.
+-- | Single interface to the library.
 --
--- NOTE: if your type has a 'G.Generic' instance you just need to declare an empty instance of 'Heidi' for it.
+-- This typeclass provides all the machinery for encoding Haskell values into dataframes.
+--
+-- NOTE: Your datatypes only need to possess a 'G.Generic' instance, to which you just need to add an empty instance of 'Heidi'.
 --
 -- example:
 --
 -- @
--- data A = A Int Char deriving ('G.Generic')
--- instance 'Heidi' A
+-- {-\# language DeriveGenerics, DeriveAnyClass \#-}
+--
+-- data A = A Int Char deriving ('G.Generic', 'Heidi')
 -- @
 class Heidi a where
   toVal :: a -> Val
@@ -308,6 +311,7 @@ instance Heidi Int8 where {toVal = VPrim . VPInt8 ; header _ = HLeaf "Int8"}
 instance Heidi Int16 where {toVal = VPrim . VPInt16 ; header _ = HLeaf "Int16"}
 instance Heidi Int32 where {toVal = VPrim . VPInt32 ; header _ = HLeaf "Int32"}
 instance Heidi Int64 where {toVal = VPrim . VPInt64 ; header _ = HLeaf "Int64"}
+instance Heidi Word where {toVal = VPrim . VPWord ; header _ = HLeaf "Word"}
 instance Heidi Word8 where {toVal = VPrim . VPWord8 ; header _ = HLeaf "Word8"}
 instance Heidi Word16 where {toVal = VPrim . VPWord16 ; header _ = HLeaf "Word16"}
 instance Heidi Word32 where {toVal = VPrim . VPWord32 ; header _ = HLeaf "Word32"}
@@ -478,7 +482,8 @@ data B = MkB Int Char deriving (Eq, Show, G.Generic, Heidi)
 data B2 = MkB2 { b21 :: Int, b22 :: Char } deriving (Eq, Show, G.Generic, Heidi)
 data C = MkC1 {c1 :: Int} | MkC2 A | MkC3 () deriving (Eq, Show, G.Generic, Heidi)
 data C2 = C21 {c21a :: Int, c21b :: ()} | C22 {c22 :: A} | C23 () deriving (Eq, Show, G.Generic, Heidi)
-data C3 a = C31 a a deriving (Eq, Show, G.Generic, Heidi)
+data C3 = C31 | C32 | C33 deriving (Eq, Show, G.Generic, Heidi)
+-- data C3 a = C31 a a deriving (Eq, Show, G.Generic, Heidi)
 data D = D (Maybe Int) C deriving (Eq, Show, G.Generic, Heidi)
 data E = E (Maybe Int) (Maybe Char) deriving (Eq, Show, G.Generic, Heidi)
 data R = MkR { r1 :: B2, r2 :: C , r3 :: B } deriving (Eq, Show, G.Generic, Heidi)
