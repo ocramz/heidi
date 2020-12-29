@@ -12,6 +12,8 @@
 
 This library aims to bridge the gap between Haskell's precise but inflexible type discipline and the dynamic world of dataframes.
 
+More specifically, `heidi` aims to make it easy to analyze collections of Haskell values; users `encode` their data (lists, maps and so on) into dataframes, and use functions provided by `heidi` for manipulation.
+
 If this sounds interesting, read on!
 
 
