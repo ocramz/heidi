@@ -275,7 +275,7 @@ mkAnonProdH dtn _  | single hs =
 -- | products
 mkProdH :: All Heidi xs => String -> NP FieldInfo xs -> Header String
 mkProdH dtn finfo | single hs =
-                    let (n, hdr) = head hs
+                    let (n, hdr) = head hs   -- FIXME why n is unused ?!
                     in hdr
                  | otherwise = HProd dtn $ HM.fromList hs
   where

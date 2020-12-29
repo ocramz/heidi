@@ -10,10 +10,8 @@
 --
 -- Heidi : tidy data in Haskell
 --
--- In Heidi, a data 'Frame' is not meant to be constructed directly, but 'encode'd from a
--- collection of values. The encoding produces a simple representation which can be easily manipulated for common data analysis tasks.
+-- The purpose of this library is to make it easy to analyze collections of Haskell values; users 'encode' their data collections (lists, maps and so on) into dataframes, and use functions provided by `heidi` for manipulation.
 --
--- 
 --
 -----------------------------------------------------------------------------
 {-# options_ghc -Wno-unused-imports #-}
