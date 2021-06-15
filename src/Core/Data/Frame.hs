@@ -100,7 +100,7 @@ import Prelude hiding (filter, zipWith, lookup, foldl, foldr, scanl, scanr, head
 -- | A 'Frame' is a non-empty list of rows.
 newtype Frame row = Frame {
     -- nFrameRows :: Maybe Int  -- ^ Nothing means unknown
-    tableRows :: NE.NonEmpty row } deriving (Show, Functor, Foldable, Traversable)
+    tableRows :: NE.NonEmpty row } deriving (Show, Functor, Foldable, Traversable, Semigroup)
 
 -- | Take the first row of a 'Frame'
 --

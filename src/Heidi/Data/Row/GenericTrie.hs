@@ -1,8 +1,8 @@
-{-# language DeriveFunctor #-}
-{-# language DeriveFoldable #-}
-{-# language DeriveGeneric #-}
+
+
+
 {-# language DeriveTraversable #-}
-{-# language TemplateHaskell #-}
+{-# language GeneralizedNewtypeDeriving #-}
 {-# language LambdaCase #-}
 {-# language RankNTypes #-}
 {-# options_ghc -Wno-unused-imports #-}
@@ -116,6 +116,9 @@ import Prelude hiding (any, lookup)
 -- * Fast set operations
 -- * Supports missing elements
 newtype Row k v = Row { _unRow :: GT.Trie k v } deriving (Functor, Foldable, Traversable)
+instance (GT.TrieKey k) => Semigroup (Row k v) where
+  Row r1 <> Row r2 = Row $ r1 `GT.union` r2
+instance GT.TrieKey k => Monoid (Row k v) where mempty = Row GT.empty
 -- makeLenses ''Row
 instance (GT.TrieKey k, Show k, Show v) => Show (Row k v) where
   show = show . GT.toList . _unRow
@@ -326,7 +329,7 @@ eqByLookup = liftLookup (==)
 eqByLookups :: (Foldable t, GT.TrieKey k, Eq k, Eq a) =>
                t k -> Row k a -> Row k a -> Maybe Bool
 eqByLookups ks r1 r2 = F.foldlM insf True ks where
-  insf b k = (&&) <$> pure b <*> eqByLookup k r1 r2
+  insf b k = pure (((&&)) b) <*> eqByLookup k r1 r2
 
 -- -- | Like 'lookup', but throws a 'KeyError' if the lookup is unsuccessful
 -- lookupThrowM :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k) =>
@@ -382,7 +385,7 @@ filterWithKeyPrefix kpre = filterWithKey (\k _ -> kpre `isPrefixOf` k)
 partitionWithKey :: GT.TrieKey k =>
                     (k -> v -> Bool) -- ^ predicate
                  -> Row k v
-                 -> (Row k v, Row k v) 
+                 -> (Row k v, Row k v)
 partitionWithKey qf = foldWithKey insf (empty, empty)
   where
     insf k v (lacc, racc) | qf k v    = (insert k v lacc, racc)
@@ -471,7 +474,7 @@ elemSatisfies f k row = maybe False f (lookup k row)
 
 -- | Inline synonym for 'elemSatisfies'
 (!:) :: (GT.TrieKey k) => k -> (a -> Bool) -> Row k a -> Bool
-k !: f = elemSatisfies f k 
+k !: f = elemSatisfies f k
 
 -- -- | Lookup a value from a Row indexed at the given key (returns in a MonadThrow type)
 -- lookupColM :: (MonadThrow m, Show k, Typeable k, GT.TrieKey k) =>

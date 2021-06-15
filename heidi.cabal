@@ -1,5 +1,5 @@
 name:           heidi
-version:        0.1.0
+version:        0.2.0
 synopsis:       Tidy data in Haskell
 description:    Tidy data in Haskell, via generics.
 homepage:       https://github.com/ocramz/heidi#readme
@@ -42,7 +42,7 @@ library
       src
   ghc-options: -Wall
   build-depends:
-                    base > 4.9 && < 4.14
+                    base > 4.9 && < 5
                 , boxes >= 0.1.4
               -- , bytestring >= 0.10.8.1
               , containers >= 0.5.7.1
