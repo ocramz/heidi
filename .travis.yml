@@ -14,7 +14,6 @@ addons:
 # change flags or use --stack-yaml to point to a different file.
 env:
   jobs:
-    - ARGS="--resolver lts-9.21" # 8.0.2
     - ARGS="--resolver lts-12.26" # 8.4.4
     - ARGS="--resolver lts-13.19" # 8.6.4
     - ARGS="--resolver lts-14.27" # 8.6.5
@@ -22,7 +21,7 @@ env:
 
 jobs:
   allow_failures:
-    - env: ARGS="--resolver lts-9.0"
+    - env: ARGS="--resolver lts-9.21" # 8.0.2
 
 
 before_install:
