@@ -14,13 +14,11 @@ addons:
 # change flags or use --stack-yaml to point to a different file.
 env:
   jobs:
-    - ARGS="--resolver lts-9.0"
-    - ARGS="--resolver lts-12.0"
-    - ARGS="--resolver lts-13.0"
-    - ARGS="--resolver lts-13.17"
-    - ARGS="--resolver lts-13.21"
-    - ARGS="--resolver nightly-2019-05-30"
-    - ARGS="--resolver lts-14.19" # 8.6.5
+    - ARGS="--resolver lts-9.21" # 8.0.2
+    - ARGS="--resolver lts-12.26" # 8.4.4
+    - ARGS="--resolver lts-13.19" # 8.6.4
+    - ARGS="--resolver lts-14.27" # 8.6.5
+    - ARGS="--resolver lts-17.15" # 8.10.4
 
 jobs:
   allow_failures:
@@ -37,8 +35,8 @@ before_install:
 # executables, and test suites, and runs the test suites. --no-terminal works
 # around some quirks in Travis's terminal implementation.
 script:
-- stack $ARGS --no-terminal --install-ghc test --haddock
-- stack $ARGS --no-terminal test heidi:unit
+- stack $ARGS --no-terminal --install-ghc test --haddock --no-interleaved-output --verbosity warn
+- stack $ARGS --no-terminal test heidi:unit --no-interleaved-output --verbosity warn
 
 # Caching so the next build will be fast too.
 cache:
