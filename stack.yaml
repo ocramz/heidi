@@ -1,3 +1,6 @@
+
+
+
 # resolver: lts-9.0  # GHC 8.0.2
 # resolver: lts-11.0
 # resolver: lts-12.0
@@ -11,7 +14,10 @@ packages:
 - .
 
 extra-deps:
-- generic-trie-0.3.1@sha256:203cfc0086372abaf99ffb4b4b565eba8a28e6020f1104ec479cd96d0c3baeb7,1604
+  []
+
+# extra-deps:
+# - generic-trie-0.3.1@sha256:203cfc0086372abaf99ffb4b4b565eba8a28e6020f1104ec479cd96d0c3baeb7,1604
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
