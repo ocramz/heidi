@@ -1,6 +1,6 @@
 {-# language DeriveGeneric #-}
 {-# language LambdaCase #-}
-
+{-# LANGUAGE ScopedTypeVariables #-}
 -- {-# OPTIONS_GHC -Wall #-}
 {-# options_ghc -Wno-unused-imports #-}
 -----------------------------------------------------------------------------
@@ -23,6 +23,7 @@ module Core.Data.Frame.Generic (
   ) where
 
 import qualified Data.Foldable as F (toList)
+import Data.Proxy (Proxy(..))
 import Data.Typeable (Typeable)
 import Control.Exception (Exception(..))
 import GHC.Generics (Generic(..))
@@ -31,9 +32,9 @@ import Control.Monad.Catch (MonadThrow(..))
 -- microlens
 import Lens.Micro (toListOf)
 
-import qualified Core.Data.Frame.List as FL (Frame, frameFromList)
+import qualified Core.Data.Frame.List as FL (Frame(..))
 import qualified Heidi.Data.Row.GenericTrie as GTR (Row, mkRow)
-import Data.Generics.Encode.Internal (gflattenHM, gflattenGT, Heidi, TC(..), VP)
+import Data.Generics.Encode.Internal (gflattenHM, gflattenGT, Heidi, header, TC(..), VP)
 
 
 -- $setup
@@ -84,8 +85,10 @@ encode ds = gToFrameWith gToRowGT ds
 gToRowGT :: Heidi a => a -> GTR.Row [TC] VP
 gToRowGT = GTR.mkRow . gflattenGT
 
-gToFrameWith :: Foldable t => (a -> row) -> t a -> FL.Frame row
-gToFrameWith f = FL.frameFromList . map f . F.toList
+gToFrameWith :: forall a t row . (Heidi a, Foldable t) => (a -> row) -> t a -> FL.Frame row
+gToFrameWith f = FL.Frame h . map f . F.toList
+  where
+    h = header (Proxy :: Proxy a)
 
 -- -- | Exceptions related to the input data
 -- data DataException =
