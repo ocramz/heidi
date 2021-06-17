@@ -1,5 +1,5 @@
 name:           heidi
-version:        0.2.0
+version:        0.3.0
 synopsis:       Tidy data in Haskell
 description:    Tidy data in Haskell, via generics.
 homepage:       https://github.com/ocramz/heidi#readme
@@ -38,6 +38,9 @@ library
                   Data.Generics.Encode.OneHot
                   Heidi.Data.Frame.Algorithms.GenericTrie.Generic                  
                   Heidi.Data.Row.GenericTrie
+                  -- generic-trie
+                  Data.GenericTrie
+                  Data.GenericTrie.Internal
   hs-source-dirs:
       src
   ghc-options: -Wall
@@ -48,7 +51,6 @@ library
               , containers >= 0.5.7.1
               , exceptions >= 0.8.3
               , generics-sop > 0.3.0
-              , generic-trie >= 0.3.1
               , hashable >= 1.2.6.1
               -- , logging-effect
               , microlens >= 0.4.8
