@@ -13,6 +13,8 @@
 {-# LANGUAGE DataKinds #-} -- Meta
 #endif
 
+{-# OPTIONS_GHC -Wno-unused-imports #-}
+
 -- Copyright (c) 2014, Eric Mertens
 --
 -- All rights reserved.
