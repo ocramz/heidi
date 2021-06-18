@@ -18,19 +18,20 @@
 module Heidi (
   -- * Frame
   Frame
+  , frame
   -- ** Construction
   -- *** Encoding
   , encode, Heidi, TC, VP
   -- *** Direct
-  , frameFromList
+  -- , frameFromList
   -- ** Access
   , head, take, drop, numRows
   -- ** Filtering
-  , filter, filterA
+  , filter
   -- ** Grouping
   , groupWith
   -- ** Zipping
-  , zipWith
+  -- , zipWith
   -- ** Scans
   , scanl, scanr
   -- * Data tidying
@@ -38,7 +39,7 @@ module Heidi (
   -- * Relational operations
   , groupBy, innerJoin, leftOuterJoin
   -- * Vector-related
-  , toVector, fromVector
+  , toVector
 
   -- * Row
   , Row
@@ -90,7 +91,7 @@ module Heidi (
 
 import Control.Monad.Catch (MonadThrow(..))
 
-import Core.Data.Frame.List (Frame, frameFromList, head, take, drop, zipWith, numRows, filter, filterA, groupWith, scanl, scanr, toVector, fromVector)
+import Core.Data.Frame.List (Frame, frame, head, take, drop, numRows, filter, groupWith, scanl, scanr, toVector)
 import Core.Data.Frame.Generic (encode)
 import Data.Generics.Encode.Internal (Heidi(..), VP(..), getIntM, getInt8M, getInt16M, getInt32M, getInt64M, getWordM, getWord8M, getWord16M, getWord32M, getWord64M, getBoolM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM, TypeError(..), TC(..), tcTyN, tcTyCon, mkTyN, mkTyCon)
 import Data.Generics.Encode.OneHot (OneHot)

@@ -3,7 +3,7 @@ module Unit.GenericTrie where
 import Test.Tasty.Hspec (Spec, it, shouldBe)
 
 import Heidi.Data.Frame.Algorithms.GenericTrie (innerJoin, leftOuterJoin, groupBy)
-import Heidi (Frame, frameFromList, Row, rowFromList)
+import Heidi (Frame, frame, Row, rowFromList)
 
 test_innerJoin :: Spec
 test_innerJoin = it "innerJoin" $ do
@@ -25,7 +25,7 @@ test_groupBy = it "groupBy" $ do
 -- example data from https://en.wikipedia.org/wiki/Join_(SQL)
 
 employee :: Frame (Row String String)
-employee = frameFromList [e1, e2, e3, e4, e5, e6] where
+employee = frame mempty [e1, e2, e3, e4, e5, e6] where
   e1 = rowFromList [("name", "Rafferty"), ("id.dep", "31")]
   e2 = rowFromList [("name", "Jones"), ("id.dep", "33")]
   e3 = rowFromList [("name", "Heisenberg"), ("id.dep", "33")]
@@ -34,7 +34,7 @@ employee = frameFromList [e1, e2, e3, e4, e5, e6] where
   e6 = rowFromList [("name", "Williams")]  
 
 department :: Frame (Row String String)
-department = frameFromList [d1, d2, d3, d4] where
+department = frame mempty [d1, d2, d3, d4] where
   d1 = rowFromList [("id.dep", "31"), ("dept", "Sales")]
   d2 = rowFromList [("id.dep", "33"), ("dept", "Engineering")]
   d3 = rowFromList [("id.dep", "34"), ("dept", "Clerical")]
@@ -46,7 +46,7 @@ department = frameFromList [d1, d2, d3, d4] where
 
 
 t0 :: Frame (Row String String)
-t0 = frameFromList [ book1, ball, bike, book2 ]
+t0 = frame mempty [ book1, ball, bike, book2 ]
            where
              book1 = rowFromList [("item", "book"), ("id.0", "129"), ("qty", "1")]
              book2 = rowFromList [("item", "book"), ("id.0", "129"), ("qty", "5")]  
@@ -54,7 +54,7 @@ t0 = frameFromList [ book1, ball, bike, book2 ]
              bike = rowFromList [("item", "bike"), ("id.0", "410"), ("qty", "1")]
 
 t1 :: Frame (Row String String)
-t1 = frameFromList [ r1, r2, r3, r4 ] 
+t1 = frame mempty [ r1, r2, r3, r4 ] 
            where
              r1 = rowFromList [("id.1", "129"), ("price", "100")]
              r2 = rowFromList [("id.1", "234"), ("price", "50")]  

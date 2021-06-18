@@ -11,11 +11,11 @@
 -----------------------------------------------------------------------------
 module Heidi.Data.Frame.Algorithms.GenericTrie (
   -- ** Row-wise operations
-  unionColsWith  
+  -- unionColsWith  
   -- ** Filtering 
   -- , filterByKey
   -- ** Data tidying
-  , spreadWith, gatherWith
+  spreadWith, gatherWith
   -- ** Relational operations
   , groupBy, innerJoin, leftOuterJoin
                                            ) where
@@ -50,7 +50,7 @@ import qualified Data.GenericTrie as GT
 
 -- import qualified Data.Generics.Decode as D (Decode, runDecode)
 -- import Data.Generics.Decode ((>>>))
-import Core.Data.Frame.List (Frame, frameFromList, zipWith)
+import Core.Data.Frame.List (Frame(..))
 import qualified Heidi.Data.Row.GenericTrie as GTR
 -- import Core.Data.Row.Internal
 -- import Data.Generics.Encode.Val (VP, getIntM, getFloatM, getDoubleM, getScientificM, getStringM, getTextM, getOneHotM)
@@ -60,26 +60,14 @@ import Prelude hiding (filter, zipWith, lookup, foldl, foldr, scanl, scanr, head
 
 
 
--- -- insertDecode :: (Functor f, GT.TrieKey k) =>
--- --                 D.Decode f (GTR.Row k v) v  -- !!! this constrains start, end value types to be identical
--- --              -> k
--- --              -> GTR.Row k v
--- --              -> f (GTR.Row k v)
--- insertDecode dec g k row = f <$> D.runDecode dec row where
---   f x = GTR.insert k (g x) row
 
--- -- sumCols k1 k2 = insertDecode fk where
--- --   fk = (+) <$> GTR.scientific k1 <*> GTR.scientific k2
-  
-
-
--- | Merge two frames by taking the set union of the columns
-unionColsWith :: (Eq k, GT.TrieKey k) =>
-                 (v -> v -> v)   -- ^ Element combination function
-              -> Frame (GTR.Row k v)
-              -> Frame (GTR.Row k v)
-              -> Frame (GTR.Row k v)
-unionColsWith f = zipWith (GTR.unionWith f)
+-- -- | Merge two frames by taking the set union of the columns
+-- unionColsWith :: (Eq k, GT.TrieKey k) =>
+--                  (v -> v -> v)   -- ^ Element combination function
+--               -> Frame (GTR.Row k v)
+--               -> Frame (GTR.Row k v)
+--               -> Frame (GTR.Row k v)
+-- unionColsWith f = zipWith (GTR.unionWith f)
 
 
 -- | Filter a 'Frame' according to predicate applied to an element pointed to by a given key.
@@ -105,8 +93,9 @@ gatherWith :: (Foldable t, Ord k, GT.TrieKey k) =>
            -> k           -- ^ "value" key
            -> t (GTR.Row k v) -- ^ input dataframe
            -> Frame (GTR.Row k v)
-gatherWith fk ks kKey kValue = frameFromList . F.foldMap f where
+gatherWith fk ks kKey kValue = Frame hdr . F.foldMap f where
   f row = gather1 fk ks row kKey kValue
+  hdr = mempty -- FIXME
 
 -- | gather one row into a list of rows
 gather1 :: (Ord k, GT.TrieKey k) =>
@@ -139,9 +128,10 @@ spreadWith :: (GT.TrieKey k, Foldable t, Ord k, Ord v) =>
            -> k   -- ^ "value" key
            -> t (GTR.Row k v)  -- ^ input dataframe
            -> Frame (GTR.Row k v)
-spreadWith fk k1 k2 = frameFromList . map funion . M.toList . F.foldl' (spread1 fk k1 k2) M.empty
+spreadWith fk k1 k2 = Frame hdr . map funion . M.toList . F.foldl' (spread1 fk k1 k2) M.empty
   where
     funion (km, vm) = GTR.union km vm
+    hdr = mempty
   
 -- | spread1 creates a single row from multiple ones that share a subset of key-value pairs.
 spread1 :: (Ord k, Ord v, GT.TrieKey k, Eq k) =>
@@ -195,7 +185,9 @@ groupBy :: (Foldable t, GT.TrieKey k, Eq k, Ord v) =>
            k  -- ^ Key to group by
         -> t (GTR.Row k v) -- ^ A 'Frame (GTR.Row k v) can be used here
         -> M.Map v (Frame (GTR.Row k v))
-groupBy k tbl = frameFromList <$> groupL k tbl
+groupBy k tbl = Frame hdr <$> groupL k tbl
+  where
+    hdr = mempty
 
 groupL :: (Foldable t, Eq k, GT.TrieKey k, Eq v, Ord v) =>
           k -> t (GTR.Row k v) -> M.Map v [GTR.Row k v]
@@ -214,10 +206,12 @@ joinWith :: (Foldable t, Ord v, GT.TrieKey k, Eq v, Eq k) =>
          -> t (GTR.Row k v)
          -> t (GTR.Row k v)
          -> Frame (GTR.Row k v)
-joinWith f k1 k2 table1 table2 = frameFromList $ F.foldl' insf [] table1 where
+joinWith f k1 k2 table1 table2 = Frame hdr $ F.foldl' insf [] table1 where
+  hdr = mempty -- FIXME
   insf acc row1 = maybe (f row1 acc) appendMatchRows (GTR.lookup k1 row1) where
     appendMatchRows v = map (GTR.union row1) mr2 ++ acc where
       mr2 = matchingRows k2 v table2
+
 
 
 

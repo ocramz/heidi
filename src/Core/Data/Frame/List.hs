@@ -20,6 +20,7 @@
 module Core.Data.Frame.List (
   -- * Frame
   Frame(..),
+  frame,
   -- -- ** Construction
   -- frameFromList,
   -- ** Access
@@ -56,6 +57,10 @@ data Frame row = Frame {
 
 instance (Show r) => Show (Frame r) where
   show (Frame h rs) =  show rs -- FIXME add header machinery
+
+-- | UNSAFE direct construction of a 'Frame' (for debug purposes only)
+frame :: Header String -> [row] -> Frame row
+frame = Frame
 
 head :: Frame row -> row
 head = Prelude.head . tableRows

@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveTraversable #-}
-{-# LANGUAGE DeriveFoldable #-}
-{-# LANGUAGE DeriveFunctor #-}
+
+
 {-# language
     DeriveGeneric
   , DeriveAnyClass
@@ -45,7 +45,7 @@ module Data.Generics.Encode.Internal (gflattenHM, gflattenGT,
                                       -- ** 'MonadThrow' getters
                                      getIntM, getInt8M, getInt16M, getInt32M, getInt64M, getWordM, getWord8M, getWord16M, getWord32M, getWord64M, getBoolM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM, TypeError(..),
                                      -- * TC (Type and Constructor annotation)
-                                     TC(..), tcTyN, tcTyCon, mkTyN, mkTyCon, 
+                                     TC(..), tcTyN, tcTyCon, mkTyN, mkTyCon,
                                      -- * Heidi (generic ADT encoding)
                                      Heidi, toVal, Val(..), header, Header(..)) where
 
@@ -127,7 +127,7 @@ tcTyCon (TC _ c) = c
 
 -- | Create a fake TC with the given string as type constructor
 mkTyCon :: String -> TC
-mkTyCon x = TC "" x
+mkTyCon = TC ""
 
 -- | Create a fake TC with the given string as type name
 mkTyN :: String -> TC
@@ -175,6 +175,11 @@ data Header t =
    | HProd String (HM.HashMap String (Header t)) -- ^ products
    | HLeaf t -- ^ primitive types
    deriving (Eq, Show, Functor, Foldable, Traversable)
+
+instance Semigroup (Header t) where
+  HProd s1 hm1 <> HProd s2 hm2 = HProd (s1 <> s2) (hm1 `HM.union` hm2) -- FIXME
+instance Monoid t => Monoid (Header t) where
+  mempty = HLeaf mempty
 
 -- | Single interface to the library.
 --
@@ -340,7 +345,7 @@ instance (Heidi a, Heidi b) => Heidi (a, b) where
   toVal (x, y) = VRec "(,)" $ HM.fromList $ zip labels [toVal x, toVal y]
 
 instance (Heidi a, Heidi b, Heidi c) => Heidi (a, b, c) where
-  toVal (x, y, z) = VRec "(,,)" $ HM.fromList $ zip labels [toVal x, toVal y, toVal z] 
+  toVal (x, y, z) = VRec "(,,)" $ HM.fromList $ zip labels [toVal x, toVal y, toVal z]
 
 
 
