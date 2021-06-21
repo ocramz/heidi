@@ -31,6 +31,7 @@ import qualified Data.Foldable as F (foldMap, foldl', foldlM)
 import qualified Data.Map as M
 import qualified Data.HashMap.Strict as HM
 import Data.Hashable (Hashable(..))
+import Data.Hashable.Time (Hashable(..))
 import qualified Data.Set as S (Set, fromList)
 -- import Control.Monad.Primitive (PrimMonad(..), PrimState(..))
 -- import Control.Monad.Catch(Exception(..), MonadThrow(..))

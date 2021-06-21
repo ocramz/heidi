@@ -41,9 +41,9 @@ module Data.Generics.Encode.Internal (gflattenHM, gflattenGT,
                                       -- * VP (Primitive types)
                                       VP(..),
                                       -- ** Lenses
-                                      vpInt, vpDouble, vpFloat, vpString, vpText, vpBool, vpScientific, vpChar, vpOneHot,
+                                      vpInt, vpDouble, vpFloat, vpString, vpText, vpBool, vpScientific, vpChar, vpOneHot, vpDay,
                                       -- ** 'MonadThrow' getters
-                                     getIntM, getInt8M, getInt16M, getInt32M, getInt64M, getWordM, getWord8M, getWord16M, getWord32M, getWord64M, getBoolM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM, TypeError(..),
+                                      getIntM, getInt8M, getInt16M, getInt32M, getInt64M, getWordM, getWord8M, getWord16M, getWord32M, getWord64M, getBoolM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM, getDayM, TypeError(..),
                                      -- * TC (Type and Constructor annotation)
                                      TC(..), tcTyN, tcTyCon, mkTyN, mkTyCon,
                                      -- * Heidi (generic ADT encoding)
@@ -75,6 +75,8 @@ import Lens.Micro.TH (makeLenses)
 import Data.Scientific (Scientific)
 -- text
 import Data.Text (Text, unpack)
+-- time
+import Data.Time (Day)
 
 -- import Data.Time (Day, LocalTime, TimeOfDay)
 -- import qualified Data.Vector as V
@@ -82,7 +84,7 @@ import qualified Data.HashMap.Strict as HM
 -- import qualified Data.GenericTrie as GT
 
 import Data.Generics.Encode.OneHot (OneHot, mkOH)
-import Data.Generics.Encode.Internal.Prim (VP(..), vpInt, vpScientific, vpFloat, vpDouble, vpString, vpChar, vpText, vpBool, vpOneHot)
+import Data.Generics.Encode.Internal.Prim (VP(..), vpInt, vpScientific, vpFloat, vpDouble, vpString, vpChar, vpText, vpBool, vpOneHot, vpDay)
 -- import Data.List (unfoldr)
 -- import qualified Data.Foldable as F
 -- import qualified Data.Sequence as S (Seq(..), empty)
@@ -327,6 +329,7 @@ instance Heidi Scientific where {toVal = VPrim . VPScientific ; header _ = HLeaf
 instance Heidi Char where {toVal = VPrim . VPChar ; header _ = HLeaf "Char"}
 instance Heidi String where {toVal = VPrim . VPString ; header _ = HLeaf "String"}
 instance Heidi Text where {toVal = VPrim . VPText ; header _ = HLeaf "Text"}
+instance Heidi Day where {toVal = VPrim . VPDay ; header _ = HLeaf "Day"}
 
 instance Heidi a => Heidi (Maybe a) where
   toVal = \case
@@ -405,6 +408,9 @@ getText = \case {VPText i -> Just i; _ -> Nothing}
 -- | Extract a OneHot value
 getOneHot :: VP -> Maybe (OneHot Int)
 getOneHot = \case {VPOH i -> Just i; _ -> Nothing}
+-- | Extract a Day
+getDay :: VP -> Maybe Day
+getDay = \case {VPDay i -> Just i; _ -> Nothing}
 
 -- | Helper function for decoding into a 'MonadThrow'.
 decodeM :: (MonadThrow m, Exception e) =>
@@ -448,6 +454,8 @@ getTextM :: MonadThrow m => VP -> m Text
 getTextM x = decodeM TextCastE pure (getText x)
 getOneHotM :: MonadThrow m => VP -> m (OneHot Int)
 getOneHotM x = decodeM OneHotCastE pure (getOneHot x)
+getDayM :: MonadThrow m => VP -> m Day
+getDayM x = decodeM DayCastE pure (getDay x)
 
 -- | Type errors
 data TypeError =
@@ -469,6 +477,7 @@ data TypeError =
   | StringCastE
   | TextCastE
   | OneHotCastE
+  | DayCastE
   deriving (Show, Eq, Typeable)
 instance Exception TypeError
 

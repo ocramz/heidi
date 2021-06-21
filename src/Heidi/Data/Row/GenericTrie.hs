@@ -57,7 +57,7 @@ module Heidi.Data.Row.GenericTrie (
   , traverseWithKey
   -- * Lens combinators
   -- ** Traversals
-  , int, bool, float, double, char, string, text, scientific, oneHot
+  , int, bool, float, double, char, string, text, scientific, oneHot, day
   -- ** Getters
   , real, txt
   -- , flag
@@ -91,12 +91,14 @@ import Lens.Micro (Lens', Traversal', Getting, (^.), (^?), (<&>), _Just, Getting
 import Data.Scientific (Scientific)
 -- text
 import Data.Text (Text)
+-- time
+import Data.Time (Day)
 import qualified Data.Text as T (pack, unpack)
 
 
 -- import qualified Data.Generics.Decode as D (Decode, mkDecode)
 -- import Data.Generics.Decode ((>>>))
-import Data.Generics.Encode.Internal (VP, vpInt, vpFloat, vpDouble, vpString, vpChar, vpText, vpBool, vpScientific, vpOneHot)
+import Data.Generics.Encode.Internal (VP, vpInt, vpFloat, vpDouble, vpString, vpChar, vpText, vpBool, vpScientific, vpOneHot, vpDay)
 import Data.Generics.Encode.OneHot (OneHot)
 -- import Data.Generics.Codec
 -- import Core.Data.Row.Internal (KeyError(..))
@@ -267,7 +269,9 @@ scientific k = at k . _Just . vpScientific
 -- | Decode a 'OneHot' from the given column index
 oneHot :: GT.TrieKey k => k -> Traversal' (Row k VP) (OneHot Int)
 oneHot k = at k . _Just . vpOneHot
-
+-- | Decode a 'Day' from the given column index
+day :: GT.TrieKey k => k -> Traversal' (Row k VP) Day
+day k = at k . _Just . vpDay
 
 
 
