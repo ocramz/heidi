@@ -434,10 +434,10 @@ getTimeZone = \case {VPTimeZone i -> Just i; _ -> Nothing}
 -- | Extract a NominalDiffTime
 getNominalDiffTime :: VP -> Maybe NominalDiffTime
 getNominalDiffTime = \case {VPNominalDiffTime i -> Just i; _ -> Nothing}
--- | Extract a NominalDiffTime
+-- | Extract a DiffTime
 getDiffTime :: VP -> Maybe DiffTime
 getDiffTime = \case {VPDiffTime i -> Just i; _ -> Nothing}
--- | Extract a NominalDiffTime
+-- | Extract a UniversalTime
 getUniversalTime :: VP -> Maybe UniversalTime
 getUniversalTime = \case {VPUniversalTime i -> Just i; _ -> Nothing}
 -- | Helper function for decoding into a 'MonadThrow'.
