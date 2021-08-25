@@ -41,9 +41,9 @@ module Data.Generics.Encode.Internal (gflattenHM, gflattenGT,
                                       -- * VP (Primitive types)
                                       VP(..),
                                       -- ** Lenses
-                                      vpInt, vpDouble, vpFloat, vpString, vpText, vpBool, vpScientific, vpChar, vpOneHot,
+                                      vpInt, vpDouble, vpFloat, vpString, vpText, vpBool, vpScientific, vpChar, vpOneHot, vpDay, vpUTCTime, vpTimeOfDay, vpLocalTime, vpTimeZone, vpNominalDiffTime, vpDiffTime, vpUniversalTime,
                                       -- ** 'MonadThrow' getters
-                                     getIntM, getInt8M, getInt16M, getInt32M, getInt64M, getWordM, getWord8M, getWord16M, getWord32M, getWord64M, getBoolM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM, TypeError(..),
+                                      getIntM, getInt8M, getInt16M, getInt32M, getInt64M, getWordM, getWord8M, getWord16M, getWord32M, getWord64M, getBoolM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM, getDayM, getUTCTimeM, getTimeOfDayM, getLocalTimeM, getTimeZoneM, getNominalDiffTimeM, getDiffTimeM, getUniversalTimeM, TypeError(..),
                                      -- * TC (Type and Constructor annotation)
                                      TC(..), tcTyN, tcTyCon, mkTyN, mkTyCon,
                                      -- * Heidi (generic ADT encoding)
@@ -75,6 +75,8 @@ import Lens.Micro.TH (makeLenses)
 import Data.Scientific (Scientific)
 -- text
 import Data.Text (Text, unpack)
+-- time
+import Data.Time (Day, UTCTime,  TimeOfDay, LocalTime, TimeZone, NominalDiffTime, DiffTime, UniversalTime)
 
 -- import Data.Time (Day, LocalTime, TimeOfDay)
 -- import qualified Data.Vector as V
@@ -82,7 +84,7 @@ import qualified Data.HashMap.Strict as HM
 -- import qualified Data.GenericTrie as GT
 
 import Data.Generics.Encode.OneHot (OneHot, mkOH)
-import Data.Generics.Encode.Internal.Prim (VP(..), vpInt, vpScientific, vpFloat, vpDouble, vpString, vpChar, vpText, vpBool, vpOneHot)
+import Data.Generics.Encode.Internal.Prim (VP(..), vpInt, vpBool, vpFloat, vpDouble, vpScientific, vpChar, vpString, vpText, vpOneHot, vpDay, vpUTCTime, vpTimeOfDay, vpLocalTime, vpTimeZone, vpNominalDiffTime, vpDiffTime, vpUniversalTime) 
 -- import Data.List (unfoldr)
 -- import qualified Data.Foldable as F
 -- import qualified Data.Sequence as S (Seq(..), empty)
@@ -327,6 +329,15 @@ instance Heidi Scientific where {toVal = VPrim . VPScientific ; header _ = HLeaf
 instance Heidi Char where {toVal = VPrim . VPChar ; header _ = HLeaf "Char"}
 instance Heidi String where {toVal = VPrim . VPString ; header _ = HLeaf "String"}
 instance Heidi Text where {toVal = VPrim . VPText ; header _ = HLeaf "Text"}
+instance Heidi Day where {toVal = VPrim . VPDay ; header _ = HLeaf "Day"}
+instance Heidi UTCTime where {toVal = VPrim . VPUTCTime ; header _ = HLeaf "UTCTime"}
+instance Heidi TimeOfDay where {toVal = VPrim . VPTimeOfDay ; header _ = HLeaf "TimeOfDay"}
+instance Heidi LocalTime where {toVal = VPrim . VPLocalTime ; header _ = HLeaf "LocalTime"}
+instance Heidi TimeZone where {toVal = VPrim . VPTimeZone ; header _ = HLeaf "TimeZone"}
+instance Heidi NominalDiffTime where {toVal = VPrim . VPNominalDiffTime ; header _ = HLeaf "NominalDiffTime"}
+instance Heidi DiffTime where {toVal = VPrim . VPDiffTime ; header _ = HLeaf "DiffTime"}
+instance Heidi UniversalTime where {toVal = VPrim . VPUniversalTime ; header _ = HLeaf "UniversalTime"}
+
 
 instance Heidi a => Heidi (Maybe a) where
   toVal = \case
@@ -405,7 +416,30 @@ getText = \case {VPText i -> Just i; _ -> Nothing}
 -- | Extract a OneHot value
 getOneHot :: VP -> Maybe (OneHot Int)
 getOneHot = \case {VPOH i -> Just i; _ -> Nothing}
-
+-- | Extract a Day
+getDay :: VP -> Maybe Day
+getDay = \case {VPDay i -> Just i; _ -> Nothing}
+-- | Extract a UTCTime
+getUTCTime :: VP -> Maybe UTCTime
+getUTCTime = \case {VPUTCTime i -> Just i; _ -> Nothing}
+-- | Extract a TimeOfDay
+getTimeOfDay :: VP -> Maybe TimeOfDay
+getTimeOfDay = \case {VPTimeOfDay i -> Just i; _ -> Nothing}
+-- | Extract a LocalTime
+getLocalTime :: VP -> Maybe LocalTime
+getLocalTime = \case {VPLocalTime i -> Just i; _ -> Nothing}
+-- | Extract a TimeZone
+getTimeZone :: VP -> Maybe TimeZone
+getTimeZone = \case {VPTimeZone i -> Just i; _ -> Nothing}
+-- | Extract a NominalDiffTime
+getNominalDiffTime :: VP -> Maybe NominalDiffTime
+getNominalDiffTime = \case {VPNominalDiffTime i -> Just i; _ -> Nothing}
+-- | Extract a DiffTime
+getDiffTime :: VP -> Maybe DiffTime
+getDiffTime = \case {VPDiffTime i -> Just i; _ -> Nothing}
+-- | Extract a UniversalTime
+getUniversalTime :: VP -> Maybe UniversalTime
+getUniversalTime = \case {VPUniversalTime i -> Just i; _ -> Nothing}
 -- | Helper function for decoding into a 'MonadThrow'.
 decodeM :: (MonadThrow m, Exception e) =>
            e -> (a -> m b) -> Maybe a -> m b
@@ -448,6 +482,22 @@ getTextM :: MonadThrow m => VP -> m Text
 getTextM x = decodeM TextCastE pure (getText x)
 getOneHotM :: MonadThrow m => VP -> m (OneHot Int)
 getOneHotM x = decodeM OneHotCastE pure (getOneHot x)
+getDayM :: MonadThrow m => VP -> m Day
+getDayM x = decodeM DayCastE pure (getDay x)
+getUTCTimeM :: MonadThrow m => VP -> m UTCTime
+getUTCTimeM x = decodeM UTCTimeCastE pure (getUTCTime x)
+getLocalTimeM :: MonadThrow m => VP -> m LocalTime
+getLocalTimeM x = decodeM LocalTimeCastE pure (getLocalTime x)
+getTimeOfDayM :: MonadThrow m => VP -> m TimeOfDay
+getTimeOfDayM x = decodeM TimeOfDayCastE pure (getTimeOfDay x)
+getTimeZoneM :: MonadThrow m => VP -> m TimeZone
+getTimeZoneM x = decodeM TimeZoneCastE pure (getTimeZone x)
+getNominalDiffTimeM :: MonadThrow m => VP -> m NominalDiffTime
+getNominalDiffTimeM x = decodeM NominalDiffTimeCastE pure (getNominalDiffTime x)
+getDiffTimeM :: MonadThrow m => VP -> m DiffTime
+getDiffTimeM x = decodeM DiffTimeCastE pure (getDiffTime x)
+getUniversalTimeM :: MonadThrow m => VP -> m UniversalTime
+getUniversalTimeM x = decodeM UniversalTimeCastE pure (getUniversalTime x)
 
 -- | Type errors
 data TypeError =
@@ -469,6 +519,14 @@ data TypeError =
   | StringCastE
   | TextCastE
   | OneHotCastE
+  | DayCastE
+  | UTCTimeCastE
+  | LocalTimeCastE
+  | TimeOfDayCastE
+  | NominalDiffTimeCastE
+  | TimeZoneCastE
+  | DiffTimeCastE
+  | UniversalTimeCastE
   deriving (Show, Eq, Typeable)
 instance Exception TypeError
 

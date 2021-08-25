@@ -74,7 +74,8 @@ module Heidi (
   , traverseWithKey
   -- ** Lens combinators
   -- *** Traversals
-  , int, bool, float, double, char, string, text, scientific, oneHot
+  , int, bool, float, double, char, string, text, scientific, oneHot, day, utcTime, timeOfDay, localTime, timeZone, nominalDiffTime, diffTime, universalTime
+  -- ** Getters
   -- *** Getters
   , real, txt
   -- , flag
@@ -93,7 +94,7 @@ import Control.Monad.Catch (MonadThrow(..))
 
 import Core.Data.Frame.List (Frame, frame, head, take, drop, numRows, filter, groupWith, scanl, scanr, toVector)
 import Core.Data.Frame.Generic (encode)
-import Data.Generics.Encode.Internal (Heidi(..), VP(..), getIntM, getInt8M, getInt16M, getInt32M, getInt64M, getWordM, getWord8M, getWord16M, getWord32M, getWord64M, getBoolM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM, TypeError(..), TC(..), tcTyN, tcTyCon, mkTyN, mkTyCon)
+import Data.Generics.Encode.Internal (Heidi(..), VP(..), getIntM, getInt8M, getInt16M, getInt32M, getInt64M, getWordM, getWord8M, getWord16M, getWord32M, getWord64M, getBoolM, getFloatM, getDoubleM, getScientificM, getCharM, getStringM, getTextM, getOneHotM, getDayM, getUTCTimeM, getTimeOfDayM, getLocalTimeM, getTimeZoneM, getNominalDiffTimeM, getDiffTimeM, getUniversalTimeM, TypeError(..), TC(..), tcTyN, tcTyCon, mkTyN, mkTyCon)
 import Data.Generics.Encode.OneHot (OneHot)
 import Heidi.Data.Row.GenericTrie 
 import Heidi.Data.Frame.Algorithms.GenericTrie (innerJoin, leftOuterJoin, gatherWith, spreadWith, groupBy)

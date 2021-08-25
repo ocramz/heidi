@@ -57,7 +57,7 @@ module Heidi.Data.Row.GenericTrie (
   , traverseWithKey
   -- * Lens combinators
   -- ** Traversals
-  , int, bool, float, double, char, string, text, scientific, oneHot
+  , int, bool, float, double, char, string, text, scientific, oneHot, day, utcTime, timeOfDay, localTime, timeZone, nominalDiffTime, diffTime, universalTime
   -- ** Getters
   , real, txt
   -- , flag
@@ -91,12 +91,14 @@ import Lens.Micro (Lens', Traversal', Getting, (^.), (^?), (<&>), _Just, Getting
 import Data.Scientific (Scientific)
 -- text
 import Data.Text (Text)
+-- time
+import Data.Time (Day, UTCTime,  TimeOfDay, LocalTime, TimeZone, NominalDiffTime, DiffTime, UniversalTime)
 import qualified Data.Text as T (pack, unpack)
 
 
 -- import qualified Data.Generics.Decode as D (Decode, mkDecode)
 -- import Data.Generics.Decode ((>>>))
-import Data.Generics.Encode.Internal (VP, vpInt, vpFloat, vpDouble, vpString, vpChar, vpText, vpBool, vpScientific, vpOneHot)
+import Data.Generics.Encode.Internal (VP, vpInt, vpFloat, vpDouble, vpString, vpChar, vpText, vpBool, vpScientific, vpOneHot, vpDay, vpUTCTime, vpTimeOfDay, vpLocalTime, vpTimeZone, vpNominalDiffTime, vpDiffTime, vpUniversalTime)
 import Data.Generics.Encode.OneHot (OneHot)
 -- import Data.Generics.Codec
 -- import Core.Data.Row.Internal (KeyError(..))
@@ -267,7 +269,30 @@ scientific k = at k . _Just . vpScientific
 -- | Decode a 'OneHot' from the given column index
 oneHot :: GT.TrieKey k => k -> Traversal' (Row k VP) (OneHot Int)
 oneHot k = at k . _Just . vpOneHot
-
+-- | Decode a 'Day' from the given column index
+day :: GT.TrieKey k => k -> Traversal' (Row k VP) Day
+day k = at k . _Just . vpDay
+-- | Decode a 'UTCTime' from the given column index
+utcTime :: GT.TrieKey k => k -> Traversal' (Row k VP) UTCTime
+utcTime k = at k . _Just . vpUTCTime
+-- | Decode a 'TimeOfDay' from the given column index
+timeOfDay :: GT.TrieKey k => k -> Traversal' (Row k VP) TimeOfDay
+timeOfDay k = at k . _Just . vpTimeOfDay
+-- | Decode a 'LocalTime' from the given column index
+localTime :: GT.TrieKey k => k -> Traversal' (Row k VP) LocalTime
+localTime k = at k . _Just . vpLocalTime
+-- | Decode a 'TimeZone' from the given column index
+timeZone :: GT.TrieKey k => k -> Traversal' (Row k VP) TimeZone
+timeZone k = at k . _Just . vpTimeZone
+-- | Decode a 'NominalDiffTime' from the given column index
+nominalDiffTime :: GT.TrieKey k => k -> Traversal' (Row k VP) NominalDiffTime
+nominalDiffTime k = at k . _Just . vpNominalDiffTime
+-- | Decode a 'DiffTime' from the given column index
+diffTime :: GT.TrieKey k => k -> Traversal' (Row k VP) DiffTime
+diffTime k = at k . _Just . vpDiffTime
+-- | Decode a 'UniversalTime' from the given column index
+universalTime :: GT.TrieKey k => k -> Traversal' (Row k VP) UniversalTime
+universalTime k = at k . _Just . vpUniversalTime
 
 
 

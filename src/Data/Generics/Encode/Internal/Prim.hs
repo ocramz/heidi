@@ -2,7 +2,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# language TemplateHaskell #-}
 {-# options_ghc -Wno-unused-imports #-}
-module Data.Generics.Encode.Internal.Prim (VP(..), vpInt, vpBool, vpFloat, vpDouble, vpScientific, vpChar, vpString, vpText, vpOneHot) where
+module Data.Generics.Encode.Internal.Prim (VP(..), vpInt, vpBool, vpFloat, vpDouble, vpScientific, vpChar, vpString, vpText, vpOneHot, vpDay, vpUTCTime, vpTimeOfDay, vpLocalTime, vpTimeZone, vpNominalDiffTime, vpDiffTime, vpUniversalTime) where
 
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Word (Word, Word8, Word16, Word32, Word64)
@@ -16,6 +16,11 @@ import Lens.Micro.TH (makeLenses)
 import Data.Scientific (Scientific)
 -- text
 import Data.Text (Text, unpack)
+-- time
+import Data.Time (Day, UTCTime,  TimeOfDay, LocalTime, TimeZone, NominalDiffTime, DiffTime, UniversalTime)
+
+-- hashable-time
+import Data.Hashable.Time (Hashable(..))
 
 import Data.Generics.Encode.OneHot (OneHot, mkOH)
 
@@ -42,6 +47,17 @@ data VP =
    | VPText   { _vpText :: Text } -- ^ 'Text'
    | VPOH     { _vpOneHot :: OneHot Int }  -- ^ 1-hot encoding of an enum value
    | VPUnit
+   | VPDay { _vpDay :: Day } -- ^ 'Day'
+   | VPUTCTime { _vpUTCTime :: UTCTime } -- ^ 'UTCTime'
+   | VPTimeOfDay { _vpTimeOfDay :: TimeOfDay } -- ^ 'TimeOfDay'
+   | VPLocalTime { _vpLocalTime :: LocalTime } -- ^ 'LocalTime'
+   | VPTimeZone { _vpTimeZone :: TimeZone } -- ^ 'TimeZone'
+   | VPNominalDiffTime { _vpNominalDiffTime :: NominalDiffTime } -- ^ 'NominalDiffTime'
+   | VPDiffTime { _vpDiffTime :: DiffTime } -- ^ 'DiffTime'
+   | VPUniversalTime { _vpUniversalTime :: UniversalTime } -- ^ 'UniversalTime'
+   
+   
+
    deriving (Eq, Ord, G.Generic)
 instance Hashable VP
 makeLenses ''VP
@@ -67,3 +83,11 @@ instance Show VP where
     VPText t -> unpack t
     VPOH oh -> show oh
     VPUnit -> show ()
+    VPDay d -> show d
+    VPUTCTime t -> show t
+    VPTimeOfDay t -> show t
+    VPLocalTime t -> show t
+    VPTimeZone t -> show t
+    VPNominalDiffTime t -> show t
+    VPDiffTime t -> show t
+    VPUniversalTime t -> show t
